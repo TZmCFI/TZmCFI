@@ -1,7 +1,7 @@
 MEMORY
 {
-    CODEMEM (rx) : ORIGIN = 0x00000000, LENGTH = 512K
-    SRAM (rwx) : ORIGIN = 0x28000000, LENGTH = 32K
+    CODEMEM (rx) : ORIGIN = 0x00200000, LENGTH = 512K
+    SRAM (rwx) : ORIGIN = 0x28200000, LENGTH = 32K
 
     SECURE_CODEMEM (rx) : ORIGIN = 0x10000000, LENGTH = 512K
     SECURE_SRAM (rwx) : ORIGIN = 0x38000000, LENGTH = 32K
@@ -34,12 +34,18 @@ SECTIONS
 
     } > SECURE_CODEMEM
 
+    .gnu.sgstubs :
+    {
+        . = ALIGN(32);
+    } > SECURE_CODEMEM
+
     _etext = .;
     PROVIDE(etext = .);
 
     .rodata :
     {
-        *_s.o(.rodata)
+        *(.rodata)
+        *(.rodata*)
     } > SECURE_CODEMEM
 
     .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) }

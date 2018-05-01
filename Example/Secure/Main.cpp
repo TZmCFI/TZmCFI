@@ -1,6 +1,7 @@
 /*
- * Example program for AN521 FPGA.
+ * An example Secure program for AN521 FPGA.
  */
+#include <ARMCM33_TZ.h>
 #include <string_view>
 
 using namespace std::literals;
@@ -12,7 +13,15 @@ extern "C" void HandleReset();
 namespace Loader {
 namespace {
 
+typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
+
 [[noreturn]] void Main() {
+    // Enable SecureFault, UsageFault, BusFault, and MemManage for ease of debugging
+    SCB->SHCSR = 0b00000000'00001111'00000000'00000000;
+
+    auto nsResetHandler = (ns_funcptr_void)(*(uint32_t *)0x00200004);
+    nsResetHandler();
+
     while (1)
         ;
 }
