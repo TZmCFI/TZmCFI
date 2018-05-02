@@ -19,6 +19,30 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     // Enable SecureFault, UsageFault, BusFault, and MemManage for ease of debugging
     SCB->SHCSR = 0b00000000'00001111'00000000'00000000;
 
+    // Set up the Non-Secure regions
+    SAU->RNR = 0;
+    SAU->RBAR = 0x00200000;
+    SAU->RLAR = 0x003fffe0 | SAU_RLAR_ENABLE_Msk;
+    SAU->RNR = 1;
+    SAU->RBAR = 0x28200000;
+    SAU->RLAR = 0x283fffe0 | SAU_RLAR_ENABLE_Msk;
+    // TODO: Non-Secure Callable region
+
+    // Allow Non-Secure access to UART0
+    SAU->RNR = 2;
+    SAU->RBAR = 0x40200000;
+    SAU->RLAR = 0x40200fe0 | SAU_RLAR_ENABLE_Msk;
+
+    // Configure APB PPC EXP 1 NS (APBNSPPCEXP1) interface 5 to enable
+    // Non-Secure access to UART0
+    *(volatile uint32_t *)0x50080084 |= 1 << 5;
+
+    // Configure APB PPC EXP 1 SP (APBSPPPCEXP1) interface 5 to enable
+    // unprivileged access to UART0
+    *(volatile uint32_t *)0x500800c4 |= 1 << 5;
+
+    TZ_SAU_Enable();
+
     auto nsResetHandler = (ns_funcptr_void)(*(uint32_t *)0x00200004);
     nsResetHandler();
 
