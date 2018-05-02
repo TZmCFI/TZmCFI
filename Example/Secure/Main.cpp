@@ -43,6 +43,9 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
 
     TZ_SAU_Enable();
 
+    // Set the Non-Secure main stack
+    __TZ_set_MSP_NS(*(uint32_t *)0x00200000);
+
     auto nsResetHandler = (ns_funcptr_void)(*(uint32_t *)0x00200004);
     nsResetHandler();
 

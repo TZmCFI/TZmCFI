@@ -18,11 +18,9 @@ const Pl011Driver Uart{An521::Uart0BaseAddress};
 constexpr uint32_t SystemCoreClock = 25'000'000;
 constexpr uint32_t UartBaudRate = 115'200;
 
-[[noreturn]] void Main() {
+void Main() {
     Uart.Configure(SystemCoreClock, UartBaudRate);
-    Uart.WriteAll("I have nothing to do! Aborting.\n"sv);
-    while (1)
-        ;
+    Uart.WriteAll("I'm running in the Non-Secure mode.\n"sv);
 }
 
 [[noreturn]] void HandleUnknown(std::string_view message) {
@@ -71,4 +69,4 @@ __attribute__((section(".isr_vector"))) uint32_t ExceptionVector[] = {
 }; // namespace TCExample
 
 // Called by the reset handler
-extern "C" [[noreturn]] void AppMain() { TCExample::Main(); }
+extern "C" void AppMain() { TCExample::Main(); }

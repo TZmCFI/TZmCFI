@@ -8,7 +8,7 @@
   .weak  HandleReset
   .type  HandleReset, %function
 HandleReset:
-  ldr   sp, =_MainStackTop      /* set stack pointer */
+  /* set stack pointer */
 
 /* Copy the data segment initializers from flash to SRAM */
   movs  r1, #0
@@ -38,6 +38,8 @@ LoopFillZerobss:
   cmp  r2, r3
   bcc  FillZerobss
 
+  push {lr}
   bl  AppMain
+  pop {lr}
   bx  lr
 .size  HandleReset, .-HandleReset
