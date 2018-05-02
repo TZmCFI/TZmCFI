@@ -8,7 +8,7 @@ HEX = arm-none-eabi-objcopy -O ihex
 BIN = arm-none-eabi-objcopy -O binary -S
 SZ = arm-none-eabi-size
 
-MCU := -mcpu=cortex-m33 -mthumb -mfloat-abi=soft -msoft-float -march=armv8-m.main
+MCU := -mthumb -mfloat-abi=soft -msoft-float -march=armv8-m.main
 
 ifeq "$(CMSIS_PATH)" ""
 $(error You must specify CMSIS_PATH to the directory where CMSIS 5 is located.)
