@@ -8,6 +8,8 @@ HEX = arm-none-eabi-objcopy -O ihex
 BIN = arm-none-eabi-objcopy -O binary -S
 SZ = arm-none-eabi-size
 
+TZMCFI_PATCH = $(APPDIR)/../../target/debug/tzmcfi_patch
+
 MCU := -mthumb -mfloat-abi=soft -msoft-float -march=armv8-m.main
 
 ifeq "$(CMSIS_PATH)" ""

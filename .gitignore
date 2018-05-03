@@ -1,7 +1,10 @@
 *.o
+*.s
+!Startup.
 *.elf
 *.bin
 *.hex
 *.map
 /BUILD
 /target
+*.Artifacts

@@ -13,13 +13,26 @@ all:            $(TARGET).elf $(TARGET).hex $(TARGET).bin
 
 .PHONY:	default all clean
 
-OBJS := Main.o Pl011Driver.o Startup.o LibcStub.o
+COBJS := Main.o Pl011Driver.o LibcStub.o
+ASMOBJS := Startup.o
 
 clean:
 	rm -rf $(OBJS) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
 
-$(TARGET).elf:   $(OBJS) $(LDSCRIPT)
-	$(CC) $(OBJS) $(LDFLAGS) -o $@
+# Patching pipeline for inline CFI
+PATCHDIR := $(APPDIR)/CfiPatch.Artifacts
+PATCH_TIMESTAMP_FILE = $(PATCHDIR)/timestamp
+PATCHED_FILES = $(patsubst %.o,$(PATCHDIR)/%.s,$(COBJS) $(ASMOBJS))
+
+$(PATCH_TIMESTAMP_FILE): $(COBJS:.o=.s)
+	rm -Rf $(PATCHDIR)
+	mkdir -p $(PATCHDIR)
+	cp $(COBJS:.o=.s) $(ASMOBJS:.o=.s) $(PATCHDIR)
+	$(TZMCFI_PATCH) $(PATCHED_FILES)
+	touch $(PATCH_TIMESTAMP_FILE)
+
+$(TARGET).elf:   $(PATCH_TIMESTAMP_FILE) $(LDSCRIPT)
+	$(CC) $(PATCHED_FILES) $(LDFLAGS) -o $@
 	$(SZ) $@
 
 $(TARGET).hex:	 $(TARGET).elf
@@ -28,3 +41,8 @@ $(TARGET).hex:	 $(TARGET).elf
 $(TARGET).bin:	 $(TARGET).elf
 	$(BIN) $< $@
 
+%.s: %.c
+	$(CC) $(CXXFLAGS) $^ -o $@ -S
+
+%.s: %.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ -S

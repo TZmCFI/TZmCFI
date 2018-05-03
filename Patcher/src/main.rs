@@ -28,5 +28,5 @@ fn main() {
         )
         .get_matches();
 
-    unimplemented!()
+    println!("Not implemented :)");
 }
