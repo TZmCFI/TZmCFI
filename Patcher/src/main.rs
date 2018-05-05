@@ -1,7 +1,16 @@
 extern crate clap;
+#[macro_use]
+extern crate nom;
+#[macro_use]
+extern crate lazy_static;
+extern crate unicase;
+
+use std::ffi::OsStr;
+
+mod gasio;
 
 fn main() {
-    use clap::{App, Arg, SubCommand};
+    use clap::{App, Arg};
 
     let matches = App::new("TZmCFI patcher")
         .author("Tomoaki K.")
@@ -15,18 +24,40 @@ fn main() {
                      the application here. (i.e., All references therein must \
                      be resolvable.) All the input assembler files are \
                      processed as a whole and will be overwritten with the \
-                     output.\n\n\
-                     This command is designed to be idempotent, i.e., you can \
-                     run this command on the same set of inputs as many times as \
-                     you like to, and you will get consistent results. To obtain \
-                     this property, this command automatically creates the \
-                     backup of the input files and tracks their timestamps.",
+                     output.",
                 )
-                .required(true)
                 .multiple(true)
                 .index(1),
         )
         .get_matches();
+
+    let files: Vec<&OsStr>;
+    if let Some(x) = matches.values_of_os("INPUT") {
+        files = x.collect();
+    } else {
+        println!("No inputs files were given.");
+        return; // This is not an error
+    }
+
+    for file in files.iter() {
+        use std::fs::File;
+        use std::io::BufReader;
+        println!("  {:?}", file);
+        let mut file = File::open(file).unwrap();
+        let mut reader = BufReader::new(file);
+        let mut parser = gasio::GasParser::new(reader);
+        while let Some(x) = parser.next().unwrap() {
+            if x.labels.len() > 0 {
+                println!("label: {:?}", x.labels);
+            }
+            if let Some(ref dir) = x.directive {
+                let parsed = gasio::arm::ArmGasDirective::from_raw_directive(dir);
+                if parsed.is_err() {
+                    println!("  directive: {:?}", parsed);
+                }
+            }
+        }
+    }
 
     println!("Not implemented :)");
 }

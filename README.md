@@ -4,9 +4,14 @@
 
 - [GNU Arm Embedded Toolchain](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm), version 7 or newer
 - [CMSIS Version 5](https://github.com/ARM-software/CMSIS_5), whose path must be set to the environment variable `CMSIS_PATH`
+- [Rust](https://www.rust-lang.org/en-US/) 1.27.0 or later.
 
 ## Running the example application
 
+    $ pushd Patcher
+    $ cargo build
+    $ popd
+    
     $ make -C Example/Secure
     $ make -C Example/App
     $ qemu-system-arm -kernel Example/Secure/SecureMonitor.elf -device loader,file=Example/App/NonSecureExample.elf -machine mps2-an505 -nographic -s
