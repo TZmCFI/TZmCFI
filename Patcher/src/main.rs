@@ -3,11 +3,15 @@ extern crate clap;
 extern crate nom;
 #[macro_use]
 extern crate lazy_static;
+extern crate num_integer;
+extern crate num_traits;
 extern crate unicase;
 
 use std::ffi::OsStr;
 
+mod arm;
 mod gasio;
+mod utils;
 
 fn main() {
     use clap::{App, Arg};
