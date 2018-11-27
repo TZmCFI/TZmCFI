@@ -16,8 +16,10 @@ all:            $(TARGET).elf $(TARGET).hex $(TARGET).bin
 COBJS := Main.o Pl011Driver.o LibcStub.o
 ASMOBJS := Startup.o
 
+OBJS = $(COBJS) $(ASMOBJS)
+
 clean:
-	rm -rf $(OBJS) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
+	rm -rf $(OBJS) $(COBJS:.o=.s) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
 
 # Patching pipeline for inline CFI
 PATCHDIR := $(APPDIR)/CfiPatch.Artifacts
