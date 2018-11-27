@@ -54,8 +54,8 @@ typedef struct TCThreadCreateInfo {
     TCThreadCreateFlags flags;
 
     /**
-     * The size of the shadow stack associated with the thread, specified in
-     * the depth of the call stack.
+     * The size of the shadow stack associated with the thread, specified by
+     * the number of the entries in the call stack.
      */
     uint16_t stackSize;
 } TCThreadCreateInfo;
