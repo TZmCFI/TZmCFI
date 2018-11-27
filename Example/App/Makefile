@@ -37,6 +37,11 @@ $(TARGET).elf:   $(PATCH_TIMESTAMP_FILE) $(LDSCRIPT)
 	$(CC) $(PATCHED_FILES) $(LDFLAGS) -o $@
 	$(SZ) $@
 
+# Here's how to compile without patching:
+# $(TARGET).elf:   $(COBJS) $(ASMOBJS) $(LDSCRIPT)
+# 	$(CC) $(COBJS) $(ASMOBJS) $(LDFLAGS) -o $@
+# 	$(SZ) $@
+
 $(TARGET).hex:	 $(TARGET).elf
 	$(HEX) $< $@
 
