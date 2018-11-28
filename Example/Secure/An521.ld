@@ -19,6 +19,25 @@ SECTIONS
         . = ALIGN(4);
     } > SECURE_CODEMEM
 
+
+    .gnu.sgstubs :
+    {
+        . = ALIGN(32);
+        __nsc_start = .;
+
+    } > SECURE_CODEMEM
+
+    .text.__TCPrivateEnterInterrupt :
+    {
+        *(.text.__TCPrivateEnterInterrupt)
+        *(.text.__TCPrivateLeaveInterrupt)
+        KEEP (*(.text.__TCPrivateEnterInterrupt))
+        KEEP (*(.text.__TCPrivateLeaveInterrupt))
+    } > SECURE_CODEMEM
+
+    . = ALIGN(32);
+    __nsc_end = .;
+
     .text :
     {
         __text = .;
@@ -32,11 +51,6 @@ SECTIONS
         KEEP (*(.init))
         KEEP (*(.fini))
 
-    } > SECURE_CODEMEM
-
-    .gnu.sgstubs :
-    {
-        . = ALIGN(32);
     } > SECURE_CODEMEM
 
     _etext = .;
@@ -99,6 +113,7 @@ SECTIONS
     } >SECURE_SRAM
 
     /* Reserve stack space */
+    . = ALIGN(8);
     . = . + 0x4000;
     PROVIDE(_MainStackTop = .);
 

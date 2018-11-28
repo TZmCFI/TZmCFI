@@ -1,6 +1,7 @@
 
 APPDIR := .
 TARGET := NonSecureExample
+TRAMPOLINEDIR := $(APPDIR)/../../NonSecure
 
 # Path to the secure import library
 MONITOR_IMPLIB := ../Secure/SecureMonitor.implib.o
@@ -21,6 +22,10 @@ ASMOBJS := Startup.o
 
 OBJS = $(COBJS) $(ASMOBJS)
 
+# TZmCFI trampolines
+vpath %.s $(TRAMPOLINEDIR)
+TRAMPOLINEOBJS := ExceptionTrampolines.o
+
 # Link the secure import library
 LDFLAGS += $(MONITOR_IMPLIB)
 
@@ -39,14 +44,14 @@ $(PATCH_TIMESTAMP_FILE): $(COBJS:.o=.s)
 	$(TZMCFI_PATCH) $(PATCHED_FILES)
 	touch $(PATCH_TIMESTAMP_FILE)
 
-$(TARGET).elf:   $(PATCH_TIMESTAMP_FILE) $(LDSCRIPT)
-	$(CC) $(PATCHED_FILES) $(LDFLAGS) -o $@
-	$(SZ) $@
+# $(TARGET).elf:   $(PATCH_TIMESTAMP_FILE) $(TRAMPOLINEOBJS) $(LDSCRIPT)
+# 	$(CC) $(PATCHED_FILES) $(TRAMPOLINEOBJS) $(LDFLAGS) -o $@
+# 	$(SZ) $@
 
 # Here's how to compile without patching:
-# $(TARGET).elf:   $(COBJS) $(ASMOBJS) $(LDSCRIPT)
-# 	$(CC) $(COBJS) $(ASMOBJS) $(LDFLAGS) -o $@
-# 	$(SZ) $@
+$(TARGET).elf:   $(COBJS) $(ASMOBJS) $(TRAMPOLINEOBJS) $(LDSCRIPT) $(MONITOR_IMPLIB)
+	$(CC) $(COBJS) $(ASMOBJS) $(TRAMPOLINEOBJS) $(LDFLAGS) -o $@
+	$(SZ) $@
 
 $(TARGET).hex:	 $(TARGET).elf
 	$(HEX) $< $@

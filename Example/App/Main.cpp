@@ -26,6 +26,7 @@ void Main() {
     Uart.Configure(SystemCoreClock, UartBaudRate);
     Uart.WriteAll("I'm running in the Non-Secure mode.\n"sv);
 
+    NVIC_SetPriority(SysTick_IRQn, 0x4);
     SysTick->LOAD = 20000 - 1;
     SysTick->VAL = 0;
     SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
@@ -64,15 +65,21 @@ void HandleSysTick() {
         ;
 }
 
-using InterruptHandler = void (*)();
-#define Unhandled(message) []() { HandleUnknown(message); }.operator InterruptHandler()
-
 }; // namespace
+}; // namespace TCExample
+
+// Called by the reset handler
+extern "C" void AppMain() { TCExample::Main(); }
+
+using InterruptHandler = void (*)();
+#define Unhandled(message) []() { TCExample::HandleUnknown(message); }.operator InterruptHandler()
+
+extern "C" const uint32_t ExceptionVector[];
 
 /**
  * Arm-M exception vector table.
  */
-__attribute__((section(".isr_vector"))) uint32_t ExceptionVector[] = {
+const uint32_t ExceptionVector[] = {
     (uint32_t)&_MainStackTop,
     (uint32_t)&HandleReset,                        // Reset
     (uint32_t)Unhandled("NMI"sv),                  // NMI
@@ -88,7 +95,7 @@ __attribute__((section(".isr_vector"))) uint32_t ExceptionVector[] = {
     (uint32_t)Unhandled("DebugMonitor"sv),         // DebugMonitor
     (uint32_t)Unhandled("Reserved 4"sv),           // Reserved 4
     (uint32_t)Unhandled("PendSV"sv),               // PendSV
-    (uint32_t)&HandleSysTick,                      // SysTick
+    (uint32_t)&TCExample::HandleSysTick,           // SysTick
     (uint32_t)Unhandled("External interrupt 0"sv), // External interrupt 0
     (uint32_t)Unhandled("External interrupt 1"sv), // External interrupt 1
     (uint32_t)Unhandled("External interrupt 2"sv), // External interrupt 2
@@ -99,7 +106,3 @@ __attribute__((section(".isr_vector"))) uint32_t ExceptionVector[] = {
     (uint32_t)Unhandled("External interrupt 7"sv), // External interrupt 7
     (uint32_t)Unhandled("External interrupt 8"sv), // External interrupt 8
 };
-}; // namespace TCExample
-
-// Called by the reset handler
-extern "C" void AppMain() { TCExample::Main(); }

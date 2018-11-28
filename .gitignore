@@ -1,6 +1,7 @@
 *.o
 *.s
 !Startup.
+!NonSecure/ExceptionTrampolines.s
 *.elf
 *.bin
 *.hex

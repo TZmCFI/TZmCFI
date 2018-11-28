@@ -10,6 +10,9 @@ using std::uint32_t;
 extern void *_MainStackTop;
 extern "C" void HandleReset();
 
+extern void *__nsc_start;
+extern void *__nsc_end;
+
 namespace Loader {
 namespace {
 
@@ -32,15 +35,24 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     SAU->RNR = 1;
     SAU->RBAR = 0x2820'0000;
     SAU->RLAR = 0x283f'ffe0 | SAU_RLAR_ENABLE_Msk;
-    // TODO: Non-Secure Callable region
+
+    // Non-Secure callable region
+    SAU->RNR = 2;
+    SAU->RBAR = reinterpret_cast<uint32_t>(&__nsc_start);
+    SAU->RLAR = (reinterpret_cast<uint32_t>(&__nsc_end) - 0x20) |
+        SAU_RLAR_ENABLE_Msk | SAU_RLAR_NSC_Msk;
 
     // Allow Non-Secure access to UART0
-    SAU->RNR = 2;
+    SAU->RNR = 3;
     SAU->RBAR = 0x4020'0000;
     SAU->RLAR = 0x4020'0fe0 | SAU_RLAR_ENABLE_Msk;
 
     // Configure SECRESPCFG to disable bus error on security violation
     // *(volatile uint32_t *)0x5008'0010 &= ~(1 << 0);
+
+    // Enable the Non-Secure Callable setting of IDAU to allow the placement of
+    // Non-Secure Callable regions in the code region.
+    *(volatile uint32_t *)0x5008'0014 |= 1 << 0; // CODENSC
 
     // Configure APB PPC EXP 1 NS (APBNSPPCEXP1) interface 5 to enable
     // Non-Secure access to UART0
@@ -86,13 +98,15 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
 
     TZ_SAU_Enable();
 
-    // Set the Non-Secure main stack
-    __TZ_set_MSP_NS(*(uint32_t *)0x0020'0000);
+    // Do not set the Non-Secure main stack using the value of `0x0020'0000`
+    // here -- the place is used for other purposes and loading it as a stack
+    // pointer is UNPREDICTABLE
+    __TZ_set_MSP_NS(0);
 
     // Set the Non-Secure exception vector table
     SCB_NS->VTOR = 0x0020'0000;
 
-    auto nsResetHandler = (ns_funcptr_void)(*(uint32_t *)0x0020'0004 & ~1); // Secure alias of 0x20'0004
+    auto nsResetHandler = (ns_funcptr_void)(*(uint32_t *)0x0020'0004 & ~1);
     nsResetHandler();
 
     while (1)
