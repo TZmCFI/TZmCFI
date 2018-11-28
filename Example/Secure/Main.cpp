@@ -19,6 +19,12 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     // Enable SecureFault, UsageFault, BusFault, and MemManage for ease of debugging
     SCB->SHCSR = 0b00000000'00001111'00000000'00000000;
 
+    // Enable Non-Secure BusFault, HardFault, and NMI.
+    // Prioritize Secure exceptions.
+    SCB->AIRCR = (SCB->AIRCR & ~SCB_AIRCR_VECTKEY_Msk) |
+        SCB_AIRCR_BFHFNMINS_Msk | SCB_AIRCR_PRIS_Msk |
+        (0x05faUL << SCB_AIRCR_VECTKEY_Pos);
+
     // Set up the Non-Secure regions
     SAU->RNR = 0;
     SAU->RBAR = 0x00200000;
