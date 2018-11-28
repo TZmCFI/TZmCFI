@@ -23,12 +23,21 @@ CXXFLAGS += -I$(APPDIR)/../../Headers
 # Enable CMSE features
 CXXFLAGS += -mcmse
 
+# Export these symbols to an application running in the Non-Secure mode
+CMSE_SYMS := \
+	-s TCReset				\
+	-s TCCreateThread		\
+	-s TCLockdown			\
+	-s TCActivateThread
+
 clean:
 	rm -rf $(OBJS) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
 
 $(TARGET).elf $(TARGET).implib.o:   $(OBJS) $(LDSCRIPT)
 	$(CC) $(OBJS) $(LDFLAGS) -o $@ \
 		-Wl,--cmse-implib -Wl,--out-implib=$(TARGET).implib.o
+	$(TZMCFI_MKIMPLIB) $(CMSE_SYMS) $(TARGET).implib.o | \
+		$(AS) - -o $(TARGET).implib.o $(ASFLAGS)
 	$(SZ) $@
 
 $(TARGET).hex:	 $(TARGET).elf

@@ -1,4 +1,5 @@
 [workspace]
 members = [
-    "Tools/Patcher"
+    "Tools/Patcher",
+    "Tools/MakeImplib",
 ]

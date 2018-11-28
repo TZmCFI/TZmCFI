@@ -9,6 +9,7 @@ BIN = arm-none-eabi-objcopy -O binary -S
 SZ = arm-none-eabi-size
 
 TZMCFI_PATCH = $(APPDIR)/../../target/debug/tzmcfi_patch
+TZMCFI_MKIMPLIB = $(APPDIR)/../../target/debug/tzmcfi_mkimplib
 
 MCU := -mthumb -mfloat-abi=soft -msoft-float -march=armv8-m.main
 

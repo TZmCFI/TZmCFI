@@ -52,7 +52,7 @@ fn main() {
         let mut parser = gasio::GasParser::new(reader);
         while let Some(x) = parser.next().unwrap() {
             if x.labels.len() > 0 {
-                println!("label: {:?}", x.labels);
+                // println!("label: {:?}", x.labels);
             }
             if let Some(ref dir) = x.directive {
                 let parsed = gasio::arm::ArmGasDirective::from_raw_directive(dir);
