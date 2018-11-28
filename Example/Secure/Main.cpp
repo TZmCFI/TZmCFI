@@ -83,6 +83,9 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     // Set the Non-Secure main stack
     __TZ_set_MSP_NS(*(uint32_t *)0x0020'0000);
 
+    // Set the Non-Secure exception vector table
+    SCB_NS->VTOR = 0x0020'0000;
+
     auto nsResetHandler = (ns_funcptr_void)(*(uint32_t *)0x0020'0004 & ~1); // Secure alias of 0x20'0004
     nsResetHandler();
 
