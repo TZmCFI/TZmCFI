@@ -10,7 +10,7 @@ LDSCRIPT := $(APPDIR)/An521.ld
 LDFLAGS := $(MCU) -T$(LDSCRIPT) -lc -lm -Wl,-Map=$(TARGET).map,--cref -Wl,--gc-sections
 
 default:        all
-all:            $(TARGET).elf $(TARGET).hex $(TARGET).bin
+all:            $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).implib.o
 
 .PHONY:	default all clean
 
@@ -26,8 +26,9 @@ CXXFLAGS += -mcmse
 clean:
 	rm -rf $(OBJS) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
 
-$(TARGET).elf:   $(OBJS) $(LDSCRIPT)
-	$(CC) $(OBJS) $(LDFLAGS) -o $@
+$(TARGET).elf $(TARGET).implib.o:   $(OBJS) $(LDSCRIPT)
+	$(CC) $(OBJS) $(LDFLAGS) -o $@ \
+		-Wl,--cmse-implib -Wl,--out-implib=$(TARGET).implib.o
 	$(SZ) $@
 
 $(TARGET).hex:	 $(TARGET).elf

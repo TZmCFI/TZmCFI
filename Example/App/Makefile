@@ -2,6 +2,9 @@
 APPDIR := .
 TARGET := NonSecureExample
 
+# Path to the secure import library
+MONITOR_IMPLIB := ../Secure/SecureMonitor.implib.o
+
 include $(APPDIR)/../Common.mak
 
 LDSCRIPT := $(APPDIR)/An521.ld
@@ -17,6 +20,9 @@ COBJS := Main.o Pl011Driver.o LibcStub.o
 ASMOBJS := Startup.o
 
 OBJS = $(COBJS) $(ASMOBJS)
+
+# Link the secure import library
+LDFLAGS += $(MONITOR_IMPLIB)
 
 clean:
 	rm -rf $(OBJS) $(COBJS:.o=.s) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
