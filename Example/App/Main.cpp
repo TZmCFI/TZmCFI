@@ -1,6 +1,10 @@
 /*
  * Example program for AN521 FPGA.
  */
+#include <ARMCM33_TZ.h>
+#include <algorithm>
+#include <array>
+
 #include "An521.hpp"
 #include "Pl011Driver.hpp"
 
@@ -21,6 +25,35 @@ constexpr uint32_t UartBaudRate = 115'200;
 void Main() {
     Uart.Configure(SystemCoreClock, UartBaudRate);
     Uart.WriteAll("I'm running in the Non-Secure mode.\n"sv);
+
+    SysTick->LOAD = 20000 - 1;
+    SysTick->VAL = 0;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
+
+    Uart.WriteAll("SysTick is ready.\n"sv);
+
+    while (1)
+        ;
+}
+
+void Print(uint32_t i) {
+    std::array<char, 10> buffer;
+    std::size_t len = 0;
+    while (i != 0) {
+        buffer[len++] = '0' + (i % 10);
+        i /= 10;
+    }
+    std::reverse(buffer.begin(), buffer.begin() + len);
+
+    Uart.WriteAll({buffer.data(), len});
+}
+
+void HandleSysTick() {
+    static uint32_t counter = 0;
+    ++counter;
+
+    Uart.WriteAll("\r SysTick interrupt counter: "sv);
+    Print(counter);
 }
 
 [[noreturn]] void HandleUnknown(std::string_view message) {
@@ -55,7 +88,7 @@ __attribute__((section(".isr_vector"))) uint32_t ExceptionVector[] = {
     (uint32_t)Unhandled("DebugMonitor"sv),         // DebugMonitor
     (uint32_t)Unhandled("Reserved 4"sv),           // Reserved 4
     (uint32_t)Unhandled("PendSV"sv),               // PendSV
-    (uint32_t)Unhandled("SysTick"sv),              // SysTick
+    (uint32_t)&HandleSysTick,                      // SysTick
     (uint32_t)Unhandled("External interrupt 0"sv), // External interrupt 0
     (uint32_t)Unhandled("External interrupt 1"sv), // External interrupt 1
     (uint32_t)Unhandled("External interrupt 2"sv), // External interrupt 2
