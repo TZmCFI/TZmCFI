@@ -45,10 +45,17 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     SAU->RLAR = (reinterpret_cast<uint32_t>(&__nsc_end) - 0x20) |
         SAU_RLAR_ENABLE_Msk | SAU_RLAR_NSC_Msk;
 
-    // Allow Non-Secure access to UART0
+    // Allow Non-Secure access to peripherals
     SAU->RNR = 3;
-    SAU->RBAR = 0x4020'0000;
-    SAU->RLAR = 0x4020'0fe0 | SAU_RLAR_ENABLE_Msk;
+    SAU->RBAR = 0x4000'0000;
+    SAU->RLAR = 0x4fff'ffe0 | SAU_RLAR_ENABLE_Msk;
+
+    // Target interrupts to Non-Secure
+    NVIC_SetTargetState(Interrupt3_IRQn); // Timer 0
+    NVIC_SetTargetState(Interrupt4_IRQn); // Timer 1
+    NVIC_SetTargetState(Interrupt5_IRQn); // Dual Timer
+    NVIC_SetTargetState((IRQn_Type)32); // UART 0
+    NVIC_SetTargetState((IRQn_Type)33); // UART 0
 
     // Configure SECRESPCFG to disable bus error on security violation
     // *(volatile uint32_t *)0x5008'0010 &= ~(1 << 0);
@@ -56,6 +63,10 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     // Enable the Non-Secure Callable setting of IDAU to allow the placement of
     // Non-Secure Callable regions in the code region.
     *(volatile uint32_t *)0x5008'0014 |= 1 << 0; // CODENSC
+
+    // Configure APB PPC 0 NS (APBNSPPC0) interface 2:0 to enable
+    // Non-Secure access to Timer 0 / Timer 1 / Dual Timer
+    *(volatile uint32_t *)0x5008'0070 |= 0b111;
 
     // Configure APB PPC EXP 1 NS (APBNSPPCEXP1) interface 5 to enable
     // Non-Secure access to UART0

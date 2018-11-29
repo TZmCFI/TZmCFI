@@ -31,7 +31,15 @@ void Main() {
     SysTick->VAL = 0;
     SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
 
-    Uart.WriteAll("SysTick is ready.\n"sv);
+    Uart.WriteAll("SysTick [A] is ready.\n"sv);
+
+    NVIC_SetPriority(An521::Timer0_IRQn, 0x3);
+    auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
+    timer0[2] = 20000 - 1; // reload value
+    timer0[0] = 0b1001; // enable, IRQ enable
+    NVIC_EnableIRQ(An521::Timer0_IRQn);
+
+    Uart.WriteAll("Timer0 [B] is ready.\n"sv);
 
     while (1)
         ;
@@ -49,12 +57,55 @@ void Print(uint32_t i) {
     Uart.WriteAll({buffer.data(), len});
 }
 
-void HandleSysTick() {
-    static uint32_t counter = 0;
-    ++counter;
+uint32_t counter1 = 1;
+uint32_t counter2 = 1;
+uint32_t historyValid = 0;
+uint32_t historyType = 0;
 
-    Uart.WriteAll("\r SysTick interrupt counter: "sv);
-    Print(counter);
+void PrintTimerState() {
+    Uart.WriteAll("\r ["sv);
+    for (uint32_t i = 1; i < (1 << 16); i <<= 1) {
+        if (historyValid & i) {
+            if (historyType & i) {
+                Uart.WriteAll('B');
+            } else {
+                Uart.WriteAll('A');
+            }
+        } else {
+            Uart.WriteAll(' ');
+        }
+    }
+    Uart.WriteAll("] "sv);
+    Print(counter1);
+    Uart.WriteAll(" / "sv);
+    Print(counter2);
+}
+
+void HandleSysTick() {
+    __disable_irq();
+
+    ++counter2;
+    historyValid = (historyValid << 1) | 1;
+    historyType = (historyType << 1) | 0;
+
+    PrintTimerState();
+
+    __enable_irq();
+}
+
+void HandleTimer0() {
+    auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
+    timer0[3] = 1;
+
+    __disable_irq();
+
+    ++counter1;
+    historyValid = (historyValid << 1) | 1;
+    historyType = (historyType << 1) | 1;
+
+    PrintTimerState();
+
+    __enable_irq();
 }
 
 [[noreturn]] void HandleUnknown(std::string_view message) {
@@ -99,7 +150,7 @@ const uint32_t ExceptionVector[] = {
     (uint32_t)Unhandled("External interrupt 0"sv), // External interrupt 0
     (uint32_t)Unhandled("External interrupt 1"sv), // External interrupt 1
     (uint32_t)Unhandled("External interrupt 2"sv), // External interrupt 2
-    (uint32_t)Unhandled("External interrupt 3"sv), // External interrupt 3
+    (uint32_t)&TCExample::HandleTimer0, // External interrupt 3
     (uint32_t)Unhandled("External interrupt 4"sv), // External interrupt 4
     (uint32_t)Unhandled("External interrupt 5"sv), // External interrupt 5
     (uint32_t)Unhandled("External interrupt 6"sv), // External interrupt 6
