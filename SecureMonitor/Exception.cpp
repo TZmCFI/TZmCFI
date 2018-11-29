@@ -98,7 +98,7 @@ class ChainedExceptionStackIterator {
     uintptr_t exc_return;
     uintptr_t const *frame;
 
-    void FillFrameAddress() {
+    [[gnu::always_inline]] void FillFrameAddress() {
         if (exc_return & EXC_RETURN_SPSEL) {
             frame = reinterpret_cast<uintptr_t const *>(psp);
         } else {
