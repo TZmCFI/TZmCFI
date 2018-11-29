@@ -159,6 +159,7 @@ class ChainedExceptionStackIterator {
         }
 
         exc_return = new_exc_return;
+        FillFrameAddress();
 
         return true;
     }
