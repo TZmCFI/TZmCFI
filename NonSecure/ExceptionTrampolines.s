@@ -5,7 +5,7 @@
     .thumb
 
     // How many entries do we generate?
-    .set TableSize, 20
+    .set TableSize, 40
 
 // This assembler source defines the "real" Non-Secure exception vector table.
 .section .text.isr_vector

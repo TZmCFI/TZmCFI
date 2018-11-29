@@ -35,11 +35,19 @@ void Main() {
 
     NVIC_SetPriority(An521::Timer0_IRQn, 0x3);
     auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
-    timer0[2] = 20000 - 1; // reload value
-    timer0[0] = 0b1001; // enable, IRQ enable
+    timer0[2] = 30000 - 1; // reload value
+    timer0[0] = 0b1001;    // enable, IRQ enable
     NVIC_EnableIRQ(An521::Timer0_IRQn);
 
     Uart.WriteAll("Timer0 [B] is ready.\n"sv);
+
+    NVIC_SetPriority(An521::Timer1_IRQn, 0x2);
+    auto timer1 = reinterpret_cast<uint32_t volatile *>(An521::Timer1BaseAddress);
+    timer1[2] = 40000 - 1; // reload value
+    timer1[0] = 0b1001;    // enable, IRQ enable
+    NVIC_EnableIRQ(An521::Timer1_IRQn);
+
+    Uart.WriteAll("Timer1 [C] is ready.\n"sv);
 
     while (1)
         ;
@@ -57,55 +65,50 @@ void Print(uint32_t i) {
     Uart.WriteAll({buffer.data(), len});
 }
 
-uint32_t counter1 = 1;
-uint32_t counter2 = 1;
-uint32_t historyValid = 0;
-uint32_t historyType = 0;
+uint32_t counters[3] = {1, 1, 1};
+uint32_t history = 0;
 
 void PrintTimerState() {
+    const char *types = " ABC";
     Uart.WriteAll("\r ["sv);
-    for (uint32_t i = 1; i < (1 << 16); i <<= 1) {
-        if (historyValid & i) {
-            if (historyType & i) {
-                Uart.WriteAll('B');
-            } else {
-                Uart.WriteAll('A');
-            }
-        } else {
-            Uart.WriteAll(' ');
-        }
+    for (int i = 0; i < 32; i += 2) {
+        Uart.WriteAll(types[(history >> i) & 3]);
     }
     Uart.WriteAll("] "sv);
-    Print(counter1);
+    Print(counters[0]);
     Uart.WriteAll(" / "sv);
-    Print(counter2);
+    Print(counters[1]);
+    Uart.WriteAll(" / "sv);
+    Print(counters[2]);
 }
 
-void HandleSysTick() {
+void HandleTimer(int type) {
     __disable_irq();
 
-    ++counter2;
-    historyValid = (historyValid << 1) | 1;
-    historyType = (historyType << 1) | 0;
+    ++counters[type];
+    history = (history << 2) | (type + 1);
 
     PrintTimerState();
 
     __enable_irq();
+}
+
+void HandleSysTick() {
+    HandleTimer(0);
 }
 
 void HandleTimer0() {
     auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
     timer0[3] = 1;
 
-    __disable_irq();
+    HandleTimer(1);
+}
 
-    ++counter1;
-    historyValid = (historyValid << 1) | 1;
-    historyType = (historyType << 1) | 1;
+void HandleTimer1() {
+    auto timer1 = reinterpret_cast<uint32_t volatile *>(An521::Timer1BaseAddress);
+    timer1[3] = 1;
 
-    PrintTimerState();
-
-    __enable_irq();
+    HandleTimer(2);
 }
 
 [[noreturn]] void HandleUnknown(std::string_view message) {
@@ -150,8 +153,8 @@ const uint32_t ExceptionVector[] = {
     (uint32_t)Unhandled("External interrupt 0"sv), // External interrupt 0
     (uint32_t)Unhandled("External interrupt 1"sv), // External interrupt 1
     (uint32_t)Unhandled("External interrupt 2"sv), // External interrupt 2
-    (uint32_t)&TCExample::HandleTimer0, // External interrupt 3
-    (uint32_t)Unhandled("External interrupt 4"sv), // External interrupt 4
+    (uint32_t)&TCExample::HandleTimer0,            // External interrupt 3
+    (uint32_t)&TCExample::HandleTimer1,            // External interrupt 4
     (uint32_t)Unhandled("External interrupt 5"sv), // External interrupt 5
     (uint32_t)Unhandled("External interrupt 6"sv), // External interrupt 6
     (uint32_t)Unhandled("External interrupt 7"sv), // External interrupt 7
