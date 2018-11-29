@@ -151,7 +151,7 @@ class ChainedExceptionStackIterator {
         uintptr_t new_exc_return = GetOriginalLR();
 
         // Unwind the stack
-        uintptr_t frameSize = (exc_return & EXC_RETURN_FTYPE) ? 104 : 32;
+        uintptr_t frameSize = (exc_return & EXC_RETURN_FTYPE) ? 32 : 104;
         if (exc_return & EXC_RETURN_SPSEL) {
             psp += frameSize;
         } else {
