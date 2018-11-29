@@ -57,8 +57,9 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     NVIC_SetTargetState((IRQn_Type)32); // UART 0
     NVIC_SetTargetState((IRQn_Type)33); // UART 0
 
-    // Configure SECRESPCFG to disable bus error on security violation
-    // *(volatile uint32_t *)0x5008'0010 &= ~(1 << 0);
+    // Configure SECRESPCFG to enable bus error on security violation (rather
+    // than RAZ/WI)
+    *(volatile uint32_t *)0x5008'0010 |= 1 << 0;
 
     // Enable the Non-Secure Callable setting of IDAU to allow the placement of
     // Non-Secure Callable regions in the code region.
