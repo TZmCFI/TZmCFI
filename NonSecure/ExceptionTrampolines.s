@@ -1,3 +1,4 @@
+#include "ExceptionTrampolines.h"
     .syntax unified
     .cpu cortex-m33
     .fpu softvfp
@@ -9,13 +10,13 @@
 // This assembler source defines the "real" Non-Secure exception vector table.
 .section .text.isr_vector
 ExceptionVectorWithTrampoline:
-    .word TableSize // Initial stack pointer - we don't use it so
-                    // store the number of entries instead
+    // Initial stack pointer - we don't use it so store the number of entries instead
+    .word TableSize | TC_VEC_TABLE_HDR_SIGNATURE
     .word Reset
 
     .set i, 0
     .rept TableSize - 2
-        .word NormalExceptionTrampolines + 8 * i
+        .word NormalExceptionTrampolines + TC_VEC_TABLE_TRAMPOLINE_STRIDE * i
         .set i, i + 1
     .endr
 
@@ -41,7 +42,7 @@ Reset:
     // no larger than 8 bytes.
     .thumb_func
     .type NormalExceptionTrampolines function
-    .align 3
+    .align 3 // == log2(TC_VEC_TABLE_TRAMPOLINE_STRIDE)
 NormalExceptionTrampolines:
     .set i, 0
     .rept TableSize - 2

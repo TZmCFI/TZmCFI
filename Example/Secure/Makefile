@@ -17,7 +17,7 @@ all:            $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).implib.o
 OBJS := Main.o Startup.o
 
 vpath %.cpp $(MONITORDIR)
-OBJS += Assert.o Exception.o LinearAllocator.o Thread.o
+OBJS += Assert.o Exception.o LinearAllocator.o Thread.o SecureAPI.o
 CXXFLAGS += -I$(APPDIR)/../../Headers
 
 # Enable CMSE features

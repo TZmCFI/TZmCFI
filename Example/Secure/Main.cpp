@@ -4,8 +4,11 @@
 #include <ARMCM33_TZ.h>
 #include <string_view>
 
+#include <TZmCFI/Secure.h>
+
 using namespace std::literals;
 using std::uint32_t;
+using std::uintptr_t;
 
 extern void *_MainStackTop;
 extern "C" void HandleReset();
@@ -105,6 +108,9 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
 
     // Set the Non-Secure exception vector table
     SCB_NS->VTOR = 0x0020'0000;
+
+    // Initialize TZmCFI.
+    TCInitialize(reinterpret_cast<uintptr_t const *>(0x0020'0000));
 
     auto nsResetHandler = (ns_funcptr_void)(*(uint32_t *)0x0020'0004 & ~1);
     nsResetHandler();
