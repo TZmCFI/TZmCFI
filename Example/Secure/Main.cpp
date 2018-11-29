@@ -85,6 +85,8 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
         const auto BLK_IDX = SSRAM1_MPC_BASE + 0x18 / 4;
         const auto BLK_LUT = SSRAM1_MPC_BASE + 0x1c / 4;
 
+        *CTRL |= 1 << 4; // Enable bus error
+
         *CTRL |= 1 << 8; // Enable autoincrement
 
         // Only the second half (`[BLX_MAX / 2, BLX_MAX - 1]`, which corresponds
@@ -102,6 +104,8 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
         const auto BLK_MAX = SSRAM3_MPC_BASE + 0x10 / 4;
         const auto BLK_IDX = SSRAM3_MPC_BASE + 0x18 / 4;
         const auto BLK_LUT = SSRAM3_MPC_BASE + 0x1c / 4;
+
+        *CTRL |= 1 << 4; // Enable bus error
 
         *CTRL |= 1 << 8; // Enable autoincrement
 
