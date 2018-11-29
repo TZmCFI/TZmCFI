@@ -90,9 +90,15 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
         *CTRL |= 1 << 8; // Enable autoincrement
 
         // Only the second half (`[BLX_MAX / 2, BLX_MAX - 1]`, which corresponds
-        // to `[0, 0x001f'0000]`) is allocated for Non-Secure access.
-        *BLK_IDX = *BLK_MAX / 2;
-        for (uint32_t i = *BLK_MAX / 2; i > 0; --i) {
+        // to `[0x20'0000, 0x3f'ffff]`) is allocated for Non-Secure access.
+        auto max = *BLK_MAX;
+        *BLK_IDX = max / 2;
+        if (max & 1) {
+            // This happens on `Cortex-M33 IoT Kit 2.0` (which has only
+            // 32 blocks), not on QEMU 3.0.0.
+            *BLK_LUT = 0xffff'0000;
+        }
+        for (uint32_t i = max / 2; i > 0; --i) {
             *BLK_LUT = 0xffff'ffff;
         }
     }
