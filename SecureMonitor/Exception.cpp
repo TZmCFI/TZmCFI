@@ -30,41 +30,48 @@ struct ShadowExceptionFrame {
 std::array<ShadowExceptionFrame, 32> g_stack;
 ShadowExceptionFrame *g_stackTop = g_stack.data();
 
-void EnterInterrupt(void (*isrBody)()) {
-    // Note: We can't modify `sp` in this function, so we have to keep an eye
-    //       on the assembler output of this function.
-
-    uint32_t exc_return;
-    asm volatile("mov %0, lr" : "=r"(exc_return)::);
-
+void PushShadowExceptionStack(uint32_t exc_return, uint32_t msp, uint32_t psp) {
     g_stackTop->exc_return = exc_return;
     g_stackTop++;
 
     // TODO: Implement shadow exception stack
+}
 
-    asm volatile("    adr lr, __TCPrivateLeaveInterrupt \n"
-                 "    bxns %0 \n"
-                 :
-                 : "r"(isrBody)
-                 :);
+[[noreturn]] void EnterInterrupt(void (*isrBody)()) {
+    asm volatile("push {r0} \n"
+                 // Prepare parameteres of `PushShadowExceptionStack
+                 "mov r0, lr \n"
+                 "bl __PushShadowExceptionStack \n"
+                 "pop {r0} \n"
+                 "adr lr, __TCPrivateLeaveInterrupt \n"
+                 "bxns r0 \n");
 
     __builtin_unreachable();
 }
 
-void LeaveInterrupt() {
-    // Note: We can't modify `sp` in this function, so we have to keep an eye
-    //       on the assembler output of this function.
-
+uint32_t AssertShadowExceptionStack() {
     g_stackTop--;
-    uint32_t exc_return = g_stackTop->exc_return;
+    return g_stackTop->exc_return;
+}
 
-    asm volatile("bx %0" : : "r"(exc_return) :);
+[[noreturn]] void LeaveInterrupt() {
+    asm volatile("bl __AssertShadowExceptionStack \n"
+                 "bx r0 \n");
 
     __builtin_unreachable();
 }
 
 } // namespace
 } // namespace TZmCFI
+
+// Give demangled names to internal C++ functions
+extern "C" void __PushShadowExceptionStack(uint32_t exc_return, uint32_t msp, uint32_t psp) {
+    TZmCFI::PushShadowExceptionStack(exc_return, msp, psp);
+}
+
+extern "C" uint32_t __AssertShadowExceptionStack(void) {
+    return TZmCFI::AssertShadowExceptionStack();
+}
 
 /* =========================================================================== *
  * Non-Secure application interface - starts here                              *
