@@ -47,17 +47,6 @@ SECTIONS
     .ARM.exidx   : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) }
     __exidx_end = .;
 
-    __idata_start = .;
-    .data : AT (__idata_start)
-    {
-        __data_start = .;
-        *(.data)
-        *(.data.*)
-    } > SRAM
-    __idata_end = __idata_start + SIZEOF(.data);
-    _edata = .;
-    PROVIDE(edata = .);
-
     . = ALIGN(4);
 
     /* used by the startup to initialize data */
