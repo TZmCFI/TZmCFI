@@ -116,7 +116,7 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
         *CTRL |= 1 << 8; // Enable autoincrement
 
         *BLK_IDX = 0;
-        for (uint32_t i = *BLK_MAX; i > 0; --i) {
+        for (uint32_t i = *BLK_MAX + 1; i > 0; --i) {
             *BLK_LUT = 0xffff'ffff;
         }
     }
