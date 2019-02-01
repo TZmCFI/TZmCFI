@@ -30,7 +30,7 @@ void Main() {
     Uart.WriteAll("I'm running in the Non-Secure mode.\r\n"sv);
 
     NVIC_SetPriority(SysTick_IRQn, 0x4);
-    SysTick->LOAD = 20000 - 1;
+    SysTick->LOAD = 40000 / 10 - 1;
     SysTick->VAL = 0;
     SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
 
@@ -38,7 +38,7 @@ void Main() {
 
     NVIC_SetPriority(An521::Timer0_IRQn, 0x3);
     auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
-    timer0[2] = 30000 - 1; // reload value
+    timer0[2] = 30000 / 10 - 1; // reload value
     timer0[0] = 0b1001;    // enable, IRQ enable
     NVIC_EnableIRQ(An521::Timer0_IRQn);
 
@@ -46,7 +46,7 @@ void Main() {
 
     NVIC_SetPriority(An521::Timer1_IRQn, 0x2);
     auto timer1 = reinterpret_cast<uint32_t volatile *>(An521::Timer1BaseAddress);
-    timer1[2] = 40000 - 1; // reload value
+    timer1[2] = 20000 / 10 - 1; // reload value
     timer1[0] = 0b1001;    // enable, IRQ enable
     NVIC_EnableIRQ(An521::Timer1_IRQn);
 
