@@ -17,6 +17,8 @@ using std::uint32_t;
 extern void *_MainStackTop;
 extern "C" void HandleReset();
 
+extern "C" const uint32_t ExceptionVector[];
+
 namespace TCExample {
 namespace {
 
@@ -28,6 +30,12 @@ constexpr uint32_t UartBaudRate = 115'200;
 void Main() {
     Uart.Configure(SystemCoreClock, UartBaudRate);
     Uart.WriteAll("I'm running in the Non-Secure mode.\r\n"sv);
+
+    // Disable exception trampolines (for comparative experiments)
+    if (false) {
+        // Set the Non-Secure exception vector table
+        SCB->VTOR = reinterpret_cast<uint32_t>(ExceptionVector);
+    }
 
     NVIC_SetPriority(SysTick_IRQn, 0x4);
     SysTick->LOAD = 40000 / 10 - 1;
@@ -133,11 +141,10 @@ extern "C" void AppMain() { TCExample::Main(); }
 using InterruptHandler = void (*)();
 #define Unhandled(message) []() { TCExample::HandleUnknown(message); }.operator InterruptHandler()
 
-extern "C" const uint32_t ExceptionVector[];
-
 /**
  * Arm-M exception vector table.
  */
+alignas(128)
 const uint32_t ExceptionVector[] = {
     (uint32_t)&_MainStackTop,
     (uint32_t)&HandleReset,                        // Reset
