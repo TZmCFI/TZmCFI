@@ -6,9 +6,12 @@
 #include <array>
 
 #include "An521.hpp"
+#include "Base64.hpp"
 #include "Pl011Driver.hpp"
 
 using namespace std::literals;
+using std::array;
+using std::size_t;
 using std::uint32_t;
 
 extern void *_MainStackTop;
@@ -27,7 +30,7 @@ void Main() {
     Uart.WriteAll("I'm running in the Non-Secure mode.\n"sv);
 
     NVIC_SetPriority(SysTick_IRQn, 0x4);
-    SysTick->LOAD = 200000 - 1;
+    SysTick->LOAD = 20000 - 1;
     SysTick->VAL = 0;
     SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
 
@@ -35,7 +38,7 @@ void Main() {
 
     NVIC_SetPriority(An521::Timer0_IRQn, 0x3);
     auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
-    timer0[2] = 300000 - 1; // reload value
+    timer0[2] = 30000 - 1; // reload value
     timer0[0] = 0b1001;    // enable, IRQ enable
     NVIC_EnableIRQ(An521::Timer0_IRQn);
 
@@ -43,7 +46,7 @@ void Main() {
 
     NVIC_SetPriority(An521::Timer1_IRQn, 0x2);
     auto timer1 = reinterpret_cast<uint32_t volatile *>(An521::Timer1BaseAddress);
-    timer1[2] = 400000 - 1; // reload value
+    timer1[2] = 40000 - 1; // reload value
     timer1[0] = 0b1001;    // enable, IRQ enable
     NVIC_EnableIRQ(An521::Timer1_IRQn);
 
@@ -65,50 +68,52 @@ void Print(uint32_t i) {
     Uart.WriteAll({buffer.data(), len});
 }
 
-uint32_t counters[3] = {1, 1, 1};
-uint32_t history = 0;
+struct LatencyRecord {
+    uint32_t timer;
+    uint32_t sp;
+};
 
-void PrintTimerState() {
-    const char *types = " ABC";
-    Uart.WriteAll("\r ["sv);
-    for (int i = 0; i < 32; i += 2) {
-        Uart.WriteAll(types[(history >> i) & 3]);
-    }
-    Uart.WriteAll("] "sv);
-    Print(counters[0]);
-    Uart.WriteAll(" / "sv);
-    Print(counters[1]);
-    Uart.WriteAll(" / "sv);
-    Print(counters[2]);
-}
+array<LatencyRecord, 64> records;
+size_t recordCount = 0;
 
-void HandleTimer(int type) {
-    __disable_irq();
+void FlushRecord() {
+    Base64::EncodeAndOutputToFunctionByCharacter(
+        {reinterpret_cast<char *>(records.data()), recordCount * sizeof records[0]},
+        [](char c) { Uart.WriteAll(c); });
+    Uart.WriteAll("\r\n"sv);
 
-    ++counters[type];
-    history = (history << 2) | (type + 1);
-
-    PrintTimerState();
-
-    __enable_irq();
+    recordCount = 0;
 }
 
 void HandleSysTick() {
-    HandleTimer(0);
+    // No-op
 }
 
 void HandleTimer0() {
+    // Clear interrupt flag
     auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
     timer0[3] = 1;
 
-    HandleTimer(1);
+    // No-op
 }
 
 void HandleTimer1() {
+    // Clear interrupt flag
     auto timer1 = reinterpret_cast<uint32_t volatile *>(An521::Timer1BaseAddress);
     timer1[3] = 1;
 
-    HandleTimer(2);
+    // Collect information
+    uint32_t sp;
+    asm volatile("mov %0, sp" : "=r"(sp)::);
+
+    // Write a record
+    LatencyRecord &rec = records[recordCount++];
+    rec.timer = timer1[2] - timer1[1];
+    rec.sp = sp;
+
+    if (recordCount == records.size()) {
+        FlushRecord();
+    }
 }
 
 [[noreturn]] void HandleUnknown(std::string_view message) {
