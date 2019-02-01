@@ -27,14 +27,14 @@ constexpr uint32_t UartBaudRate = 115'200;
 
 void Main() {
     Uart.Configure(SystemCoreClock, UartBaudRate);
-    Uart.WriteAll("I'm running in the Non-Secure mode.\n"sv);
+    Uart.WriteAll("I'm running in the Non-Secure mode.\r\n"sv);
 
     NVIC_SetPriority(SysTick_IRQn, 0x4);
     SysTick->LOAD = 20000 - 1;
     SysTick->VAL = 0;
     SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
 
-    Uart.WriteAll("SysTick [A] is ready.\n"sv);
+    Uart.WriteAll("SysTick [A] is ready.\r\n"sv);
 
     NVIC_SetPriority(An521::Timer0_IRQn, 0x3);
     auto timer0 = reinterpret_cast<uint32_t volatile *>(An521::Timer0BaseAddress);
@@ -42,7 +42,7 @@ void Main() {
     timer0[0] = 0b1001;    // enable, IRQ enable
     NVIC_EnableIRQ(An521::Timer0_IRQn);
 
-    Uart.WriteAll("Timer0 [B] is ready.\n"sv);
+    Uart.WriteAll("Timer0 [B] is ready.\r\n"sv);
 
     NVIC_SetPriority(An521::Timer1_IRQn, 0x2);
     auto timer1 = reinterpret_cast<uint32_t volatile *>(An521::Timer1BaseAddress);
@@ -50,7 +50,7 @@ void Main() {
     timer1[0] = 0b1001;    // enable, IRQ enable
     NVIC_EnableIRQ(An521::Timer1_IRQn);
 
-    Uart.WriteAll("Timer1 [C] is ready.\n"sv);
+    Uart.WriteAll("Timer1 [C] is ready.\r\n"sv);
 
     while (1)
         ;
