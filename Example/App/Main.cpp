@@ -43,17 +43,19 @@ void Main() {
     }
 
     static StackType_t taskStack[configMINIMAL_STACK_SIZE] __attribute__((aligned(32)));
-    TaskParameters_t taskParams = {.pvTaskCode = IdleTaskMain,
-                                   .pcName = "RWAccess",
-                                   .usStackDepth = configMINIMAL_STACK_SIZE,
-                                   .pvParameters = NULL,
-                                   .uxPriority = tskIDLE_PRIORITY,
-                                   .puxStackBuffer = taskStack,
-                                   .xRegions = {
-                                       {0, 0, 0},
-                                       {0, 0, 0},
-                                       {0, 0, 0},
-                                   }};
+    TaskParameters_t taskParams = {
+        .pvTaskCode = IdleTaskMain,
+        .pcName = "saluton",
+        .usStackDepth = configMINIMAL_STACK_SIZE,
+        .pvParameters = NULL,
+        .uxPriority = tskIDLE_PRIORITY,
+        .puxStackBuffer = taskStack,
+        .xRegions = {
+            {(void *)An521::Uart0BaseAddress, 0x1000,
+             tskMPU_REGION_READ_WRITE | tskMPU_REGION_EXECUTE_NEVER | tskMPU_REGION_DEVICE_MEMORY},
+            {0, 0, 0},
+            {0, 0, 0},
+        }};
     xTaskCreateRestricted(&(taskParams), NULL);
 
     Uart.WriteAll("Entering the scheduler.\r\n"sv);
