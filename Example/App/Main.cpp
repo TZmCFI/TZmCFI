@@ -33,6 +33,10 @@ constexpr uint32_t UartBaudRate = 115'200;
 void IdleTaskMain(void *);
 
 void Main() {
+    // Configure APB PPC EXP 1 SP (APBNSPPPCEXP1) interface 5 to enable
+    // Non-Secure unprivileged access to UART0
+    *(volatile uint32_t *)0x4008'00c4 |= 1 << 5;
+
     Uart.Configure(SystemCoreClock, UartBaudRate);
     Uart.WriteAll("I'm running in the Non-Secure mode.\r\n"sv);
 
