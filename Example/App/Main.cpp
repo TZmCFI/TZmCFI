@@ -30,6 +30,8 @@ const Pl011Driver Uart{An521::Uart0BaseAddress};
 constexpr uint32_t SystemCoreClock = 25'000'000;
 constexpr uint32_t UartBaudRate = 115'200;
 
+void IdleTaskMain(void *);
+
 void Main() {
     Uart.Configure(SystemCoreClock, UartBaudRate);
     Uart.WriteAll("I'm running in the Non-Secure mode.\r\n"sv);
@@ -40,10 +42,31 @@ void Main() {
         SCB->VTOR = reinterpret_cast<uint32_t>(ExceptionVector);
     }
 
+    static StackType_t taskStack[configMINIMAL_STACK_SIZE] __attribute__((aligned(32)));
+    TaskParameters_t taskParams = {.pvTaskCode = IdleTaskMain,
+                                   .pcName = "RWAccess",
+                                   .usStackDepth = configMINIMAL_STACK_SIZE,
+                                   .pvParameters = NULL,
+                                   .uxPriority = tskIDLE_PRIORITY,
+                                   .puxStackBuffer = taskStack,
+                                   .xRegions = {
+                                       {0, 0, 0},
+                                       {0, 0, 0},
+                                       {0, 0, 0},
+                                   }};
+    xTaskCreateRestricted(&(taskParams), NULL);
+
     Uart.WriteAll("Entering the scheduler.\r\n"sv);
     vTaskStartScheduler();
 
     Uart.WriteAll("System halted.\r\n"sv);
+
+    while (1)
+        ;
+}
+
+void IdleTaskMain(void *) {
+    Uart.WriteAll("Can I output to UART?\r\n"sv);
 
     while (1)
         ;

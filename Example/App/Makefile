@@ -37,7 +37,8 @@ COBJS := \
 	$(RTOSDIR)/timers.o \
 	$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure/port.o \
 	$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure/portasm.o \
-	$(RTOSDIR)/portable/MemMang/heap_4.o
+	$(RTOSDIR)/portable/MemMang/heap_4.o \
+	$(RTOSDIR)/portable/Common/mpu_wrappers.o
 ASMOBJS := Startup.o
 
 OBJS = $(COBJS) $(ASMOBJS)
