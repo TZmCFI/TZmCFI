@@ -9,6 +9,10 @@ uint32_t SystemCoreClock = 25'000'000;
 // TODO - The Secure app doesn't have context management yet
 extern "C" void SecureContext_LoadContext() {}
 extern "C" void SecureContext_SaveContext() {}
+extern "C" void SecureContext_Init() {}
+extern "C" void SecureContext_FreeContext() {}
+extern "C" uint32_t SecureContext_AllocateContext() { return 1; }
+extern "C" void SecureInit_DePrioritizeNSExceptions() {}
 
 /*-----------------------------------------------------------*/
 

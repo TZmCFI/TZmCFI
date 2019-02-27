@@ -49,7 +49,7 @@ extern uint32_t SystemCoreClock;
 /* Cortex M33 port configuration. */
 #define configENABLE_MPU								1
 #define configENABLE_FPU								0
-#define configENABLE_TRUSTZONE							0
+#define configENABLE_TRUSTZONE							1
 
 /* Constants related to the behaviour or the scheduler. */
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION			0
