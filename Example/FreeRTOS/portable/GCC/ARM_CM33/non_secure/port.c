@@ -320,6 +320,9 @@ static volatile uint32_t ulCriticalNesting = 0xaaaaaaaaUL;
 	 * task is using on the secure side.
 	 */
 	volatile SecureContextHandle_t xSecureContext = portNO_SECURE_CONTEXT;
+#else:
+	// Actually, this variable is referenced anyway...
+	volatile uint32_t xSecureContext = portNO_SECURE_CONTEXT;
 #endif /* configENABLE_TRUSTZONE */
 /*-----------------------------------------------------------*/
 

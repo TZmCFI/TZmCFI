@@ -10,3 +10,7 @@ extern "C" void _getpid() {
     while (1)
         ;
 }
+extern "C" void _sbrk_r() {
+    while (1)
+        ;
+}

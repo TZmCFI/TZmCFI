@@ -7,16 +7,16 @@ RTOSDIR := $(APPDIR)/../FreeRTOS
 # Path to the secure import library
 MONITOR_IMPLIB := ../Secure/SecureMonitor.implib.o
 
+INCLUDES := $(INCLUDES) -I$(APPDIR)
+INCLUDES := $(INCLUDES) -I$(RTOSDIR)/include
+INCLUDES := $(INCLUDES) -I$(RTOSDIR)/portable/GCC/ARM_CM33/secure
+INCLUDES := $(INCLUDES) -I$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure
+
 include $(APPDIR)/../Common.mak
 
 LDSCRIPT := $(APPDIR)/An521.ld
 
 LDFLAGS := $(MCU) -T$(LDSCRIPT) -lc -lm -Wl,-Map=$(TARGET).map,--cref -Wl,--gc-sections
-
-CFLAGS := $(CFLAGS) -I$(APPDIR)
-CFLAGS := $(CFLAGS) -I$(RTOSDIR)/include
-CFLAGS := $(CFLAGS) -I$(RTOSDIR)/portable/GCC/ARM_CM33/secure
-CFLAGS := $(CFLAGS) -I$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure
 
 default:        all
 all:            $(TARGET).elf $(TARGET).hex $(TARGET).bin
@@ -27,6 +27,7 @@ COBJS := \
 	Main.o \
 	Pl011Driver.o \
 	LibcStub.o \
+	OSHooks.o \
 	$(RTOSDIR)/croutine.o \
 	$(RTOSDIR)/event_groups.o \
 	$(RTOSDIR)/list.o \
@@ -35,7 +36,8 @@ COBJS := \
 	$(RTOSDIR)/tasks.o \
 	$(RTOSDIR)/timers.o \
 	$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure/port.o \
-	$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure/portasm.o
+	$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure/portasm.o \
+	$(RTOSDIR)/portable/MemMang/heap_4.o
 ASMOBJS := Startup.o
 
 OBJS = $(COBJS) $(ASMOBJS)

@@ -49,7 +49,7 @@ extern uint32_t SystemCoreClock;
 /* Cortex M33 port configuration. */
 #define configENABLE_MPU								1
 #define configENABLE_FPU								0
-#define configENABLE_TRUSTZONE							1
+#define configENABLE_TRUSTZONE							0
 
 /* Constants related to the behaviour or the scheduler. */
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION			0
@@ -62,9 +62,9 @@ extern uint32_t SystemCoreClock;
 /* Constants that describe the hardware and memory usage. */
 #define configCPU_CLOCK_HZ								SystemCoreClock
 #define configMINIMAL_STACK_SIZE						( ( uint16_t ) 128 )
-#define configMINIMAL_SECURE_STACK_SIZE					( 1024 )
+#define configMINIMAL_SECURE_STACK_SIZE					( 512 )
 #define configMAX_TASK_NAME_LEN							( 12 )
-#define configTOTAL_HEAP_SIZE							( ( size_t ) ( 50 * 1024 ) )
+#define configTOTAL_HEAP_SIZE							( ( size_t ) ( 8 * 1024 ) )
 
 /* Constants that build features in or out. */
 #define configUSE_MUTEXES								1
@@ -123,7 +123,7 @@ extern uint32_t SystemCoreClock;
 /* Dimensions a buffer that can be used by the FreeRTOS+CLI command interpreter.
  * See the FreeRTOS+CLI documentation for more information:
  * http://www.FreeRTOS.org/FreeRTOS-Plus/FreeRTOS_Plus_CLI/ */
-#define configCOMMAND_INT_MAX_OUTPUT_SIZE				2048
+#define configCOMMAND_INT_MAX_OUTPUT_SIZE				1024
 
 /* Interrupt priority configuration follows...................... */
 

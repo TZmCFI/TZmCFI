@@ -17,11 +17,13 @@ ifeq "$(CMSIS_PATH)" ""
 $(error You must specify CMSIS_PATH to the directory where CMSIS 5 is located.)
 endif
 
+INCLUDES := $(INCLUDES) -I$(CMSIS_PATH)/CMSIS/Core/Include
+INCLUDES := $(INCLUDES) -I$(CMSIS_PATH)/Device/ARM/ARMCM33/Include
+
 CFLAGS := $(MCU)
 CFLAGS := $(CFLAGS) -ffunction-sections -fdata-sections
 CFLAGS := $(CFLAGS) -Os -g -Wall
-CFLAGS := $(CFLAGS) -I$(CMSIS_PATH)/CMSIS/Core/Include
-CFLAGS := $(CFLAGS) -I$(CMSIS_PATH)/Device/ARM/ARMCM33/Include
+CFLAGS := $(CFLAGS) $(INCLUDES)
 
 # We live in a modern era. Pre-C++17 specifications ended with feudalism.
 CXXFLAGS := $(CFLAGS) -std=gnu++17 -fno-exceptions
