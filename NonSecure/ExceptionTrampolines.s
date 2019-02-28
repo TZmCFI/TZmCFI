@@ -89,6 +89,7 @@ InnerExceptionTrampolines:
         // Re-enable interrupts.
         cpsie f
 
+        mov r0, r1 // Original EXC_RETURN
         ldr lr, [lr]
         blx lr
 

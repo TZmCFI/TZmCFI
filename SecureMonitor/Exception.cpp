@@ -200,13 +200,13 @@ void PushShadowExceptionStack(uintptr_t exc_return, uintptr_t msp, uintptr_t psp
 }
 
 [[noreturn]] void EnterInterrupt(void (*isrBody)()) {
-    asm volatile("push {r0} \n"
+    asm volatile("push {r0, lr} \n"
                  // Prepare parameteres of `PushShadowExceptionStack
                  "mov r0, lr \n"
                  "mrs r1, msp_ns \n"
                  "mrs r2, psp_ns \n"
                  "bl __PushShadowExceptionStack \n"
-                 "pop {r0} \n"
+                 "pop {r0, r1} \n"
                  "adr lr, __TCPrivateLeaveInterrupt \n"
                  "bxns r0 \n");
 

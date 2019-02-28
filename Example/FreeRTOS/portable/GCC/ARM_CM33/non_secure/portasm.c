@@ -345,7 +345,12 @@ void SVC_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
 	(
+#if 0
 	"	tst lr, #4										\n"
+#else
+	// TZmCFI's exception trampoline passes `EXC_RETURN` via `r0`
+	"	tst r0, #4										\n"
+#endif
 	"	ite eq											\n"
 	"	mrseq r0, msp									\n"
 	"	mrsne r0, psp									\n"
