@@ -137,9 +137,13 @@ void vStartFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
 	(
+#if 0
 	"	ldr r0, xVTORConst								\n" /* Use the NVIC offset register to locate the stack. */
 	"	ldr r0, [r0]									\n" /* Read the VTOR register which gives the address of vector table. */
 	"	ldr r0, [r0]									\n" /* The first entry in vector table is stack pointer. */
+#else
+	"   ldr r0, =_MainStackTop							\n"
+#endif
 	"	msr msp, r0										\n" /* Set the MSP back to the start of the stack. */
 	"	cpsie i											\n" /* Globally enable interrupts. */
 	"	cpsie f											\n"
