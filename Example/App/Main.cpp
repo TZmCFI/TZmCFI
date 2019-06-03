@@ -41,7 +41,8 @@ void Main() {
     Uart.WriteAll("I'm running in the Non-Secure mode.\r\n"sv);
 
     // Disable exception trampolines (for comparative experiments)
-    if (true) {
+    // WARNING: `#if` block in `SVC_Handler` must be toggled as well!
+    if (false) {
         // Set the Non-Secure exception vector table
         SCB->VTOR = reinterpret_cast<uint32_t>(ExceptionVector);
     }
