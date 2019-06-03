@@ -14,7 +14,7 @@ all:            $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).implib.o
 
 .PHONY:	default all clean
 
-OBJS := Main.o Startup.o
+OBJS := Main.o Startup.o TzMpcDriver.o
 
 vpath %.cpp $(MONITORDIR)
 OBJS += Assert.o Exception.o LinearAllocator.o Thread.o SecureAPI.o

@@ -6,6 +6,8 @@
 
 #include <TZmCFI/Secure.h>
 
+#include "TzMpcDriver.hpp"
+
 using namespace std::literals;
 using std::uint32_t;
 using std::uintptr_t;
@@ -77,49 +79,17 @@ typedef void (*ns_funcptr_void)(void) __attribute__((cmse_nonsecure_call));
     // unprivileged access to UART0
     *(volatile uint32_t *)0x5008'00c4 |= 1 << 5;
 
-    // Configure MPC to enable Non-Secure access to SSRAM1.
-    const auto SSRAM1_MPC_BASE = (volatile uint32_t *)0x5800'7000;
-    {
-        const auto CTRL = SSRAM1_MPC_BASE;
-        const auto BLK_MAX = SSRAM1_MPC_BASE + 0x10 / 4;
-        const auto BLK_IDX = SSRAM1_MPC_BASE + 0x18 / 4;
-        const auto BLK_LUT = SSRAM1_MPC_BASE + 0x1c / 4;
+    // Configure MPC to enable Non-Secure access to SSRAM1
+    // for the range `[0x20'0000, 0x3f'ffff]`.
+    constexpr TCExample::TzMpc Ssram1Mpc{0x5800'7000};
+    Ssram1Mpc.SetEnableBusError(true);
+    Ssram1Mpc.AssignRangeToNonSecure(0x20'0000, 0x40'0000);
 
-        *CTRL |= 1 << 4; // Enable bus error
-
-        *CTRL |= 1 << 8; // Enable autoincrement
-
-        // Only the second half (`[BLX_MAX / 2, BLX_MAX - 1]`, which corresponds
-        // to `[0x20'0000, 0x3f'ffff]`) is allocated for Non-Secure access.
-        auto max = *BLK_MAX;
-        *BLK_IDX = max / 2;
-        if (max & 1) {
-            // This happens on `Cortex-M33 IoT Kit 2.0` (which has only
-            // 32 blocks), not on QEMU 3.0.0.
-            *BLK_LUT = 0xffff'0000;
-        }
-        for (uint32_t i = max / 2; i > 0; --i) {
-            *BLK_LUT = 0xffff'ffff;
-        }
-    }
-
-    // Configure MPC to enable Non-Secure access to SSRAM3.
-    const auto SSRAM3_MPC_BASE = (volatile uint32_t *)0x5800'9000;
-    {
-        const auto CTRL = SSRAM3_MPC_BASE;
-        const auto BLK_MAX = SSRAM3_MPC_BASE + 0x10 / 4;
-        const auto BLK_IDX = SSRAM3_MPC_BASE + 0x18 / 4;
-        const auto BLK_LUT = SSRAM3_MPC_BASE + 0x1c / 4;
-
-        *CTRL |= 1 << 4; // Enable bus error
-
-        *CTRL |= 1 << 8; // Enable autoincrement
-
-        *BLK_IDX = 0;
-        for (uint32_t i = *BLK_MAX + 1; i > 0; --i) {
-            *BLK_LUT = 0xffff'ffff;
-        }
-    }
+    // Configure MPC to enable Non-Secure access to SSRAM3 (`0x[23]8200000`)
+    // for the range `[0, 0x1f'ffff]`.
+    constexpr TCExample::TzMpc IramMpc{0x5800'9000};
+    IramMpc.SetEnableBusError(true);
+    IramMpc.AssignRangeToNonSecure(0, 0x20'0000);
 
     TZ_SAU_Enable();
 
