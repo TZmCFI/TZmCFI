@@ -7,10 +7,12 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "timers.h"
 
 #include "An521.hpp"
 #include "Base64.hpp"
 #include "Pl011Driver.hpp"
+#include "Utils.hpp"
 
 using namespace std::literals;
 using std::array;
@@ -62,6 +64,15 @@ void Main() {
             {0, 0, 0},
         }};
     xTaskCreateRestricted(&(taskParams), NULL);
+
+    Uart.WriteAll("Creating a timer.\r\n"sv);
+    TimerHandle_t timer = xTimerCreate("saluton", 100, pdTRUE, nullptr, [](tmrTimerControl *) {
+        static int i = 0;
+        Uart.WriteAll("The timer has fired for "sv);
+        Print(Uart, ++i);
+        Uart.WriteAll(" time(s)!\r\n"sv);
+    });
+    xTimerStart(timer, 0);
 
     Uart.WriteAll("Entering the scheduler.\r\n"sv);
     vTaskStartScheduler();
