@@ -67,7 +67,7 @@ template <std::size_t Size> class LinearAllocator final : public BaseLinearAlloc
      * Returns `nullptr` if something goes wrong or `count` is zero.
      */
     std::optional<Allocation> AllocateBytes(std::size_t size, std::size_t align = 1) noexcept {
-        return AllocateBytes(GetStorageView(), size, align);
+        return BaseLinearAllocator::AllocateBytes(GetStorageView(), size, align);
     }
 
     /**
@@ -82,7 +82,7 @@ template <std::size_t Size> class LinearAllocator final : public BaseLinearAlloc
             return {};
         }
 
-        return std::make_pair(reinterpret_cast<T *>(alloc.ptr), *alloc);
+        return std::make_pair(reinterpret_cast<T *>(alloc->ptr), *alloc);
     }
 
     /**
@@ -94,9 +94,11 @@ template <std::size_t Size> class LinearAllocator final : public BaseLinearAlloc
     void Deallocate(Allocation alloc) noexcept { Deallocate(GetStorageView(), alloc); }
 
   private:
-    std::aligned_storage<Size> storage;
+    std::aligned_storage_t<Size> storage;
 
-    StorageView GetStorageView() noexcept { return {storage.data(), storage.size()}; }
+    StorageView GetStorageView() noexcept {
+        return {reinterpret_cast<char *>(&storage), sizeof(storage)};
+    }
 };
 
 }; // namespace TZmCFI
