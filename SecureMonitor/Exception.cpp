@@ -7,6 +7,7 @@
 
 #include "../NonSecure/ExceptionTrampolines.h"
 #include "Assert.hpp"
+#include "Exception.hpp"
 
 using std::size_t;
 using std::uintptr_t;
@@ -254,6 +255,32 @@ uintptr_t AssertShadowExceptionStack(uintptr_t msp, uintptr_t psp) {
 void InitializeShadowExceptionStack(uintptr_t const *nonSecureVectorTable) {
     g_exceptionEntryPCSet.InitializeFromVectorTable(nonSecureVectorTable);
 }
+
+void CreateShadowExceptionStackState(const TCThreadCreateInfo &createInfo,
+                                     ShadowExceptionStackState &state, bool isRunning) {
+    if (state.size < sizeof(ShadowExceptionFrame)) {
+        Panic("The shadow exception stack is too small.");
+    }
+
+    auto stack = reinterpret_cast<ShadowExceptionFrame *>(state.start);
+
+    if (isRunning) {
+        // Set the top pointer
+        state.top = stack;
+    } else {
+        // Create a simulated exception frame
+        stack[0].pc = createInfo.initialPC;
+        stack[0].lr = createInfo.initialLR;
+        stack[0].exc_return = createInfo.excReturn;
+        stack[0].frame = createInfo.exceptionFrame;
+
+        // Set the top pointer
+        state.top = stack + 1;
+    }
+}
+
+void SaveShadowExceptionStackState(ShadowExceptionStackState &state) { Unimplemented(); }
+void LoadShadowExceptionStackState(const ShadowExceptionStackState &state) { Unimplemented(); }
 
 } // namespace TZmCFI
 
