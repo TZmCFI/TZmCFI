@@ -556,48 +556,6 @@ uint8_t ucSVCNumber;
 
 	switch( ucSVCNumber )
 	{
-		#if( configENABLE_TRUSTZONE == 1 )
-			case portSVC_ALLOCATE_SECURE_CONTEXT:
-			{
-				/* R0 contains the stack size passed as parameter to the
-				 * vPortAllocateSecureContext function. */
-				ulR0 = pulCallerStackAddress[ 0 ];
-
-				#if( configENABLE_MPU == 1 )
-				{
-					/* Read the CONTROL register value. */
-					__asm volatile ( "mrs %0, control"  : "=r" ( ulControl ) );
-
-					/* The task that raised the SVC is privileged if Bit[0]
-					 * in the CONTROL register is 0. */
-					ulIsTaskPrivileged = ( ( ulControl & portCONTROL_PRIVILEGED_MASK ) == 0 );
-
-					/* Allocate and load a context for the secure task. */
-					xSecureContext = SecureContext_AllocateContext( ulR0, ulIsTaskPrivileged );
-				}
-				#else
-				{
-					/* Allocate and load a context for the secure task. */
-					xSecureContext = SecureContext_AllocateContext( ulR0 );
-				}
-				#endif /* configENABLE_MPU */
-
-				configASSERT( xSecureContext != NULL );
-				SecureContext_LoadContext( xSecureContext );
-			}
-			break;
-
-			case portSVC_FREE_SECURE_CONTEXT:
-			{
-				/* R0 contains the secure context handle to be freed. */
-				ulR0 = pulCallerStackAddress[ 0 ];
-
-				/* Free the secure context. */
-				SecureContext_FreeContext( ( SecureContextHandle_t ) ulR0 );
-			}
-			break;
-		#endif /* configENABLE_TRUSTZONE */
-
 		case portSVC_START_SCHEDULER:
 		{
 			#if( configENABLE_TRUSTZONE == 1 )
@@ -653,6 +611,18 @@ uint8_t ucSVCNumber;
 	StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, StackType_t *pxEndOfStack, TaskFunction_t pxCode, void *pvParameters ) /* PRIVILEGED_FUNCTION */
 #endif /* configENABLE_MPU */
 {
+	SecureContextHandle_t secureContextId;
+
+	// Allocate a secure context.
+	secureContextId = SecureContext_AllocateContext(
+		256, // Secure stack size
+		xRunPrivileged,
+		(uintptr_t)pxCode, // PC
+		(uintptr_t)portTASK_RETURN_ADDRESS, // LR
+		(uintptr_t)portINITIAL_EXC_RETURN, // EXC_RETURN
+		(uintptr_t)pxTopOfStack - 40 // Exception frame location
+	);
+
 	/* Simulate the stack frame as it would be created by a context switch
 	 * interrupt. */
 	#if( portPRELOAD_REGISTERS == 0 )
@@ -688,7 +658,7 @@ uint8_t ucSVCNumber;
 		#if( configENABLE_TRUSTZONE == 1 )
 		{
 			pxTopOfStack--;
-			*pxTopOfStack = portNO_SECURE_CONTEXT;		/* Slot used to hold this task's xSecureContext value. */
+			*pxTopOfStack = (uint32_t)secureContextId;		/* Slot used to hold this task's xSecureContext value. */
 		}
 		#endif /* configENABLE_TRUSTZONE */
 	}
@@ -749,7 +719,7 @@ uint8_t ucSVCNumber;
 		#if( configENABLE_TRUSTZONE == 1 )
 		{
 			pxTopOfStack--;
-			*pxTopOfStack = portNO_SECURE_CONTEXT;		/* Slot used to hold this task's xSecureContext value. */
+			*pxTopOfStack = (uint32_t)secureContextId;		/* Slot used to hold this task's xSecureContext value. */
 		}
 		#endif /* configENABLE_TRUSTZONE */
 	}

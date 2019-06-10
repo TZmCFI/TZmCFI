@@ -99,6 +99,14 @@ void IdleTaskMain(void *) {
 }
 
 }; // namespace
+
+[[noreturn]] void Panic(std::string_view reason) {
+    Uart.WriteAll("panic: "sv);
+    Uart.WriteAll(reason);
+    while (1)
+        ;
+}
+
 }; // namespace TCExample
 
 // Called by the reset handler

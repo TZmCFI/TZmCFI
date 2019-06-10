@@ -236,17 +236,6 @@ typedef struct MPU_SETTINGS
 
 #if( configENABLE_TRUSTZONE == 1 )
 	/**
-	 * @brief Allocate a secure context for the task.
-	 *
-	 * Tasks are not created with a secure context. Any task that is going to call
-	 * secure functions must call portALLOCATE_SECURE_CONTEXT() to allocate itself a
-	 * secure context before it calls any secure function.
-	 *
-	 * @param[in] ulSecureStackSize The size of the secure stack to be allocated.
-	 */
-	#define portALLOCATE_SECURE_CONTEXT( ulSecureStackSize )	vPortAllocateSecureContext( ulSecureStackSize )
-
-	/**
 	 * @brief Called when a task is deleted to delete the task's secure context,
 	 * if it has one.
 	 *
@@ -254,7 +243,6 @@ typedef struct MPU_SETTINGS
 	 */
 	#define portCLEAN_UP_TCB( pxTCB )							vPortFreeSecureContext( ( uint32_t * ) pxTCB )
 #else
-	#define portALLOCATE_SECURE_CONTEXT( ulSecureStackSize )
 	#define portCLEAN_UP_TCB( pxTCB )
 #endif /* configENABLE_TRUSTZONE */
 /*-----------------------------------------------------------*/

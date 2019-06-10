@@ -2,12 +2,14 @@
 APPDIR := .
 TARGET := NonSecureExample
 TRAMPOLINEDIR := $(APPDIR)/../../NonSecure
+TZMCFI_HEADERS_DIR := $(APPDIR)/../../Headers
 RTOSDIR := $(APPDIR)/../FreeRTOS
 
 # Path to the secure import library
 MONITOR_IMPLIB := ../Secure/SecureMonitor.implib.o
 
 INCLUDES := $(INCLUDES) -I$(APPDIR)
+INCLUDES := $(INCLUDES) -I$(TZMCFI_HEADERS_DIR)
 INCLUDES := $(INCLUDES) -I$(RTOSDIR)/include
 INCLUDES := $(INCLUDES) -I$(RTOSDIR)/portable/GCC/ARM_CM33/secure
 INCLUDES := $(INCLUDES) -I$(RTOSDIR)/portable/GCC/ARM_CM33/non_secure

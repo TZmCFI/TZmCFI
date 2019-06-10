@@ -3338,11 +3338,6 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	/** THIS IS THE RTOS IDLE TASK - WHICH IS CREATED AUTOMATICALLY WHEN THE
 	SCHEDULER IS STARTED. **/
 
-	/* In case a task that has a secure context deletes itself, in which case
-	the idle task is responsible for deleting the task's secure context, if
-	any. */
-	portALLOCATE_SECURE_CONTEXT( configMINIMAL_SECURE_STACK_SIZE );
-
 	for( ;; )
 	{
 		/* See if any tasks have deleted themselves - if so then the idle task

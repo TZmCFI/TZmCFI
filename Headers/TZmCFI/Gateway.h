@@ -45,7 +45,9 @@ TCResult TCReset(void);
  */
 typedef uint8_t TCThread;
 
-typedef enum TCThreadCreateFlags {} TCThreadCreateFlags;
+typedef enum TCThreadCreateFlags {
+    TCThreadCreateFlagsNone = 0,
+} TCThreadCreateFlags;
 
 typedef struct TCThreadCreateInfo {
     /**
@@ -58,6 +60,28 @@ typedef struct TCThreadCreateInfo {
      * the number of the entries in the call stack.
      */
     uint16_t stackSize;
+
+    /**
+     * The initial value of the PC (program counter) register. Must match the
+     * corresponding value in the simulated exception frame.
+     */
+    uintptr_t initialPC;
+
+    /**
+     * The initial value of the LR (program counter) register. Must match the
+     * corresponding value in the simulated exception frame.
+     */
+    uintptr_t initialLR;
+
+    /**
+     * The EXC_RETURN value in the simulated exception frame.
+     */
+    uintptr_t excReturn;
+
+    /**
+     * The address of the simulated exception frame.
+     */
+    uintptr_t exceptionFrame;
 } TCThreadCreateInfo;
 
 /**

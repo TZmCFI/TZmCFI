@@ -70,9 +70,12 @@ void SecureContext_Init( void );
  * otherwise.
  */
 #if( configENABLE_MPU == 1 )
-	SecureContextHandle_t SecureContext_AllocateContext( uint32_t ulSecureStackSize, uint32_t ulIsTaskPrivileged );
+	SecureContextHandle_t SecureContext_AllocateContext(
+        uint32_t ulSecureStackSize, uint32_t ulIsTaskPrivileged,
+        uintptr_t pc, uintptr_t lr, uintptr_t exc_return, uintptr_t frame );
 #else /* configENABLE_MPU */
-	SecureContextHandle_t SecureContext_AllocateContext( uint32_t ulSecureStackSize );
+    // TODO
+	// SecureContextHandle_t SecureContext_AllocateContext( uint32_t ulSecureStackSize );
 #endif /* configENABLE_MPU */
 
 /**

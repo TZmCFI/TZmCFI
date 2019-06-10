@@ -4,14 +4,47 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "Main.hpp"
+#include <TZmCFI/Gateway.h>
+
 uint32_t SystemCoreClock = 25'000'000;
 
-// TODO - The Secure app doesn't have context management yet
-extern "C" void SecureContext_LoadContext() {}
+// In this example application, secure contexts are associated with shadow
+// exception stacks.
+extern "C" void SecureContext_LoadContext(uint32_t contextId) {
+    TCActivateThread((TCThread)contextId);
+}
 extern "C" void SecureContext_SaveContext() {}
 extern "C" void SecureContext_Init() {}
-extern "C" void SecureContext_FreeContext() {}
-extern "C" uint32_t SecureContext_AllocateContext() { return 1; }
+extern "C" void SecureContext_FreeContext(uint32_t context) {
+    // Can't delete a thread for now :(
+}
+extern "C" uint32_t SecureContext_AllocateContext(uint32_t contextId, uint32_t taskPrivileged,
+                                                  uintptr_t pc, uintptr_t lr, uintptr_t exc_return,
+                                                  uintptr_t frame) {
+    (void)taskPrivileged;
+
+    TCThreadCreateInfo createInfo;
+    TCResult result;
+
+    createInfo.flags = TCThreadCreateFlagsNone;
+    createInfo.stackSize = 4; // unused for now
+    createInfo.initialPC = pc;
+    createInfo.initialLR = lr;
+    createInfo.excReturn = exc_return;
+    createInfo.exceptionFrame = frame;
+
+    // Create a TZmCFI thread
+    TCThread thread;
+    result = TCCreateThread(&createInfo, &thread);
+
+    if (result != TC_RESULT_SUCCESS) {
+        using namespace std::literals;
+        TCExample::Panic("TCCreateThread failed"sv);
+    }
+
+    return (uint32_t)thread;
+}
 extern "C" void SecureInit_DePrioritizeNSExceptions() {}
 
 /*-----------------------------------------------------------*/
