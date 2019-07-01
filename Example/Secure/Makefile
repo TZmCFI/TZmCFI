@@ -35,7 +35,7 @@ CMSE_SYMS := \
 clean:
 	rm -rf $(OBJS) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
 
-$(TARGET).elf $(TARGET).implib.o:   $(OBJS) $(LDSCRIPT)
+$(TARGET).elf $(TARGET).implib.o:   $(OBJS) $(LDSCRIPT) $(TZMCFI_MKIMPLIB)
 	$(CC) $(OBJS) $(LDFLAGS) -o $@
 	$(TZMCFI_MKIMPLIB) $(CMSE_SYMS) $@ | \
 		$(AS) - -o $(TARGET).implib.o $(ASFLAGS)
