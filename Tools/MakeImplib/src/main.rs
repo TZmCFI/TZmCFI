@@ -81,6 +81,7 @@ fn main() {
     // FIXME: Probably this isn't the right way to create an import library.
     println!(".syntax unified");
     for (name, addr) in &symbols {
+        println!(".type {} function", name);
         println!(".set {}, 0x{:08x}", name, addr);
         println!(".global {}", name);
     }
