@@ -133,7 +133,7 @@ TCCreateThread(TCThreadCreateInfo const *pCreateInfo, TCThread *thread) noexcept
 
     const TCThreadCreateInfo createInfo = *(TCThreadCreateInfo const *volatile)pCreateInfo;
     TCThread outThread;
-    TCResult result = TZmCFI::CreateThread(createInfo, outThread, false);
+    TCResult result = TZmCFI::CreateThread(createInfo, outThread, true);
     if (result == TC_RESULT_SUCCESS) {
         *(TCThread volatile *)thread = outThread;
     }

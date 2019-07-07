@@ -269,7 +269,7 @@ void CreateShadowExceptionStackState(const TCThreadCreateInfo &createInfo,
 
     auto stack = reinterpret_cast<ShadowExceptionFrame *>(state.start);
 
-    if (isRunning) {
+    if (!isRunning) {
         // Set the top pointer
         state.top = stack;
     } else {
