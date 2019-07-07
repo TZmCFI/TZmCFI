@@ -130,7 +130,6 @@ extern "C" __attribute__((cmse_nonsecure_entry)) TCResult TCReset(void) noexcept
 extern "C" __attribute__((cmse_nonsecure_entry)) TCResult
 TCCreateThread(TCThreadCreateInfo const *pCreateInfo, TCThread *thread) noexcept {
     // TODO: Validate pointers
-    TZmCFI::Unimplemented();
 
     const TCThreadCreateInfo createInfo = *(TCThreadCreateInfo const *volatile)pCreateInfo;
     TCThread outThread;
