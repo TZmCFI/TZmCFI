@@ -299,7 +299,6 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	mov lr, r4										\n" /* LR = r4. */
 	"	ldr r2, xSecureContextConst						\n" /* Read the location of xSecureContext i.e. &( xSecureContext ). */
 	"	str r0, [r2]									\n" /* Restore the task's xSecureContext. */
-	"	cbz r0, restore_ns_context						\n" /* If there is no secure context for the task, restore the non-secure context. */
 	"	push {r1,r4}									\n"
 	"	bl SecureContext_LoadContext					\n" /* Restore the secure context. */
 	"	pop {r1,r4}										\n"
@@ -314,7 +313,6 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	mov lr, r3										\n" /* LR = r3. */
 	"	ldr r2, xSecureContextConst						\n" /* Read the location of xSecureContext i.e. &( xSecureContext ). */
 	"	str r0, [r2]									\n" /* Restore the task's xSecureContext. */
-	"	cbz r0, restore_ns_context						\n" /* If there is no secure context for the task, restore the non-secure context. */
 	"	push {r1,r3}									\n"
 	"	bl SecureContext_LoadContext					\n" /* Restore the secure context. */
 	"	pop {r1,r3}										\n"
