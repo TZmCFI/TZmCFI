@@ -621,7 +621,7 @@ uint8_t ucSVCNumber;
 		(uintptr_t)pxCode, // PC
 		(uintptr_t)portTASK_RETURN_ADDRESS, // LR
 		(uintptr_t)portINITIAL_EXC_RETURN, // EXC_RETURN
-		(uintptr_t)pxTopOfStack - 40 // Exception frame location
+		(uintptr_t)pxTopOfStack - 32 // Exception frame location
 	);
 
 	/* Simulate the stack frame as it would be created by a context switch
