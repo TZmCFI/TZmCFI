@@ -565,6 +565,7 @@ uint8_t ucSVCNumber;
 				SecureInit_DePrioritizeNSExceptions();
 
 				/* Initialize the secure context management system. */
+				// TODO: Remove this? Doesn't do anything whatsoever in our port.
 				SecureContext_Init();
 			}
 			#endif /* configENABLE_TRUSTZONE */
