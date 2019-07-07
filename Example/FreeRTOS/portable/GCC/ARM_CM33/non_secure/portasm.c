@@ -64,7 +64,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	"	bx   r4											\n" /* Finally, branch to EXC_RETURN. */
+	"	blx  __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
 	#else /* configENABLE_MPU */
 	"	ldm  r0!, {r1-r3}								\n" /* Read from stack - r1 = xSecureContext, r2 = PSPLIM and r3 = EXC_RETURN. */
 	"	ldr  r4, xSecureContextConst2					\n"
@@ -75,7 +75,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	"	bx   r3											\n" /* Finally, branch to EXC_RETURN. */
+	"	blx  __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
 	#endif /* configENABLE_MPU */
 	"													\n"
 	"	.align 4										\n"
