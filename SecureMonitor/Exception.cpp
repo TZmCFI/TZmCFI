@@ -166,17 +166,21 @@ class ChainedExceptionStackIterator {
     }
 };
 
+/** The default shadow stack */
 std::array<ShadowExceptionFrame, 32> g_shadowStack;
+
+ShadowExceptionFrame *g_shadowStackCurrent = g_shadowStack.data();
 ShadowExceptionFrame *g_shadowStackTop = g_shadowStack.data();
+ShadowExceptionFrame *g_shadowStackLimit = g_shadowStack.data() + g_shadowStack.size();
 
 void PushShadowExceptionStack(uintptr_t exc_return, uintptr_t msp, uintptr_t psp) {
     ChainedExceptionStackIterator excStack{exc_return, msp, psp};
 
     ShadowExceptionFrame *newTop = g_shadowStackTop;
 
-    // TODO: Add bounds check
+    // TODO: Add bounds check using `g_shadowStackLimit`
 
-    if (g_shadowStackTop == g_shadowStack.data()) {
+    if (g_shadowStackTop == g_shadowStackCurrent) {
         // The shadow exception stack is empty -- push every frame we find
         do {
             *newTop = excStack.AsShadowExceptionFrame();
@@ -215,7 +219,7 @@ void PushShadowExceptionStack(uintptr_t exc_return, uintptr_t msp, uintptr_t psp
 }
 
 uintptr_t AssertShadowExceptionStack(uintptr_t msp, uintptr_t psp) {
-    if (g_shadowStackTop == g_shadowStack.data()) {
+    if (g_shadowStackTop == g_shadowStackCurrent) {
         // Shadow stack is empty
         Panic("Exception return trampoline was called but the shadow exception stack is empty.");
     }
@@ -229,7 +233,7 @@ uintptr_t AssertShadowExceptionStack(uintptr_t msp, uintptr_t psp) {
         Panic("Exception stack integrity check has failed.");
     }
     if (excStack.MoveNext()) {
-        if (g_shadowStackTop == g_shadowStack.data() + 1) {
+        if (g_shadowStackTop == g_shadowStackCurrent + 1) {
             Panic("The number of entries in the shadow exception stack is lower than expected.");
         }
         if (excStack.AsShadowExceptionFrame() != g_shadowStackTop[-2]) {
@@ -258,7 +262,8 @@ void InitializeShadowExceptionStack(uintptr_t const *nonSecureVectorTable) {
 
 void CreateShadowExceptionStackState(const TCThreadCreateInfo &createInfo,
                                      ShadowExceptionStackState &state, bool isRunning) {
-    if (state.size < sizeof(ShadowExceptionFrame)) {
+    size_t size = reinterpret_cast<size_t>(state.limit) - reinterpret_cast<size_t>(state.start);
+    if (static_cast<ptrdiff_t>(size) < static_cast<ptrdiff_t>(sizeof(ShadowExceptionFrame))) {
         Panic("The shadow exception stack is too small.");
     }
 
@@ -279,8 +284,16 @@ void CreateShadowExceptionStackState(const TCThreadCreateInfo &createInfo,
     }
 }
 
-void SaveShadowExceptionStackState(ShadowExceptionStackState &state) { Unimplemented(); }
-void LoadShadowExceptionStackState(const ShadowExceptionStackState &state) { Unimplemented(); }
+void SaveShadowExceptionStackState(ShadowExceptionStackState &state) {
+    state.start = g_shadowStackCurrent;
+    state.limit = g_shadowStackLimit;
+    state.top = g_shadowStackTop;
+}
+void LoadShadowExceptionStackState(const ShadowExceptionStackState &state) {
+    g_shadowStackCurrent = static_cast<ShadowExceptionFrame *>(state.start);
+    g_shadowStackLimit = static_cast<ShadowExceptionFrame *>(state.limit);
+    g_shadowStackTop = static_cast<ShadowExceptionFrame *>(state.top);
+}
 
 } // namespace TZmCFI
 

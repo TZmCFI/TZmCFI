@@ -60,7 +60,7 @@ TCResult CreateThread(const TCThreadCreateInfo &createInfo, TCThread &outThread,
 
     // Initialize the shadow exception stack
     thread.shadow_exc_stack.start = ses_storage->ptr;
-    thread.shadow_exc_stack.size = shadow_exc_stack_size;
+    thread.shadow_exc_stack.limit = ses_storage->ptr + shadow_exc_stack_size;
     CreateShadowExceptionStackState(createInfo, thread.shadow_exc_stack, isRunning);
 
     // Allocate a thread ID

@@ -7,7 +7,7 @@ namespace TZmCFI {
 
 struct ShadowExceptionStackState {
     void *start;
-    size_t size;
+    void *limit;
     void *top;
 };
 
@@ -21,7 +21,7 @@ void InitializeShadowExceptionStack(uintptr_t const *nonSecureVectorTable);
  * Initialize `ShadowExceptionStackState` using the specified
  * `TCThreadCreateInfo`.
  *
- * `ShadowExceptionStackState::{stackStart, stackSize}` must be initialized by
+ * `ShadowExceptionStackState::{start, limit}` must be initialized by
  * the caller.
  *
  * `isRunning` is a flag indicating whether the thread is already in the running
