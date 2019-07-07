@@ -65,7 +65,7 @@ TCResult CreateThread(const TCThreadCreateInfo &createInfo, TCThread &outThread,
 
     // Allocate a thread ID
     outThread = static_cast<TCThread>(g_nextFreeThread);
-    g_threads[g_nextFreeThread] = &thread;
+    g_threads[g_nextFreeThread++] = &thread;
 
     return TC_RESULT_SUCCESS;
 }
