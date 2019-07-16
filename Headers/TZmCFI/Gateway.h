@@ -43,7 +43,7 @@ TCResult TCReset(void);
 /**
  * An identifier of a thread as recognized by the TZmCFI secure monitor.
  */
-typedef uint8_t TCThread;
+typedef uint32_t TCThread;
 
 typedef enum TCThreadCreateFlags {
     TCThreadCreateFlagsNone = 0,
