@@ -62,9 +62,9 @@ SECTIONS
         *(.rodata*)
     } > SECURE_CODEMEM
 
-    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) }
+    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } > SECURE_CODEMEM
     __exidx_start = .;
-    .ARM.exidx   : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) }
+    .ARM.exidx   : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) } > SECURE_CODEMEM
     __exidx_end = .;
 
     . = ALIGN(4);
@@ -103,8 +103,13 @@ SECTIONS
 
     /* Reserve stack space */
     . = ALIGN(8);
-    . = . + 0x4000;
+    . = . + 0x1000;
     PROVIDE(_MainStackTop = .);
+
+    /* Heap */
+    PROVIDE(__heap_start = .);
+    . = . + 0x1000;
+    PROVIDE(__heap_end = .);
 
     _end = .;
     PROVIDE(end = .);
