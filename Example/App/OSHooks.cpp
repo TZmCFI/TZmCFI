@@ -12,7 +12,11 @@ uint32_t SystemCoreClock = 25'000'000;
 // In this example application, secure contexts are associated with shadow
 // exception stacks.
 extern "C" void SecureContext_LoadContext(uint32_t contextId) {
-    TCActivateThread((TCThread)contextId);
+    TCResult result = TCActivateThread((TCThread)contextId);
+    if (result != TC_RESULT_SUCCESS) {
+        using namespace std::literals;
+        TCExample::Panic("TCActivateThread failed"sv);
+    }
 }
 extern "C" void SecureContext_SaveContext() {}
 extern "C" void SecureContext_Init() {}
