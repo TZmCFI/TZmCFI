@@ -7,6 +7,8 @@
 #include "LinearAllocator.hpp"
 #include "Mutex.hpp"
 
+// #define TZMCFI_TRACE 1
+
 namespace TZmCFI {
 namespace {
 
@@ -135,6 +137,9 @@ TCCreateThread(TCThreadCreateInfo const *pCreateInfo, TCThread *thread) noexcept
     TCThread outThread;
     TCResult result = TZmCFI::CreateThread(createInfo, outThread, true);
     if (result == TC_RESULT_SUCCESS) {
+#if TZMCFI_TRACE
+        printf("TCCreateThread(...) -> %d\n", (int)outThread);
+#endif
         *(TCThread volatile *)thread = outThread;
     }
     return result;
@@ -146,5 +151,8 @@ extern "C" __attribute__((cmse_nonsecure_entry)) TCResult TCLockdown(void) noexc
 
 extern "C" __attribute__((cmse_nonsecure_entry)) TCResult
 TCActivateThread(TCThread thread) noexcept {
+#if TZMCFI_TRACE
+    printf("TCActivateThread(%d)\n", (int)thread);
+#endif
     return TZmCFI::ActivateThread(thread);
 }
