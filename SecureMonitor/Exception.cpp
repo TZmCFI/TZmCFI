@@ -12,6 +12,8 @@
 using std::size_t;
 using std::uintptr_t;
 
+// #define TZMCFI_TRACE 1
+
 namespace TZmCFI {
 namespace {
 
@@ -35,6 +37,11 @@ struct ShadowExceptionFrame {
         return pc == o.pc && lr == o.lr && exc_return == o.exc_return && frame == o.frame;
     }
     bool operator!=(const ShadowExceptionFrame &o) const { return !(*this == o); }
+
+    void Dump() {
+        printf("SEF { pc = 0x%08zx, lr = 0x%08zx, exc_return = 0x%08zx, frame = 0x%08zx }", pc, lr,
+               exc_return, frame);
+    }
 };
 
 /**
@@ -179,6 +186,11 @@ void PushShadowExceptionStack(uintptr_t exc_return, uintptr_t msp, uintptr_t psp
     ShadowExceptionFrame *newTop = g_shadowStackTop;
 
     // TODO: Add bounds check using `g_shadowStackLimit`
+#if TZMCFI_TRACE
+    printf("push ");
+    excStack.AsShadowExceptionFrame().Dump();
+    printf("\n");
+#endif
 
     if (g_shadowStackTop == g_shadowStackCurrent) {
         // The shadow exception stack is empty -- push every frame we find
@@ -227,6 +239,12 @@ uintptr_t AssertShadowExceptionStack(uintptr_t msp, uintptr_t psp) {
     uintptr_t exc_return = g_shadowStackTop[-1].exc_return;
 
     ChainedExceptionStackIterator excStack{exc_return, msp, psp};
+
+#if TZMCFI_TRACE
+    printf("pop ");
+    excStack.AsShadowExceptionFrame().Dump();
+    printf("\n");
+#endif
 
     // Validate *two* top entries.
     if (excStack.AsShadowExceptionFrame() != g_shadowStackTop[-1]) {
@@ -285,11 +303,17 @@ void CreateShadowExceptionStackState(const TCThreadCreateInfo &createInfo,
 }
 
 void SaveShadowExceptionStackState(ShadowExceptionStackState &state) {
+#if TZMCFI_TRACE
+    printf("SaveShadowExceptionStackState(0x%08zx)\n", (size_t)&state);
+#endif
     state.start = g_shadowStackCurrent;
     state.limit = g_shadowStackLimit;
     state.top = g_shadowStackTop;
 }
 void LoadShadowExceptionStackState(const ShadowExceptionStackState &state) {
+#if TZMCFI_TRACE
+    printf("LoadShadowExceptionStackState(0x%08zx)\n", (size_t)&state);
+#endif
     g_shadowStackCurrent = static_cast<ShadowExceptionFrame *>(state.start);
     g_shadowStackLimit = static_cast<ShadowExceptionFrame *>(state.limit);
     g_shadowStackTop = static_cast<ShadowExceptionFrame *>(state.top);
