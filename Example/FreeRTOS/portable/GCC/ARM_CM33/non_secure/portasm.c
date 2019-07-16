@@ -215,7 +215,6 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	ldr r2, xSecureContextConst						\n" /* Read the location of xSecureContext i.e. &( xSecureContext ). */
 	"	ldr r0, [r2]									\n" /* Read xSecureContext - Value of xSecureContext must be in r0 as it is used as a parameter later. */
 	"													\n"
-	"	cbz r0, save_ns_context							\n" /* No secure context to save. */
 	"	push {r0-r2, r14}								\n"
 	"	bl SecureContext_SaveContext					\n"
 	"	pop {r0-r3}										\n" /* LR is now in r3. */
