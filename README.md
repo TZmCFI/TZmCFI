@@ -12,7 +12,7 @@
 
     $ make -C Example/Secure
     $ make -C Example/App
-    $ qemu-system-arm -kernel Example/Secure/SecureMonitor.elf -device loader,file=Example/App/NonSecureExample.elf -machine mps2-an505 -nographic -s
+    $ qemu-system-arm -kernel Example/Secure/SecureMonitor.elf -device loader,file=Example/App/NonSecureExample.elf -machine mps2-an505 -nographic -s -d guest_errors -semihosting -semihosting-config target=native
     (^A-X to quit)
 
 The `-s` option causes qemu to accept an incoming GDB connection (add `-S` if you want qemu to stop until the conenction). Do the following to attach a debugger:
