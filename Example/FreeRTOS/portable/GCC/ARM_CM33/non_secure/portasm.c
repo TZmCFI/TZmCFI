@@ -57,10 +57,10 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"													\n"
 	#if( configENABLE_MPU == 1 )
 	"	ldm  r0!, {r1}									\n" /* Read from stack - r1 = xSecureContext */
-	"	push {r0}										\n"
+	"	push {r0, r1}									\n"
 	"   mov  r0, r1										\n"
 	"	bl SecureContext_LoadContext					\n" /* Restore the secure context. */
-	"	pop  {r0}									    \n"
+	"	pop  {r0, r1}								    \n"
 
 	"	ldm  r0!, {r2-r4}								\n" /* Read from stack - r2 = PSPLIM, r3 = CONTROL and r4 = EXC_RETURN. */
 	"	ldr  r5, xSecureContextConst2					\n"
