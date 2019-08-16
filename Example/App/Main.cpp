@@ -34,6 +34,13 @@ constexpr uint32_t UartBaudRate = 115'200;
 
 void IdleTaskMain(void *);
 
+void BadFunction() {
+    Uart.WriteAll("Hello, this procedure isn't supposed to be called!\r\n"sv);
+
+    while (1)
+        ;
+}
+
 void Main() {
     // Configure APB PPC EXP 1 SP (APBNSPPPCEXP1) interface 5 to enable
     // Non-Secure unprivileged access to UART0
@@ -71,6 +78,11 @@ void Main() {
         Uart.WriteAll("The timer has fired for "sv);
         Print(Uart, ++i);
         Uart.WriteAll(" time(s)!\r\n"sv);
+
+        // Mess with the stack
+        // TODO: We need normal shadow stacks to catch this memory error
+        int volatile st[1];
+        // st[8] = reinterpret_cast<int>(&BadFunction); // return target
     });
     xTimerStart(timer, 0);
 
