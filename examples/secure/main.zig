@@ -1,7 +1,7 @@
 const std = @import("std");
 
-const arm_cmse = @import("arm_cmse.zig");
-const arm_m = @import("arm_m.zig");
+const arm_cmse = @import("arm_cmse");
+const arm_m = @import("arm_m");
 const an505 = @import("../drivers/an505.zig");
 
 extern var __nsc_start: usize;

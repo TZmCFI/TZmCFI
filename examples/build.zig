@@ -10,20 +10,20 @@ pub fn build(b: *Builder) !void {
 
     // The utility program for creating a CMSE import library
     // -------------------------------------------------------
-    const mkimplib = "../target/debug/mkimplib";
+    const mkimplib = "../target/debug/tzmcfi_mkimplib";
 
     // The Secure part
     // -------------------------------------------------------
     const exe_s_name = if (want_gdb) "secure-dbg" else "secure";
-    const exe_s = b.addExecutable(exe_s_name, "src/secure.zig");
+    const exe_s = b.addExecutable(exe_s_name, "secure.zig");
     exe_s.setLinkerScriptPath("secure/linker.ld");
     exe_s.setTarget(arch, .freestanding, .eabi);
     exe_s.setBuildMode(mode);
     exe_s.addAssemblyFile("common/startup.s");
     exe_s.setOutputDir("zig-cache");
-    // TODO: exe_s.addPackage("tzmcfi-monitor", "../src/monitor.zig");
-    exe_s.addPackage("arm_cmse", "../src/drivers/arm_cmse.zig");
-    exe_s.addPackage("arm_m", "../src/drivers/arm_m.zig");
+    // TODO: exe_s.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
+    exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
+    exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
 
     // CMSE import library (generated from the Secure binary)
     // -------------------------------------------------------
@@ -34,14 +34,14 @@ pub fn build(b: *Builder) !void {
     const implib_path = "zig-cache/secure_implib.s";
     var implib_args = std.ArrayList([]const u8).init(b.allocator);
     try implib_args.appendSlice([_][]const u8{
-        mkimplib.getOutputPath(),
+        mkimplib,
         exe_s.getOutputPath(),
+        "-o",
         implib_path,
     });
 
     const implib = b.addSystemCommand(implib_args.toSliceConst());
     implib.step.dependOn(&exe_s.step);
-    implib.step.dependOn(&mkimplib.step);
 
     const implib_step = b.step("implib", "Create a CMSE import library");
     implib_step.dependOn(&implib.step);
@@ -83,9 +83,13 @@ pub fn build(b: *Builder) !void {
         "-nographic",
         "-d",
         "guest_errors",
+        "-semihosting",
+        "-semihosting-config",
+        "target=native",
+        "-s",
     });
     if (want_gdb) {
-        try qemu_args.appendSlice([_][]const u8{ "-S", "-s" });
+        try qemu_args.appendSlice([_][]const u8{ "-S" });
     }
     const run_qemu = b.addSystemCommand(qemu_args.toSliceConst());
     qemu.dependOn(&run_qemu.step);
