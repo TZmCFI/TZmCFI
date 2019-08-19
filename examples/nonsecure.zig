@@ -1,5 +1,6 @@
 // The root source file for the Non-Secure part of this project.
-export const _ = @import("nonsecure/main.zig");
+export const _1 = @import("nonsecure/main.zig");
+export const _2 = @import("nonsecure/excvector.zig");
 
 const builtin = @import("builtin");
 const debugOutput = @import("nonsecure/debug.zig").debugOutput;
