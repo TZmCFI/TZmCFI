@@ -46,6 +46,39 @@ pub fn build(b: *Builder) !void {
     const implib_step = b.step("implib", "Create a CMSE import library");
     implib_step.dependOn(&implib.step);
 
+    // FreeRTOS (This runs in Non-Secure mode)
+    // -------------------------------------------------------
+    const kernel_name = if (want_gdb) "freertos-dbg" else "freertos";
+    const kernel = b.addStaticLibrary(kernel_name, "freertos.zig");
+    kernel.setTarget(arch, .freestanding, .eabi);
+    kernel.setBuildMode(mode);
+
+    const kernel_include_dirs = [_][]const u8 {
+        "freertos/include",
+        "freertos/portable/GCC/ARM_CM33/non_secure",
+        "freertos/portable/GCC/ARM_CM33/secure",
+        "nonsecure", // For `FreeRTOSConfig.h`
+    };
+    for (kernel_include_dirs) |path| {
+        kernel.addIncludeDir(path);
+    }
+
+    const kernel_source_files = [_][]const u8 {
+        "freertos/croutine.c",
+        "freertos/event_groups.c",
+        "freertos/list.c",
+        "freertos/queue.c",
+        "freertos/stream_buffer.c",
+        "freertos/tasks.c",
+        "freertos/timers.c",
+        "freertos/portable/GCC/ARM_CM33/non_secure/port.c",
+        "freertos/portable/GCC/ARM_CM33/non_secure/portasm.c",
+        "freertos/portable/MemMang/heap_4.c",
+    };
+    for (kernel_source_files) |file| {
+        kernel.addCSourceFile(file, [_][]const u8 {});
+    }
+
     // The Non-Secure part
     // -------------------------------------------------------
     const exe_ns_name = if (want_gdb) "nonsecure-dbg" else "nonsecure";
@@ -54,8 +87,15 @@ pub fn build(b: *Builder) !void {
     exe_ns.setTarget(arch, .freestanding, .eabi);
     exe_ns.setBuildMode(mode);
     exe_ns.addAssemblyFile("common/startup.s");
-    exe_ns.addAssemblyFile(implib_path);
     exe_ns.setOutputDir("zig-cache");
+
+    for (kernel_include_dirs) |path| {
+        exe_ns.addIncludeDir(path);
+    }
+    exe_ns.linkLibrary(kernel);
+    exe_ns.addCSourceFile("nonsecure/oshooks.c", [_][]const u8 {});
+
+    exe_ns.addAssemblyFile(implib_path);
     exe_ns.step.dependOn(&implib.step);
 
     const exe_both = b.step("build", "Build Secure and Non-Secure executables");

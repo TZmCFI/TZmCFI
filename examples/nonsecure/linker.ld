@@ -18,6 +18,24 @@ SECTIONS
         . = ALIGN(4);
     } > CODEMEM
 
+    privileged_functions :
+    {
+        . = ALIGN(32);
+        __privileged_functions_start__ = .;
+        *(privileged_functions)
+        . = ALIGN(32);
+        __privileged_functions_end__ = .;
+    } > CODEMEM
+
+    freertos_system_calls :
+    {
+        . = ALIGN(32);
+        __syscalls_flash_start__ = .;
+        *(freertos_system_calls)
+        . = ALIGN(32);
+        __syscalls_flash_end__ = .;
+    } > CODEMEM
+
     .text :
     {
         __text = .;
@@ -34,6 +52,8 @@ SECTIONS
     _etext = .;
     PROVIDE(etext = .);
 
+    __unprivileged_flash_end__ = .;
+
     .rodata :
     {
         *(.rodata)
@@ -45,7 +65,14 @@ SECTIONS
     .ARM.exidx   : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) } > CODEMEM
     __exidx_end = .;
 
-    . = ALIGN(4);
+    privileged_data :
+    {
+        . = ALIGN(32);
+        __privileged_sram_start__ = .;
+        *(privileged_data)
+        . = ALIGN(32);
+        __privileged_sram_end__ = .;
+    } > SRAM
 
     /* used by the startup to initialize data */
     _sidata = LOADADDR(.data);

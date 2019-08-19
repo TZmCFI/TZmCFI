@@ -3,9 +3,20 @@ const format = @import("std").fmt.format;
 
 const gateways = @import("../common/gateways.zig");
 
-export fn main() void {
-    debugOutput("NS: Hello from the Non-Secure world!\r\n");
+export const os = @cImport({
+    @cInclude("FreeRTOS.h");
+    @cInclude("task.h");
+    @cInclude("timers.h");
+});
 
+export const _oshooks = @import("oshooks.zig");
+
+export fn main() void {
+    debugOutput("Entering the scheduler.\r\n");
+
+    os.vTaskStartScheduler();
+
+    debugOutput("System halted.\r\n");
     while (true) {}
 }
 
@@ -39,6 +50,11 @@ extern fn _main_stack_top() void;
 /// But this is really a function!
 extern fn handleReset() void;
 
+// These are a part of FreeRTOS
+extern fn SysTick_Handler() void;
+extern fn PendSV_Handler() void;
+extern fn SVC_Handler() void;
+
 export const exception_vectors linksection(".isr_vector") = [_]extern fn () void{
     _main_stack_top,
     handleReset,
@@ -51,10 +67,10 @@ export const exception_vectors linksection(".isr_vector") = [_]extern fn () void
     unhandled("Reserved 1"), // Reserved 1
     unhandled("Reserved 2"), // Reserved 2
     unhandled("Reserved 3"), // Reserved 3
-    unhandled("SVCall"), // SVCall
+    SVC_Handler, // SVCall
     unhandled("DebugMonitor"), // DebugMonitor
     unhandled("Reserved 4"), // Reserved 4
-    unhandled("PendSV"), // PendSV
-    unhandled("SysTick"), // SysTick
+    PendSV_Handler, // PendSV
+    SysTick_Handler, // SysTick
     unhandled("External interrupt 0"), // External interrupt 0
 };

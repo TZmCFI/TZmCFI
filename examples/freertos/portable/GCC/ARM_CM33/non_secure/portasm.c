@@ -70,7 +70,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	"	blx  __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
+	"	bl   __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
 	#else /* configENABLE_MPU */
 	"	ldm  r0!, {r1-r3}								\n" /* Read from stack - r1 = xSecureContext, r2 = PSPLIM and r3 = EXC_RETURN. */
 	"	ldr  r4, xSecureContextConst2					\n"
@@ -81,7 +81,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	"	blx  __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
+	"	bl   __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
 	#endif /* configENABLE_MPU */
 	"													\n"
 	"	.align 4										\n"
@@ -148,7 +148,7 @@ void vStartFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	ldr r0, [r0]									\n" /* Read the VTOR register which gives the address of vector table. */
 	"	ldr r0, [r0]									\n" /* The first entry in vector table is stack pointer. */
 #else
-	"   ldr r0, =_MainStackTop							\n"
+	"   ldr r0, =_main_stack_top						\n"
 #endif
 	"	msr msp, r0										\n" /* Set the MSP back to the start of the stack. */
 	"	cpsie i											\n" /* Globally enable interrupts. */
