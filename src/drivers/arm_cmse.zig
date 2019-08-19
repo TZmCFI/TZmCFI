@@ -234,6 +234,9 @@ test "AddressInfo is word-sized" {
 pub fn exportNonSecureCallable(comptime name: []const u8, comptime func: extern fn (usize, usize, usize, usize) usize) void {
     const Veneer = struct {
         extern nakedcc fn veneer() linksection(".gnu.sgstubs") void {
+            // Work-around for a code generation issue in ReleaseSmall builds
+            @setRuntimeSafety(false);
+
             // See another comment regarding `.cpu`
             asm volatile (
                 \\ .cpu cortex-m33
