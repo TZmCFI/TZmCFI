@@ -115,15 +115,10 @@ extern fn handleReset() void;
 fn unhandled(comptime name: []const u8) extern fn () void {
     const ns = struct {
         extern fn handler() void {
-            return unhandledInner(name);
+            @panic("unhandled exception: " ++ name);
         }
     };
     return ns.handler;
-}
-
-fn unhandledInner(name: []const u8) void {
-    an505.uart0.print("caught an unhandled exception, system halted: {}\r\n", name);
-    while (true) {}
 }
 
 export const exception_vectors linksection(".isr_vector") = [_]extern fn () void{

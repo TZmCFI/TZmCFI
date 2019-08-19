@@ -63,15 +63,10 @@ extern fn idleTaskMain(_arg: ?*c_void) void {
 fn unhandled(comptime name: []const u8) extern fn () void {
     const ns = struct {
         extern fn handler() void {
-            return unhandledInner(name);
+            @panic("unhandled exception: " ++ name);
         }
     };
     return ns.handler;
-}
-
-fn unhandledInner(name: []const u8) void {
-    debugOutput("NS: caught an unhandled exception, system halted: {}\r\n", name);
-    while (true) {}
 }
 
 /// Not a function, actually, but suppresses type error
