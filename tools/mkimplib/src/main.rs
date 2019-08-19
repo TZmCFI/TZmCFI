@@ -1,6 +1,6 @@
 use goblin::Object;
 use memmap::MmapOptions;
-use std::{collections::HashMap, fs::File};
+use std::{collections::HashMap, fs::File, io};
 
 fn main() {
     use clap::{App, Arg};
@@ -16,20 +16,26 @@ fn main() {
                 .required(true),
         )
         .arg(
+            Arg::with_name("output")
+                .help("Path to the generated assembly file. Defaults to stdout")
+                .takes_value(true)
+                .short("o")
+                .long("out"),
+        )
+        .arg(
             Arg::with_name("symbol")
-                .help("Names of symbols to include")
+                .help("Addiitonal names of symbols to include")
                 .takes_value(true)
                 .multiple(true)
                 .number_of_values(1)
                 .short("s")
-                .long("symbol")
-                .required(true),
+                .long("symbol"),
         )
         .get_matches();
 
     let mut included_symbols: HashMap<&str, Option<u64>> = matches
         .values_of("symbol")
-        .unwrap()
+        .unwrap_or_default()
         .map(|name| (name, None))
         .collect();
 
@@ -40,12 +46,26 @@ fn main() {
         let mmap = unsafe { MmapOptions::new().map(&file) }
             .unwrap_or_else(|x| panic!("failed to mmap {:?}: {:?}", input, x));
 
+        // The program is short-lived. Just leak `mmap` so that the symbol names
+        // newly inserted to `included_symbols` live long enough
+        let mmap: &'static _ = Box::leak(Box::new(mmap));
+
         let object = Object::parse(&mmap)
             .unwrap_or_else(|x| panic!("failed to parse file {:?}: {:?}", input, x));
         let elf = match &object {
             Object::Elf(elf) => elf,
             _ => panic!("{:?} is not an ELF object file", input),
         };
+
+        // Symbols marked using special symbols `__acle_se_*` are automatically
+        // included
+        const ENTRY_PREFIX: &str = "__acle_se_";
+        for sym in elf.syms.iter() {
+            let name = elf.strtab.get_unsafe(sym.st_name).unwrap();
+            if name.starts_with(ENTRY_PREFIX) {
+                let _ = included_symbols.insert(&name[ENTRY_PREFIX.len()..], None);
+            }
+        }
 
         for sym in elf.syms.iter() {
             let name = elf.strtab.get_unsafe(sym.st_name).unwrap();
@@ -77,12 +97,32 @@ fn main() {
         .collect();
     symbols.sort_by_key(|(_, addr)| *addr);
 
-    // Generate an assembler input
-    // FIXME: Probably this isn't the right way to create an import library.
-    println!(".syntax unified");
-    for (name, addr) in &symbols {
-        println!(".type {} function", name);
-        println!(".set {}, 0x{:08x}", name, addr);
-        println!(".global {}", name);
+    // Open the output stream
+    let (mut out_file, mut out_stdout);
+    let writer: &mut dyn io::Write;
+    let out_name;
+    if let Some(out_path) = matches.value_of_os("output") {
+        let file = std::fs::File::create(out_path)
+            .unwrap_or_else(|x| panic!("failed to open file {:?}: {:?}", out_path, x));
+        out_file = io::BufWriter::new(file);
+        writer = &mut out_file;
+        out_name = out_path;
+    } else {
+        out_stdout = io::stdout();
+        writer = &mut out_stdout;
+        out_name = std::ffi::OsStr::new("-");
     }
+
+    (|| -> Result<(), io::Error> {
+        // Generate an assembler input
+        // FIXME: Probably this isn't the right way to create an import library.
+        writeln!(writer, ".syntax unified")?;
+        for (name, addr) in &symbols {
+            writeln!(writer, ".type {} function", name)?;
+            writeln!(writer, ".set {}, 0x{:08x}", name, addr)?;
+            writeln!(writer, ".global {}", name)?;
+        }
+        Ok(())
+    })()
+    .unwrap_or_else(|x| panic!("failed to write {:?}: {:?}", out_name, x));
 }

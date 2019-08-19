@@ -10,7 +10,6 @@ pub fn build(b: *Builder) !void {
 
     // The utility program for creating a CMSE import library
     // -------------------------------------------------------
-    // TODO: Adjust this program for this project
     const mkimplib = "../target/debug/mkimplib";
 
     // The Secure part
