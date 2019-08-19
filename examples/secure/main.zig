@@ -28,12 +28,6 @@ export fn main() void {
     an505.uart0.print("(Hit ^A X to quit QEMU)\r\n");
     an505.uart0.print("The Secure code is running!\r\n");
 
-    // Configure SysTick
-    // -----------------------------------------------------------------------
-    arm_m.sys_tick.regRvr().* = 1000 * 100; // fire every 100 milliseconds
-    arm_m.sys_tick.regCsr().* = arm_m.SysTick.CSR_ENABLE |
-        arm_m.SysTick.CSR_TICKINT;
-
     // Configure SAU
     // -----------------------------------------------------------------------
     const Region = arm_cmse.SauRegion;
@@ -111,13 +105,6 @@ comptime {
     arm_cmse.exportNonSecureCallable("debugOutput", nsDebugOutput);
 }
 
-var counter: u8 = 0;
-
-extern fn handleSysTick() void {
-    counter +%= 1;
-    an505.uart0.print("\r{}", "|\\-/"[counter % 4 ..][0..1]);
-}
-
 /// Not a function, actually, but suppresses type error
 extern fn _main_stack_top() void;
 
@@ -155,7 +142,7 @@ export const exception_vectors linksection(".isr_vector") = [_]extern fn () void
     unhandled("DebugMonitor"), // DebugMonitor
     unhandled("Reserved 4"), // Reserved 4
     unhandled("PendSV"), // PendSV
-    handleSysTick, // SysTick
+    unhandled("SysTick"), // SysTick
     unhandled("External interrupt 0"), // External interrupt 0
     unhandled("External interrupt 1"), // External interrupt 1
     unhandled("External interrupt 2"), // External interrupt 2
