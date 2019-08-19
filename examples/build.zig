@@ -71,6 +71,7 @@ pub fn build(b: *Builder) !void {
         "freertos/stream_buffer.c",
         "freertos/tasks.c",
         "freertos/timers.c",
+        "freertos/portable/Common/mpu_wrappers.c",
         "freertos/portable/GCC/ARM_CM33/non_secure/port.c",
         "freertos/portable/GCC/ARM_CM33/non_secure/portasm.c",
         "freertos/portable/MemMang/heap_4.c",
