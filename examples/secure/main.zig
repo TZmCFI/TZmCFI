@@ -78,8 +78,7 @@ export fn main() void {
     const ns_entry = @intToPtr(*volatile fn () void, 0x00200004).*;
     _ = arm_cmse.nonSecureCall(ns_entry, 0, 0, 0, 0);
 
-    an505.uart0.print("Non-Secure reset handler returned unexpectedly!\r\n");
-    while (true) {}
+    @panic("Non-Secure reset handler returned unexpectedly");
 }
 
 /// The Non-Secure-callable function that outputs zero or more bytes to the

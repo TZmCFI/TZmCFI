@@ -22,9 +22,7 @@ export fn main() void {
 
     debugOutput("Entering the scheduler.\r\n");
     os.vTaskStartScheduler();
-
-    debugOutput("System halted.\r\n");
-    while (true) {}
+    unreachable;
 }
 
 fn xTimerStart(timer: os.TimerHandle_t, ticks: os.TickType_t) os.BaseType_t {
