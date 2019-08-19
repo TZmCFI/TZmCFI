@@ -94,7 +94,7 @@ pub inline fn checkObject(comptime ty: type, ptr: usize, options: CheckOptions) 
     // Check alignment
     const alignment = @alignOf(ty);
 
-    if ((ptr & ((1 << alignment) - 1)) != 0) {
+    if ((ptr & (alignment - 1)) != 0) {
         return CheckObjectError.Misaligned;
     }
 
@@ -115,7 +115,7 @@ pub inline fn checkSlice(comptime ty: type, ptr: usize, count: usize, options: C
     // Check alignment
     const alignment = @alignOf(ty);
 
-    if ((ptr & ((1 << alignment) - 1)) != 0) {
+    if ((ptr & (alignment - 1)) != 0) {
         return CheckSliceError.Misaligned;
     }
 
