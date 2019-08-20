@@ -73,7 +73,9 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	#if 0
 	"   bx   r4											\n" /* Finally, branch to EXC_RETURN. */
 	#else
-	"	bl   __TCPrivateLeaveInterrupt					\n" /* Finally, return from an exception handler. */
+	// `r4` isn't needed - TZmCFI tracks `EXC_RETURN`.
+	"   cpsid f											\n"
+	"	b    __TCPrivateLeaveInterrupt					\n" /* Finally, return from an exception handler. */
 	#endif
 	#else /* configENABLE_MPU */
 	"	ldm  r0!, {r1-r3}								\n" /* Read from stack - r1 = xSecureContext, r2 = PSPLIM and r3 = EXC_RETURN. */
@@ -85,7 +87,8 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	"	bl   __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
+	"   cpsid f											\n"
+	"	b    __TCPrivateLeaveInterrupt					\n" /* Finally, branch to EXC_RETURN. */
 	#endif /* configENABLE_MPU */
 	"													\n"
 	"	.align 4										\n"
@@ -215,6 +218,10 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	.extern SecureContext_SaveContext				\n"
 	"	.extern SecureContext_LoadContext				\n"
 	"													\n"
+	"	mov lr, r0										\n" /* `r0` contains the actual `EXC_RETURN` */
+	// The old `lr` points the retrun trampoline, which we don't need because we'll jump
+	// to `__TCPrivateLeaveInterrupt` directly.
+	"													\n"
 	"	mrs r1, psp										\n" /* Read PSP in r1. */
 	"	ldr r2, xSecureContextConst						\n" /* Read the location of xSecureContext i.e. &( xSecureContext ). */
 	"	ldr r0, [r2]									\n" /* Read xSecureContext - Value of xSecureContext must be in r0 as it is used as a parameter later. */
@@ -309,7 +316,12 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	lsls r2, r4, #25								\n" /* r2 = r4 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
 	"	bpl restore_ns_context							\n" /* bpl - branch if positive or zero. If r2 >= 0 ==> Bit[6] in EXC_RETURN is 0 i.e. non-secure stack was used. */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	"	bx lr											\n"
+	#if 0
+	"   bx   lr											\n" /* branch to EXC_RETURN. */
+	#else
+	"   cpsid f											\n"
+	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
+	#endif
 	#else /* configENABLE_MPU */
 	"	ldmia r1!, {r0, r2-r3}							\n" /* Read from stack - r0 = xSecureContext, r2 = PSPLIM and r3 = LR. */
 	"	msr psplim, r2									\n" /* Restore the PSPLIM register value for the task. */
@@ -323,7 +335,12 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	lsls r2, r3, #25								\n" /* r2 = r3 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
 	"	bpl restore_ns_context							\n" /* bpl - branch if positive or zero. If r2 >= 0 ==> Bit[6] in EXC_RETURN is 0 i.e. non-secure stack was used. */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	"	bx lr											\n"
+	#if 0
+	"   bx   lr											\n" /* branch to EXC_RETURN. */
+	#else
+	"   cpsid f											\n"
+	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
+	#endif
 	#endif /* configENABLE_MPU */
 	"													\n"
 	" restore_ns_context:								\n"
@@ -334,7 +351,12 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	vldmiaeq r1!, {s16-s31}							\n" /* Restore the FPU registers which are not restored automatically. */
 	#endif /* configENABLE_FPU */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	"	bx lr											\n"
+	#if 0
+	"   bx   lr											\n" /* branch to EXC_RETURN. */
+	#else
+	"   cpsid f											\n"
+	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
+	#endif
 	"													\n"
 	"	.align 4										\n"
 	"pxCurrentTCBConst: .word pxCurrentTCB				\n"
