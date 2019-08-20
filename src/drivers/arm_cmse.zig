@@ -4,6 +4,8 @@ const assert = @import("std").debug.assert;
 
 /// Call a Non-Secure function.
 pub fn nonSecureCall(func: var, r0: usize, r1: usize, r2: usize, r3: usize) usize {
+    @setAlignStack(8);
+
     const target = if (@typeOf(func) == usize) func else @ptrToInt(func);
 
     // Specifying Armv8-M in `build.zig` won't work for some reason, so we have
