@@ -21,7 +21,7 @@ pub fn build(b: *Builder) !void {
     exe_s.setBuildMode(mode);
     exe_s.addAssemblyFile("common/startup.s");
     exe_s.setOutputDir("zig-cache");
-    // TODO: exe_s.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
+    exe_s.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
 

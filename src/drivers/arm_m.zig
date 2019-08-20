@@ -1,3 +1,19 @@
+// Special LR values for Secure/Non-Secure call handling and exception handling
+
+// Function Return Payload (from ARMv8-M Architecture Reference Manual) LR value on entry from Secure BLXNS
+pub const FNC_RETURN: usize = 0xFEFFFFFF; // bit [0] ignored when processing a branch
+
+/// These EXC_RETURN mask values are used to evaluate the LR on exception entry.
+pub const EXC_RETURN = struct {
+    pub const PREFIX: usize = 0xFF000000; // bits [31:24] set to indicate an EXC_RETURN value
+    pub const S: usize = 0x00000040; // bit [6] stack used to push registers: 0=Non-secure 1=Secure
+    pub const DCRS: usize = 0x00000020; // bit [5] stacking rules for called registers: 0=skipped 1=saved
+    pub const FTYPE: usize = 0x00000010; // bit [4] allocate stack for floating-point context: 0=done 1=skipped
+    pub const MODE: usize = 0x00000008; // bit [3] processor mode for return: 0=Handler mode 1=Thread mode
+    pub const SPSEL: usize = 0x00000004; // bit [2] stack pointer used to restore context: 0=MSP 1=PSP
+    pub const ES: usize = 0x00000001; // bit [0] security state exception was taken to: 0=Non-secure 1=Secure
+};
+
 /// Cortex-M SysTick timer.
 ///
 /// The availability of SysTick(s) depends on the hardware configuration.

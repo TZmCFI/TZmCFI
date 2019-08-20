@@ -4,6 +4,8 @@ const arm_cmse = @import("arm_cmse");
 const arm_m = @import("arm_m");
 const an505 = @import("../drivers/an505.zig");
 
+const tzmcfi_monitor = @import("tzmcfi-monitor");
+
 extern var __nsc_start: usize;
 extern var __nsc_end: usize;
 
@@ -66,6 +68,10 @@ export fn main() void {
     // Enable SAU
     // -----------------------------------------------------------------------
     arm_cmse.sau.regCtrl().* |= arm_cmse.Sau.CTRL_ENABLE;
+
+    // Initialize TZmCFI Monitor
+    // -----------------------------------------------------------------------
+    tzmcfi_monitor.TCInitialize(0x00200000);
 
     // Boot the Non-Secure code
     // -----------------------------------------------------------------------
