@@ -70,7 +70,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	#if 1
+	#if 0
 	"   bx   r4											\n" /* Finally, branch to EXC_RETURN. */
 	#else
 	"	bl   __TCPrivateLeaveInterrupt					\n" /* Finally, return from an exception handler. */
@@ -352,7 +352,7 @@ void SVC_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
 	(
-#if 1
+#if 0
 	"	tst lr, #4										\n"
 #else
 	// TZmCFI's exception trampoline passes `EXC_RETURN` via `r0`

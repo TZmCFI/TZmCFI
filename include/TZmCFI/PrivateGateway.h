@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-
 /**
  * Enters the Secure part of the interrupt trampoline.
  */

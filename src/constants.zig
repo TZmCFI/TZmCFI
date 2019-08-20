@@ -1,7 +1,11 @@
-pub const VEC_TABLE = struct {
-    pub const HDR_SIGNATURE: usize = 0xf4510000;
-    pub const HDR_SIGNATURE_MASK: usize = 0xffff0000;
-    pub const HDR_SIZE_MASK: usize = 0x0000ffff;
+const c = @cImport({
+    @cInclude("TZmCFI/Trampolines.h");
+});
 
-    pub const TRAMPOLINE_STRIDE: usize = 8;
+pub const VEC_TABLE = struct {
+    pub const HDR_SIGNATURE: usize = c.TC_VEC_TABLE_HDR_SIGNATURE;
+    pub const HDR_SIGNATURE_MASK: usize = c.TC_VEC_TABLE_HDR_SIGNATURE_MASK;
+    pub const HDR_SIZE_MASK: usize = c.TC_VEC_TABLE_HDR_SIZE_MASK;
+
+    pub const TRAMPOLINE_STRIDE: usize = c.TC_VEC_TABLE_TRAMPOLINE_STRIDE;
 };

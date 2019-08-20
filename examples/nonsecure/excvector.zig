@@ -1,5 +1,4 @@
-
-export const exception_vectors linksection(".isr_vector") = [_]extern fn () void{
+export const raw_exception_vectors = [_]extern fn () void{
     _main_stack_top,
     handleReset,
     unhandled("NMI"), // NMI

@@ -24,6 +24,7 @@ pub fn build(b: *Builder) !void {
     exe_s.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
+    exe_s.addIncludeDir("../include");
 
     // CMSE import library (generated from the Secure binary)
     // -------------------------------------------------------
@@ -53,7 +54,7 @@ pub fn build(b: *Builder) !void {
     kernel.setTarget(arch, .freestanding, .eabi);
     kernel.setBuildMode(mode);
 
-    const kernel_include_dirs = [_][]const u8 {
+    const kernel_include_dirs = [_][]const u8{
         "freertos/include",
         "freertos/portable/GCC/ARM_CM33/non_secure",
         "freertos/portable/GCC/ARM_CM33/secure",
@@ -63,7 +64,7 @@ pub fn build(b: *Builder) !void {
         kernel.addIncludeDir(path);
     }
 
-    const kernel_source_files = [_][]const u8 {
+    const kernel_source_files = [_][]const u8{
         "freertos/croutine.c",
         "freertos/event_groups.c",
         "freertos/list.c",
@@ -77,7 +78,7 @@ pub fn build(b: *Builder) !void {
         "freertos/portable/MemMang/heap_4.c",
     };
     for (kernel_source_files) |file| {
-        kernel.addCSourceFile(file, [_][]const u8 {});
+        kernel.addCSourceFile(file, [_][]const u8{});
     }
 
     // The Non-Secure part
@@ -88,13 +89,15 @@ pub fn build(b: *Builder) !void {
     exe_ns.setTarget(arch, .freestanding, .eabi);
     exe_ns.setBuildMode(mode);
     exe_ns.addAssemblyFile("common/startup.s");
+    exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
     exe_ns.setOutputDir("zig-cache");
+    exe_ns.addIncludeDir("../include");
 
     for (kernel_include_dirs) |path| {
         exe_ns.addIncludeDir(path);
     }
     exe_ns.linkLibrary(kernel);
-    exe_ns.addCSourceFile("nonsecure/oshooks.c", [_][]const u8 {});
+    exe_ns.addCSourceFile("nonsecure/oshooks.c", [_][]const u8{});
 
     exe_ns.addAssemblyFile(implib_path);
     exe_ns.step.dependOn(&implib.step);
@@ -130,7 +133,7 @@ pub fn build(b: *Builder) !void {
         "-s",
     });
     if (want_gdb) {
-        try qemu_args.appendSlice([_][]const u8{ "-S" });
+        try qemu_args.appendSlice([_][]const u8{"-S"});
     }
     const run_qemu = b.addSystemCommand(qemu_args.toSliceConst());
     qemu.dependOn(&run_qemu.step);

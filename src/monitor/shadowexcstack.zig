@@ -1,4 +1,6 @@
 // The monitor part of the shadow exception stack implementation.
+const builtin = @import("builtin");
+
 const arm_cmse = @import("../drivers/arm_cmse.zig");
 
 const arm_m = @import("../drivers/arm_m.zig");
@@ -321,7 +323,6 @@ pub export nakedcc fn __TCPrivateEnterInterrupt() linksection(".gnu.sgstubs") no
         \\ # r0 = lr (EXC_RETURN)
         \\ # r1 = handler function pointer
         \\
-        \\ adr lr, __TCPrivateLeaveInterrupt
         \\ bxns r1
     );
     unreachable;
@@ -345,4 +346,10 @@ pub export nakedcc fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") no
         \\ bx r0
     );
     unreachable;
+}
+
+// Export the gateway functions to Non-Secure
+comptime {
+    @export("__acle_se___TCPrivateEnterInterrupt", __TCPrivateEnterInterrupt, builtin.GlobalLinkage.Strong);
+    @export("__acle_se___TCPrivateLeaveInterrupt", __TCPrivateLeaveInterrupt, builtin.GlobalLinkage.Strong);
 }

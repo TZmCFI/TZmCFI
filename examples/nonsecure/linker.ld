@@ -10,11 +10,11 @@ ENTRY(handleReset)
 
 SECTIONS
 {
-    .isr_vector :
+    .text.isr_vector :
     {
         . = ALIGN(4);
-        *(.isr_vector*);
-        KEEP(*(.isr_vector*))
+        *(.text.isr_vector*);
+        KEEP(*(.text.isr_vector*))
         . = ALIGN(4);
     } > CODEMEM
 

@@ -6,10 +6,6 @@ const os = @cImport({
 
 export const SystemCoreClock: u32 = 25000000;
 
-export fn __TCPrivateLeaveInterrupt() void {
-    // TODO (This should be defined by TZmCFI Monitor, not here!)
-}
-
 export fn SecureContext_LoadContext(contextId: u32) void {
     // TODO
 }
