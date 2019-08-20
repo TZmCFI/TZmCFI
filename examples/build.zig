@@ -5,6 +5,7 @@ const Builder = @import("std").build.Builder;
 pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
+    const enable_trace = b.option(bool, "trace", "Enable tracing") orelse false;
 
     const arch = builtin.Arch{ .thumb = .v8m_mainline };
 
@@ -25,6 +26,7 @@ pub fn build(b: *Builder) !void {
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_s.addIncludeDir("../include");
+    exe_s.addBuildOption(bool, "ENABLE_TRACE", enable_trace);
 
     // CMSE import library (generated from the Secure binary)
     // -------------------------------------------------------

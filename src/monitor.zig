@@ -17,6 +17,7 @@
 //    called from an application or operating system but rather to be called by
 //    CFI instrumentation code embedded in Non-Secure code.
 //
+const debug = @import("monitor/debug.zig");
 const ffi = @import("monitor/ffi.zig");
 const shadowexcstack = @import("monitor/shadowexcstack.zig");
 export const threads = @import("monitor/threads.zig");
@@ -27,3 +28,5 @@ pub const TCThreadCreateFlags = ffi.TCThreadCreateFlags;
 pub const TCThreadCreateInfo = ffi.TCThreadCreateInfo;
 
 pub const TCInitialize = shadowexcstack.TCInitialize;
+
+pub const setWarnHandler = debug.setWarnHandler;

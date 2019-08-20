@@ -1,14 +1,15 @@
 // The monitor part of the shadow exception stack implementation.
+// ----------------------------------------------------------------------------
 const builtin = @import("builtin");
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-
+// ----------------------------------------------------------------------------
 const arm_cmse = @import("../drivers/arm_cmse.zig");
 
 const arm_m = @import("../drivers/arm_m.zig");
 const EXC_RETURN = arm_m.EXC_RETURN;
-
+// ----------------------------------------------------------------------------
 const constants = @import("../constants.zig");
 const VEC_TABLE = constants.VEC_TABLE;
 const reverse = @import("utils.zig").reverse;
@@ -16,6 +17,9 @@ const reverse = @import("utils.zig").reverse;
 const threads = @import("threads.zig");
 
 const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
+
+const warn = @import("debug.zig").warn;
+// ----------------------------------------------------------------------------
 
 /// A copy of a portion of an exception frame.
 const Frame = struct {
@@ -300,6 +304,7 @@ fn popShadowExcStack(msp: usize, psp: usize) usize {
 
     // Validate *two* top entries.
     if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
+        warn("popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 1)[0]);
         @panic("Exception stack integrity check has failed.");
     }
     if (exc_stack.moveNext()) {
@@ -307,6 +312,7 @@ fn popShadowExcStack(msp: usize, psp: usize) usize {
             @panic("The number of entries in the shadow exception stack is lower than expected.");
         }
         if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
+            warn("popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 2)[0]);
             @panic("Exception stack integrity check has failed.");
         }
     }

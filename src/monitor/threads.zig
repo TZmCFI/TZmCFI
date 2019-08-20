@@ -7,6 +7,8 @@ const arm_cmse = @import("../drivers/arm_cmse.zig");
 const shadowexcstack = @import("shadowexcstack.zig");
 const ffi = @import("ffi.zig");
 
+const warn = @import("debug.zig").warn;
+
 // TODO: Critical section
 //       We currently put a trust on the Non-Secure code calling these functions
 //       in a way that it does not cause data race. We assume the Non-Secure
@@ -61,7 +63,12 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
 
     thread_info.exc_stack_state = exc_stack_state;
 
+    // Commit the update
+    next_free_thread += 1;
     threads[thread_id] = thread_info;
+
+    warn("createThread({}) = {}\r\n", create_info, thread_id);
+
     return thread_id;
 }
 
@@ -74,6 +81,8 @@ fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
 
     const old_thread_id = usize(cur_thread);
     const old_thread = threads[old_thread_id].?;
+
+    warn("activateThread({} → {})\r\n", old_thread_id, new_thread_id);
 
     shadowexcstack.saveState(&old_thread.exc_stack_state);
     shadowexcstack.loadState(&new_thread.exc_stack_state);

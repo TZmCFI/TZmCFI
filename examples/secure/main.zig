@@ -71,6 +71,9 @@ export fn main() void {
 
     // Initialize TZmCFI Monitor
     // -----------------------------------------------------------------------
+    if (@import("build_options").ENABLE_TRACE) {
+        tzmcfi_monitor.setWarnHandler(tcWarnHandler);
+    }
     tzmcfi_monitor.TCInitialize(0x00200000);
 
     // Boot the Non-Secure code
@@ -85,6 +88,12 @@ export fn main() void {
     _ = arm_cmse.nonSecureCall(ns_entry, 0, 0, 0, 0);
 
     @panic("Non-Secure reset handler returned unexpectedly");
+}
+
+fn tcWarnHandler(ctx: void, data: []const u8) error{}!void {
+    for (data) |byte| {
+        an505.uart0.write(byte);
+    }
 }
 
 /// The Non-Secure-callable function that outputs zero or more bytes to the
