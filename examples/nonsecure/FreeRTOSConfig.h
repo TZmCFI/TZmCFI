@@ -84,7 +84,7 @@ extern uint32_t SystemCoreClock;
 #define configUSE_MALLOC_FAILED_HOOK					0
 
 /* Constants provided for debugging and optimisation assistance. */
-#define configCHECK_FOR_STACK_OVERFLOW					2
+#define configCHECK_FOR_STACK_OVERFLOW					1
 #define configASSERT( x )								if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
 #define configQUEUE_REGISTRY_SIZE						0
 

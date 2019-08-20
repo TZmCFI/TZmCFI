@@ -35,7 +35,7 @@ extern fn timerHandler(_arg: ?*os.tmrTimerControl) void {
     debugOutput("The timer has fired for {} time(s)!\r\n", i);
 }
 
-var idle_task_stack = [1]u32{0} ** 64;
+var idle_task_stack = [1]u32{0} ** 128;
 
 const idle_task_params = os.TaskParameters_t{
     .pvTaskCode = idleTaskMain,
