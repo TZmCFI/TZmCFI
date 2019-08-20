@@ -50,5 +50,5 @@ export fn SecureInit_DePrioritizeNSExceptions() void {}
 
 /// Stack overflow hook.
 export fn vApplicationStackOverflowHook(xTask: os.TaskHandle_t, pcTaskName: *[*]const u8) void {
-    // TODO
+    @panic("stack overflow");
 }
