@@ -1,6 +1,9 @@
 // The monitor part of the shadow exception stack implementation.
 const builtin = @import("builtin");
 
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+
 const arm_cmse = @import("../drivers/arm_cmse.zig");
 
 const arm_m = @import("../drivers/arm_m.zig");
@@ -9,6 +12,10 @@ const EXC_RETURN = arm_m.EXC_RETURN;
 const constants = @import("../constants.zig");
 const VEC_TABLE = constants.VEC_TABLE;
 const reverse = @import("utils.zig").reverse;
+
+const threads = @import("threads.zig");
+
+const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
 
 /// A copy of a portion of an exception frame.
 const Frame = struct {
@@ -187,12 +194,34 @@ const ChainedExceptionStackIterator = struct {
 var g_default_stack_storage: [32]Frame = undefined;
 
 /// Bundles the state of a single instance of shadow exception stack.
-const StackState = struct {
+pub const StackState = struct {
     current: [*]Frame,
     top: [*]Frame,
     limit: [*]Frame,
 
     const Self = @This();
+
+    /// Construct a `StackState` by allocating memory from `allocator`.
+    pub fn new(allocator: *Allocator, create_info: *const TCThreadCreateInfo) !Self {
+        const frames = try allocator.alloc(Frame, 4);
+        var self = fromSlice(frames);
+
+        self.top[0] = Frame{
+            .pc = create_info.initialPC,
+            .lr = create_info.initialLR,
+            .exc_return = create_info.excReturn,
+            .frame = create_info.exceptionFrame,
+        };
+        self.top += 1;
+
+        return self;
+    }
+
+    /// Release the memory allocated for `self`. `self` must have been created
+    /// by `new(allocator, _)`.
+    pub fn destroy(self: *Self, allocator: *Allocator) void {
+        allocator.free(self.asSlice());
+    }
 
     fn fromSlice(frames: []Frame) Self {
         var start = @ptrCast([*]Frame, &frames[0]);
@@ -201,6 +230,11 @@ const StackState = struct {
             .top = start,
             .limit = start + frames.len,
         };
+    }
+
+    fn asSlice(self: *const Self) []Frame {
+        const len = @divExact(@ptrToInt(self.limit) - @ptrToInt(self.current), @sizeOf(Frame));
+        return self.current[0..len];
     }
 };
 
@@ -296,11 +330,21 @@ export fn __tcLeaveInterrupt(msp: usize, psp: usize) usize {
     return popShadowExcStack(msp, psp);
 }
 
+pub fn saveState(state: *StackState) void {
+    state.* = g_stack;
+}
+
+pub fn loadState(state: *const StackState) void {
+    g_stack = state.*;
+}
+
 // Non-Secure application interface
 // ----------------------------------------------------------------------------
 
 /// Implements a secure function in `Secure.h`.
 pub export fn TCInitialize(ns_vtor: usize) void {
+    threads.init();
+
     g_stack = StackState.fromSlice(&g_default_stack_storage);
     g_exception_entry_pc_set.setFromVtor(ns_vtor);
 }
