@@ -1,9 +1,9 @@
-// The root source file for the Non-Secure part of this project.
-export const _1 = @import("nonsecure/main.zig");
-export const _2 = @import("nonsecure/excvector.zig");
+// The root source file for the "rtosbasic" example application.
+export const _1 = @import("nonsecure-rtosbasic/main.zig");
+export const _2 = @import("nonsecure-common/excvector.zig");
 
 const builtin = @import("builtin");
-const debugOutput = @import("nonsecure/debug.zig").debugOutput;
+const debugOutput = @import("nonsecure-common/debug.zig").debugOutput;
 
 /// The global panic handler. (The compiler looks for `pub fn panic` in the root
 /// source file. See `zig/std/special/panic.zig`.)

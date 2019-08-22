@@ -1,6 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const Builder = @import("std").build.Builder;
+const Step = @import("std").build.Step;
+const LibExeObjStep = @import("std").build.LibExeObjStep;
 
 pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
@@ -15,6 +17,7 @@ pub fn build(b: *Builder) !void {
 
     // The Secure part
     // -------------------------------------------------------
+    // This part is shared by all Non-Secure applications.
     const exe_s_name = if (want_gdb) "secure-dbg" else "secure";
     const exe_s = b.addExecutable(exe_s_name, "secure.zig");
     exe_s.setLinkerScriptPath("secure/linker.ld");
@@ -60,7 +63,7 @@ pub fn build(b: *Builder) !void {
         "freertos/include",
         "freertos/portable/GCC/ARM_CM33/non_secure",
         "freertos/portable/GCC/ARM_CM33/secure",
-        "nonsecure", // For `FreeRTOSConfig.h`
+        "nonsecure-common", // For `FreeRTOSConfig.h`
     };
     for (kernel_include_dirs) |path| {
         kernel.addIncludeDir(path);
@@ -85,9 +88,76 @@ pub fn build(b: *Builder) !void {
 
     // The Non-Secure part
     // -------------------------------------------------------
-    const exe_ns_name = if (want_gdb) "nonsecure-dbg" else "nonsecure";
-    const exe_ns = b.addExecutable(exe_ns_name, "nonsecure.zig");
-    exe_ns.setLinkerScriptPath("nonsecure/linker.ld");
+    // This build script defines multiple Non-Secure applications.
+    // There are separate build steps defined for each application, allowing
+    // the user to choose whichever application they want to start.
+    const ns_app_deps = NsAppDeps{
+        .arch = arch,
+        .mode = mode,
+        .want_gdb = want_gdb,
+        .implib_path = implib_path,
+        .implib_step = &implib.step,
+        .exe_s = exe_s,
+        .kernel_include_dirs = &kernel_include_dirs,
+        .kernel = kernel,
+    };
+    try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
+        .name = "rtosbasic",
+        .root = "nonsecure-rtosbasic.zig",
+        .use_freertos = true,
+    });
+
+    // We don't define the default rule.
+}
+
+const NsAppDeps = struct {
+    // General
+    arch: builtin.Arch,
+    mode: builtin.Mode,
+    want_gdb: bool,
+
+    // Secure dependency
+    implib_path: []const u8,
+    implib_step: *Step,
+    exe_s: *LibExeObjStep,
+
+    // FreeRTOS
+    kernel_include_dirs: []const []const u8,
+    kernel: *LibExeObjStep,
+};
+
+const NsAppInfo = struct {
+    name: []const u8,
+    root: []const u8,
+    use_freertos: bool = false,
+};
+
+/// Define build steps for a single example application.
+///
+///  - `build:name`
+///  - `qemu:name`
+///
+fn defineNonSecureApp(
+    b: *Builder,
+    ns_app_deps: NsAppDeps,
+    comptime app_info: NsAppInfo,
+) !void {
+    const arch = ns_app_deps.arch;
+    const mode = ns_app_deps.mode;
+    const want_gdb = ns_app_deps.want_gdb;
+    const implib_path = ns_app_deps.implib_path;
+    const implib_step = ns_app_deps.implib_step;
+    const exe_s = ns_app_deps.exe_s;
+    const kernel_include_dirs = ns_app_deps.kernel_include_dirs;
+    const kernel = ns_app_deps.kernel;
+
+    const name = app_info.name;
+
+    // The Non-Secure part
+    // -------------------------------------------------------
+    const exe_ns_name = if (want_gdb) name ++ "-dbg" else name;
+    const exe_ns = b.addExecutable(exe_ns_name, app_info.root);
+    exe_ns.setLinkerScriptPath("nonsecure-common/linker.ld");
     exe_ns.setTarget(arch, .freestanding, .eabi);
     exe_ns.setBuildMode(mode);
     exe_ns.addAssemblyFile("common/startup.s");
@@ -95,22 +165,24 @@ pub fn build(b: *Builder) !void {
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
 
-    for (kernel_include_dirs) |path| {
-        exe_ns.addIncludeDir(path);
+    if (app_info.use_freertos) {
+        for (kernel_include_dirs) |path| {
+            exe_ns.addIncludeDir(path);
+        }
+        exe_ns.linkLibrary(kernel);
+        exe_ns.addCSourceFile("nonsecure-common/oshooks.c", [_][]const u8{});
     }
-    exe_ns.linkLibrary(kernel);
-    exe_ns.addCSourceFile("nonsecure/oshooks.c", [_][]const u8{});
 
     exe_ns.addAssemblyFile(implib_path);
-    exe_ns.step.dependOn(&implib.step);
+    exe_ns.step.dependOn(implib_step);
 
-    const exe_both = b.step("build", "Build Secure and Non-Secure executables");
+    const exe_both = b.step("build:" ++ name, "Build Secure and Non-Secure executables");
     exe_both.dependOn(&exe_s.step);
     exe_both.dependOn(&exe_ns.step);
 
     // Launch QEMU
     // -------------------------------------------------------
-    const qemu = b.step("qemu", "Run the program in qemu");
+    const qemu = b.step("qemu:" ++ name, "Run the program in qemu");
     var qemu_args = std.ArrayList([]const u8).init(b.allocator);
 
     const qemu_device_arg = try std.fmt.allocPrint(
@@ -140,8 +212,4 @@ pub fn build(b: *Builder) !void {
     const run_qemu = b.addSystemCommand(qemu_args.toSliceConst());
     qemu.dependOn(&run_qemu.step);
     run_qemu.step.dependOn(exe_both);
-
-    // Default Rule
-    // -------------------------------------------------------
-    b.default_step.dependOn(exe_both);
 }

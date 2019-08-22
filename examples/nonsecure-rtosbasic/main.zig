@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const debugOutput = @import("debug.zig").debugOutput;
+const debugOutput = @import("../nonsecure-common/debug.zig").debugOutput;
 
 export const os = @cImport({
     @cInclude("FreeRTOS.h");
@@ -8,7 +8,7 @@ export const os = @cImport({
     @cInclude("timers.h");
 });
 
-export const _oshooks = @import("oshooks.zig");
+export const _oshooks = @import("../nonsecure-common/oshooks.zig");
 
 export fn main() void {
     debugOutput("Entering the scheduler.\r\n");
