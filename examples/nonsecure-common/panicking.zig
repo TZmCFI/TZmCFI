@@ -4,7 +4,7 @@
 // The compiler looks for `pub fn panic` in the root source file. (See
 // `zig/std/special/panic.zig`.)
 const builtin = @import("builtin");
-const debugOutput = @import("debug.zig").debugOutput;
+const warn = @import("debug.zig").warn;
 
 pub const StackTrace = builtin.StackTrace;
 
@@ -12,7 +12,7 @@ pub const StackTrace = builtin.StackTrace;
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
 
-    debugOutput("NS panic: {}\r\n", msg);
+    warn("NS panic: {}\r\n", msg);
     @breakpoint();
     unreachable;
 }

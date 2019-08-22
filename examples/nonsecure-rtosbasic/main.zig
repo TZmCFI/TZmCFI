@@ -1,26 +1,25 @@
 const std = @import("std");
 
-const debugOutput = @import("../nonsecure-common/debug.zig").debugOutput;
+const warn = @import("../nonsecure-common/debug.zig").warn;
 
 export const os = @cImport({
     @cInclude("FreeRTOS.h");
     @cInclude("task.h");
     @cInclude("timers.h");
 });
-
 export const _oshooks = @import("../nonsecure-common/oshooks.zig");
 
 export fn main() void {
-    debugOutput("Entering the scheduler.\r\n");
+    warn("Entering the scheduler.\r\n");
 
-    debugOutput("Creating an idle task.\r\n");
+    warn("Creating an idle task.\r\n");
     _ = os.xTaskCreateRestricted(&idle_task_params, 0);
 
-    debugOutput("Creating a timer.\r\n");
+    warn("Creating a timer.\r\n");
     const timer = os.xTimerCreate(c"saluton", 100, os.pdTRUE, null, timerHandler);
     _ = xTimerStart(timer, 0);
 
-    debugOutput("Entering the scheduler.\r\n");
+    warn("Entering the scheduler.\r\n");
     os.vTaskStartScheduler();
     unreachable;
 }
@@ -32,7 +31,7 @@ fn xTimerStart(timer: os.TimerHandle_t, ticks: os.TickType_t) os.BaseType_t {
 var i: u32 = 0;
 extern fn timerHandler(_arg: ?*os.tmrTimerControl) void {
     i +%= 1;
-    debugOutput("The timer has fired for {} time(s)!\r\n", i);
+    warn("The timer has fired for {} time(s)!\r\n", i);
 }
 
 var idle_task_stack = [1]u32{0} ** 128;
@@ -53,6 +52,6 @@ const idle_task_params = os.TaskParameters_t{
 };
 
 extern fn idleTaskMain(_arg: ?*c_void) void {
-    debugOutput("The idle task is running.\r\n");
+    warn("The idle task is running.\r\n");
     while (true) {}
 }
