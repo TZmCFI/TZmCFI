@@ -11,7 +11,7 @@ const os = @cImport({
 export const _oshooks = @import("nonsecure-common/oshooks.zig");
 
 // The (unprocessed) Non-Secure exception vector table.
-export const raw_exception_vectors = @import("nonsecure-common/excvector.zig").getDefaulFreertos();
+export const raw_exception_vectors = @import("nonsecure-common/excvector.zig").getDefaultFreertos();
 
 // The entry point. The reset handler transfers the control to this function
 // after initializing data sections.

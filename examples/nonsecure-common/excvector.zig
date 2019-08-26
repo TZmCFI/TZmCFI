@@ -10,15 +10,15 @@ const VecTable = @import("../common/vectable.zig").VecTable(an505.num_irqs, an50
 //               `export const other_name = default_baremetal;`, the compiler generates
 //               a symbol with the original name (`default_baremetal`) anyway.
 
-pub fn getDefaulBaremetal() VecTable {
+pub fn getDefaultBaremetal() VecTable {
     return VecTable
         .new()
         .setInitStackPtr(_main_stack_top)
         .setExcHandler(arm_m.irqs.Reset_IRQn, handleReset);
 }
 
-pub fn getDefaulFreertos() VecTable {
-    return getDefaulBaremetal()
+pub fn getDefaultFreertos() VecTable {
+    return getDefaultBaremetal()
         .setExcHandler(arm_m.irqs.SvCall_IRQn, SVC_Handler)
         .setExcHandler(arm_m.irqs.PendSv_IRQn, PendSV_Handler)
         .setExcHandler(arm_m.irqs.SysTick_IRQn, SysTick_Handler);
