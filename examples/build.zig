@@ -106,6 +106,11 @@ pub fn build(b: *Builder) !void {
         .root = "nonsecure-rtosbasic.zig",
         .use_freertos = true,
     });
+    try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
+        .name = "basic",
+        .root = "nonsecure-basic.zig",
+        .use_freertos = false,
+    });
 
     // We don't define the default rule.
 }
