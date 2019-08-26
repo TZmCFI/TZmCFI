@@ -2,12 +2,14 @@ const std = @import("std");
 
 const warn = @import("../nonsecure-common/debug.zig").warn;
 
-export const os = @cImport({
+const os = @cImport({
     @cInclude("FreeRTOS.h");
     @cInclude("task.h");
     @cInclude("timers.h");
 });
 export const _oshooks = @import("../nonsecure-common/oshooks.zig");
+
+export const raw_exception_vectors = @import("../nonsecure-common/excvector.zig").getDefaulFreertos();
 
 export fn main() void {
     warn("Entering the scheduler.\r\n");

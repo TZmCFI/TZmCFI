@@ -234,4 +234,23 @@ pub const irqs = struct {
     pub fn interruptIRQn(i: usize) usize {
         return @This().InterruptBase_IRQn + i;
     }
+
+    /// Get the descriptive name of an exception number. Returns `null` for a value
+    /// outside the range `[Reset_IRQn, SysTick_IRQn]`.
+    pub fn getName(i: usize) ?[]const u8 {
+        switch (i) {
+            Reset_IRQn => return "Reset",
+            Nmi_IRQn => return "Nmi",
+            SecureHardFault_IRQn => return "SecureHardFault",
+            MemManageFault_IRQn => return "MemManageFault",
+            BusFault_IRQn => return "BusFault",
+            UsageFault_IRQn => return "UsageFault",
+            SecureFault_IRQn => return "SecureFault",
+            SvCall_IRQn => return "SvCall",
+            DebugMonitor_IRQn => return "DebugMonitor",
+            PendSv_IRQn => return "PendSv",
+            SysTick_IRQn => return "SysTick",
+            else => return null,
+        }
+    }
 };

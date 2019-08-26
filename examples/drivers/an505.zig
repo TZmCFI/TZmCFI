@@ -1,3 +1,5 @@
+const arm_m = @import("arm_m");
+
 const Pl011 = @import("pl011.zig").Pl011;
 const TzMpc = @import("tz_mpc.zig").TzMpc;
 
@@ -32,3 +34,15 @@ pub const Spcb = struct {
 
 /// Represents an instance of Security Privilege Control Block.
 pub const spcb = Spcb.withBase(0x50080000);
+
+/// The number of hardware interrupt lines.
+pub const num_irqs = 124;
+
+pub const irqs = struct {
+    // TODO
+    /// Get the descriptive name of an exception number. Returns `null` if
+    /// the exception number is not known by this module.
+    pub fn getName(comptime i: usize) ?[]const u8 {
+        return arm_m.irqs.getName(i);
+    }
+};

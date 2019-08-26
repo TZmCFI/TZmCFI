@@ -164,6 +164,7 @@ fn defineNonSecureApp(
     exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
+    exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
 
     if (app_info.use_freertos) {
         for (kernel_include_dirs) |path| {
