@@ -121,17 +121,17 @@ pub const Nvic = struct {
 
     /// Enable the interrupt number `irq`.
     pub fn enableIrq(self: Self, irq: usize) void {
-        self.reg_iser()[irq >> 5] = u32(1) << @truncate(u5, irq);
+        self.regIser()[irq >> 5] = u32(1) << @truncate(u5, irq);
     }
 
     /// Disable the interrupt number `irq`.
     pub fn disableIrq(self: Self, irq: usize) void {
-        self.reg_icer()[irq >> 5] = u32(1) << @truncate(u5, irq);
+        self.regIcer()[irq >> 5] = u32(1) << @truncate(u5, irq);
     }
 
     /// Set the priority of the interrupt number `irq` to `pri`.
     pub fn setIrqPriority(self: Self, irq: usize, pri: u8) void {
-        self.reg_ipri()[irq] = pri;
+        self.regIpri()[irq] = pri;
     }
 
     /// Set the target state of the interrupt number `irq` to Non-Secure (Armv8-M or later).
