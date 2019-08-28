@@ -77,9 +77,9 @@ export fn main() void {
     arm_m.nvic.targetIrqToNonSecure(an505.irqs.Timer1_IRQn - 16);
     arm_m.nvic.targetIrqToNonSecure(an505.irqs.DualTimer_IRQn - 16);
 
-    an505.spcb.setPpcAccess(an505.ppc.timer0, .NonSecure, true);
-    an505.spcb.setPpcAccess(an505.ppc.timer1, .NonSecure, true);
-    an505.spcb.setPpcAccess(an505.ppc.dual_timer, .NonSecure, true);
+    an505.spcb.setPpcAccess(an505.ppc.timer0_, .NonSecure, true);
+    an505.spcb.setPpcAccess(an505.ppc.timer1_, .NonSecure, true);
+    an505.spcb.setPpcAccess(an505.ppc.dual_timer_, .NonSecure, true);
 
     // Initialize TZmCFI Monitor
     // -----------------------------------------------------------------------

@@ -2,10 +2,17 @@ const arm_m = @import("arm_m");
 
 const Pl011 = @import("pl011.zig").Pl011;
 const TzMpc = @import("tz_mpc.zig").TzMpc;
+const CmsdkTimer = @import("cmsdk_timer.zig").CmsdkTimer;
 
 /// UART 0 (secure) - J10 port
 pub const uart0 = Pl011.withBase(0x40200000);
 pub const uart0_s = Pl011.withBase(0x50200000); // Secure alias
+
+// CMSDK timer
+pub const timer0 = CmsdkTimer.withBase(0x40000000);
+pub const timer0_s = CmsdkTimer.withBase(0x50000000); // Secure alias
+pub const timer1 = CmsdkTimer.withBase(0x40001000);
+pub const timer1_s = CmsdkTimer.withBase(0x50001000); // Secure alias
 
 pub const ssram1_mpc = TzMpc.withBase(0x58007000);
 pub const ssram2_mpc = TzMpc.withBase(0x58008000);
@@ -139,9 +146,9 @@ pub const ppc = struct {
         return Spcb.PpcIface{ .bus = bus, .group = group, .num = num };
     }
 
-    pub const timer0 = iface(.Apb, 0, 0);
-    pub const timer1 = iface(.Apb, 0, 1);
-    pub const dual_timer = iface(.Apb, 0, 2);
+    pub const timer0_ = iface(.Apb, 0, 0);
+    pub const timer1_ = iface(.Apb, 0, 1);
+    pub const dual_timer_ = iface(.Apb, 0, 2);
     pub const mhu0 = iface(.Apb, 0, 3);
     pub const mhu1 = iface(.Apb, 0, 4);
     pub const s32k_timer = iface(.Apb, 1, 0);
