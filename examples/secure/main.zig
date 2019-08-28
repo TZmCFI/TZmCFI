@@ -26,9 +26,9 @@ export fn main() void {
         arm_m.Scb.AIRCR_VECTKEY_MAGIC;
 
     // :( <https://github.com/ziglang/zig/issues/504>
-    an505.uart0.configure(25e6, 115200);
-    an505.uart0.print("(Hit ^A X to quit QEMU)\r\n");
-    an505.uart0.print("The Secure code is running!\r\n");
+    an505.uart0_s.configure(25e6, 115200);
+    an505.uart0_s.print("(Hit ^A X to quit QEMU)\r\n");
+    an505.uart0_s.print("The Secure code is running!\r\n");
 
     // Configure SAU
     // -----------------------------------------------------------------------
@@ -43,6 +43,8 @@ export fn main() void {
         .end = @ptrToInt(&__nsc_end),
         .nsc = true,
     });
+    // Peripherals
+    arm_cmse.sau.setRegion(3, Region{ .start = 0x40000000, .end = 0x50000000 });
 
     // Configure MPCs and IDAU
     // -----------------------------------------------------------------------
@@ -69,6 +71,16 @@ export fn main() void {
     // -----------------------------------------------------------------------
     arm_cmse.sau.regCtrl().* |= arm_cmse.Sau.CTRL_ENABLE;
 
+    // Allow Non-Secure access to the timers
+    // -----------------------------------------------------------------------
+    arm_m.nvic.targetIrqToNonSecure(an505.irqs.Timer0_IRQn - 16);
+    arm_m.nvic.targetIrqToNonSecure(an505.irqs.Timer1_IRQn - 16);
+    arm_m.nvic.targetIrqToNonSecure(an505.irqs.DualTimer_IRQn - 16);
+
+    an505.spcb.setPpcAccess(an505.ppc.timer0, .NonSecure, true);
+    an505.spcb.setPpcAccess(an505.ppc.timer1, .NonSecure, true);
+    an505.spcb.setPpcAccess(an505.ppc.dual_timer, .NonSecure, true);
+
     // Initialize TZmCFI Monitor
     // -----------------------------------------------------------------------
     if (@import("build_options").ENABLE_TRACE) {
@@ -81,7 +93,7 @@ export fn main() void {
     // Configure the Non-Secure exception vector table
     arm_m.scb_ns.regVtor().* = 0x00200000;
 
-    an505.uart0.print("Booting the Non-Secure code...\r\n");
+    an505.uart0_s.print("Booting the Non-Secure code...\r\n");
 
     // Call Non-Secure code's entry point
     const ns_entry = @intToPtr(*volatile fn () void, 0x00200004).*;
@@ -92,7 +104,7 @@ export fn main() void {
 
 fn tcWarnHandler(ctx: void, data: []const u8) error{}!void {
     for (data) |byte| {
-        an505.uart0.write(byte);
+        an505.uart0_s.write(byte);
     }
 }
 
@@ -100,8 +112,8 @@ fn tcWarnHandler(ctx: void, data: []const u8) error{}!void {
 /// debug output.
 extern fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) usize {
     const bytes = arm_cmse.checkSlice(u8, ptr, count, arm_cmse.CheckOptions{}) catch |err| {
-        an505.uart0.print("warning: pointer security check failed: {}\r\n", err);
-        an505.uart0.print("         count = {}, ptr = 0x{x}\r\n", count, ptr);
+        an505.uart0_s.print("warning: pointer security check failed: {}\r\n", err);
+        an505.uart0_s.print("         count = {}, ptr = 0x{x}\r\n", count, ptr);
         return 0;
     };
 
@@ -109,7 +121,7 @@ extern fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) usize {
     // Non-Secure pointers as normal pointers (this is why `bytes` is
     // `[]volatile u8`), so we can't use `writeSlice` here.
     for (bytes) |byte| {
-        an505.uart0.write(byte);
+        an505.uart0_s.write(byte);
     }
 
     return 0;
@@ -122,7 +134,7 @@ comptime {
 // Build the exception vector table
 // zig fmt: off
 const VecTable = @import("../common/vectable.zig").VecTable;
-export const exception_vectors linksection(".isr_vector") = 
+export const exception_vectors linksection(".isr_vector") =
     VecTable(an505.num_irqs, an505.irqs.getName)
         .new()
         .setInitStackPtr(_main_stack_top)

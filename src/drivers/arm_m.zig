@@ -133,6 +133,11 @@ pub const Nvic = struct {
     pub fn setIrqPriority(self: Self, irq: usize, pri: u8) void {
         self.reg_ipri()[irq] = pri;
     }
+
+    /// Set the target state of the interrupt number `irq` to Non-Secure (Armv8-M or later).
+    pub fn targetIrqToNonSecure(self: Self, irq: usize) void {
+        self.regItns()[irq >> 5] |= u32(1) << @truncate(u5, irq);
+    }
 };
 
 /// Represents the Nested Vectored Interrupt Controller instance corresponding
