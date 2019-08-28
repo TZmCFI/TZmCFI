@@ -111,6 +111,11 @@ pub fn build(b: *Builder) !void {
         .root = "nonsecure-basic.zig",
         .use_freertos = false,
     });
+    try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
+        .name = "bench-latency",
+        .root = "nonsecure-bench-latency.zig",
+        .use_freertos = false,
+    });
 
     // We don't define the default rule.
 }

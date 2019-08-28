@@ -79,4 +79,8 @@ pub const CmsdkTimer = struct {
     pub fn setReloadValue(self: Self, x: u32) void {
         self.regReload().* = x;
     }
+
+    pub fn clearInterruptFlag(self: Self) void {
+        self.regIntStatusClear().* = 1;
+    }
 };
