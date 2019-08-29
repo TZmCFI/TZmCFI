@@ -11,7 +11,7 @@
     $ cargo +nightly build --all
 
     $ cd examples
-    $ zig build -Drelease-small qemu
+    $ zig build -Drelease-small qemu:rtosbasic
     (^A-X to quit)
 
 The `-Dgdb` option causes qemu to stop until GDB conenction. Do the following to attach a debugger:
