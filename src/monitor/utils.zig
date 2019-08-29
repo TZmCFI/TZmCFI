@@ -25,13 +25,13 @@ inline fn swap_noalias(comptime T: type, noalias x: *T, noalias y: *T) void {
         var y4: usize = undefined;
         asm volatile (
             \\ ldm %[x], {r2, r3, r4, r5}
-            \\ ldm %[y], {r6, r7, r8, r10}
+            \\ ldm %[y], {r6, r8, r10, r11}
             \\ stm %[y], {r2, r3, r4, r5}
-            \\ stm %[x], {r6, r7, r8, r10}
+            \\ stm %[x], {r6, r8, r10, r11}
             :
             : [x] "r" (x),
               [y] "r" (y)
-            : "memory", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r10"
+            : "memory", "r2", "r3", "r4", "r5", "r6", "r11", "r8", "r10"
         );
     } else {
         swap(T, x, y);
