@@ -1,12 +1,3 @@
-*.o
-*.s
-!Startup.
-!NonSecure/ExceptionTrampolines.s
-*.elf
-*.bin
-*.hex
-*.map
-/BUILD
 /target
 *.Artifacts
 zig-cache
