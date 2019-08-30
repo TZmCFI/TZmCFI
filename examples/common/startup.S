@@ -37,6 +37,17 @@ LoopFillZerobss:
   cmp  r2, r3
   bcc  FillZerobss
 
+#if SET_ORIGINAL_VTOR
+  // Disable TZmCFI's exception trampolines by updating VTOR to the
+  // original (unpatched) vector table.
+  // (VTOR is supposed to be immutable in a production envrionment because
+  // changing it compromises TZmCFI's integrity.)
+  .global raw_exception_vectors
+  ldr r0, =raw_exception_vectors
+  ldr r1, =0xe000ed08 // VTOR
+  str r0, [r1]
+#endif
+
   b  main
   bx  lr
 .size  handleReset, .-handleReset

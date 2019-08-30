@@ -8,6 +8,7 @@ pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
     const enable_trace = b.option(bool, "trace", "Enable tracing") orelse false;
+    const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
 
     const arch = builtin.Arch{ .thumb = .v8m_mainline };
 
@@ -82,8 +83,9 @@ pub fn build(b: *Builder) !void {
         "freertos/portable/GCC/ARM_CM33/non_secure/portasm.c",
         "freertos/portable/MemMang/heap_4.c",
     };
+    const kernel_build_args = [_][]const u8{if (enable_cfi) "-DHAS_TZMCFI=1" else "-DHAS_TZMCFI=0"};
     for (kernel_source_files) |file| {
-        kernel.addCSourceFile(file, [_][]const u8{});
+        kernel.addCSourceFile(file, kernel_build_args);
     }
 
     // The Non-Secure part
@@ -95,6 +97,7 @@ pub fn build(b: *Builder) !void {
         .arch = arch,
         .mode = mode,
         .want_gdb = want_gdb,
+        .enable_cfi = enable_cfi,
         .implib_path = implib_path,
         .implib_step = &implib.step,
         .exe_s = exe_s,
@@ -125,6 +128,7 @@ const NsAppDeps = struct {
     arch: builtin.Arch,
     mode: builtin.Mode,
     want_gdb: bool,
+    enable_cfi: bool,
 
     // Secure dependency
     implib_path: []const u8,
@@ -170,11 +174,22 @@ fn defineNonSecureApp(
     exe_ns.setLinkerScriptPath("nonsecure-common/linker.ld");
     exe_ns.setTarget(arch, .freestanding, .eabi);
     exe_ns.setBuildMode(mode);
-    exe_ns.addAssemblyFile("common/startup.S");
     exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
+
+    var startup_args: [][]const u8 = undefined;
+    if (ns_app_deps.enable_cfi) {
+        startup_args = &comptime [_][]const u8{};
+    } else {
+        // Disable TZmCFI's exception trampolines by updating VTOR to the
+        // original (unpatched) vector table
+        startup_args = &comptime [_][]const u8{"-DSET_ORIGINAL_VTOR"};
+    }
+    exe_ns.addCSourceFile("common/startup.S", startup_args);
+
+    exe_ns.addBuildOption(bool, "HAS_TZMCFI", ns_app_deps.enable_cfi);
 
     if (app_info.use_freertos) {
         for (kernel_include_dirs) |path| {

@@ -12,10 +12,13 @@ SECTIONS
 {
     .text.isr_vector :
     {
-        . = ALIGN(4);
+        . = ALIGN(128);
         *(.text.isr_vector*);
         KEEP(*(.text.isr_vector*))
-        . = ALIGN(4);
+
+        . = ALIGN(128);
+        *(.text.raw_isr_vector*);
+        KEEP(*(.text.raw_isr_vector*))
     } > CODEMEM
 
     privileged_functions :

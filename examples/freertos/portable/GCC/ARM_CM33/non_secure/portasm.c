@@ -70,14 +70,15 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	#if 0
-	"   bx   r4											\n" /* Finally, branch to EXC_RETURN. */
-	#else
+	#if HAS_TZMCFI
 	// `r4` isn't needed - TZmCFI tracks `EXC_RETURN`.
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* Finally, return from an exception handler. */
+	#else
+	"   bx   r4											\n" /* Finally, branch to EXC_RETURN. */
 	#endif
 	#else /* configENABLE_MPU */
+	#error Bulding without MPU support is completely untested!
 	"	ldm  r0!, {r1-r3}								\n" /* Read from stack - r1 = xSecureContext, r2 = PSPLIM and r3 = EXC_RETURN. */
 	"	ldr  r4, xSecureContextConst2					\n"
 	"	str  r1, [r4]									\n" /* Set xSecureContext to this task's value for the same. */
@@ -150,12 +151,12 @@ void vStartFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
 	(
-#if 0
+#if HAS_TZMCFI
+	"   ldr r0, =_main_stack_top						\n"
+#else
 	"	ldr r0, xVTORConst								\n" /* Use the NVIC offset register to locate the stack. */
 	"	ldr r0, [r0]									\n" /* Read the VTOR register which gives the address of vector table. */
 	"	ldr r0, [r0]									\n" /* The first entry in vector table is stack pointer. */
-#else
-	"   ldr r0, =_main_stack_top						\n"
 #endif
 	"	msr msp, r0										\n" /* Set the MSP back to the start of the stack. */
 	"	cpsie i											\n" /* Globally enable interrupts. */
@@ -218,9 +219,11 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	.extern SecureContext_SaveContext				\n"
 	"	.extern SecureContext_LoadContext				\n"
 	"													\n"
+	#if HAS_TZMCFI
 	"	mov lr, r0										\n" /* `r0` contains the actual `EXC_RETURN` */
 	// The old `lr` points the retrun trampoline, which we don't need because we'll jump
 	// to `__TCPrivateLeaveInterrupt` directly.
+	#endif
 	"													\n"
 	"	mrs r1, psp										\n" /* Read PSP in r1. */
 	"	ldr r2, xSecureContextConst						\n" /* Read the location of xSecureContext i.e. &( xSecureContext ). */
@@ -316,11 +319,11 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	lsls r2, r4, #25								\n" /* r2 = r4 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
 	"	bpl restore_ns_context							\n" /* bpl - branch if positive or zero. If r2 >= 0 ==> Bit[6] in EXC_RETURN is 0 i.e. non-secure stack was used. */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	#if 0
-	"   bx   lr											\n" /* branch to EXC_RETURN. */
-	#else
+	#if HAS_TZMCFI
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
+	#else
+	"   bx   lr											\n" /* branch to EXC_RETURN. */
 	#endif
 	#else /* configENABLE_MPU */
 	"	ldmia r1!, {r0, r2-r3}							\n" /* Read from stack - r0 = xSecureContext, r2 = PSPLIM and r3 = LR. */
@@ -335,11 +338,11 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	lsls r2, r3, #25								\n" /* r2 = r3 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
 	"	bpl restore_ns_context							\n" /* bpl - branch if positive or zero. If r2 >= 0 ==> Bit[6] in EXC_RETURN is 0 i.e. non-secure stack was used. */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	#if 0
-	"   bx   lr											\n" /* branch to EXC_RETURN. */
-	#else
+	#if HAS_TZMCFI
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
+	#else
+	"   bx   lr											\n" /* branch to EXC_RETURN. */
 	#endif
 	#endif /* configENABLE_MPU */
 	"													\n"
@@ -351,11 +354,11 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	vldmiaeq r1!, {s16-s31}							\n" /* Restore the FPU registers which are not restored automatically. */
 	#endif /* configENABLE_FPU */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	#if 0
-	"   bx   lr											\n" /* branch to EXC_RETURN. */
-	#else
+	#if HAS_TZMCFI
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
+	#else
+	"   bx   lr											\n" /* branch to EXC_RETURN. */
 	#endif
 	"													\n"
 	"	.align 4										\n"
@@ -374,11 +377,11 @@ void SVC_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
 	(
-#if 0
-	"	tst lr, #4										\n"
-#else
+#if HAS_TZMCFI
 	// TZmCFI's exception trampoline passes `EXC_RETURN` via `r0`
 	"	tst r0, #4										\n"
+#else
+	"	tst lr, #4										\n"
 #endif
 	"	ite eq											\n"
 	"	mrseq r0, msp									\n"

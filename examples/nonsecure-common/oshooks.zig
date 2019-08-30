@@ -9,6 +9,11 @@ const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 export const SystemCoreClock: u32 = 25000000;
 
 export fn SecureContext_LoadContext(contextId: u32) void {
+    if (!@import("build_options").HAS_TZMCFI) {
+        // TZmCFI is disabled, ignore the call
+        return;
+    }
+
     const result = tzmcfi.TCActivateThread(contextId);
     if (result != tzmcfi.TC_RESULT_SUCCESS) {
         @panic("TCActivateThread failed");
@@ -24,6 +29,11 @@ export fn SecureContext_FreeContext(contextId: i32) void {
 }
 
 export fn SecureContext_AllocateContext(contextId: u32, taskPrivileged: u32, pc: usize, lr: usize, exc_return: usize, frame: usize) u32 {
+    if (!@import("build_options").HAS_TZMCFI) {
+        // TZmCFI is disabled, ignore the call
+        return 0;
+    }
+
     _ = taskPrivileged;
 
     const create_info = tzmcfi.TCThreadCreateInfo{

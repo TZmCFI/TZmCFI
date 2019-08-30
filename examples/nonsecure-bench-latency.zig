@@ -6,12 +6,12 @@ const warn = @import("nonsecure-common/debug.zig").warn;
 
 // zig fmt: off
 // The (unprocessed) Non-Secure exception vector table.
-export const raw_exception_vectors = @import("nonsecure-common/excvector.zig")
-    .getDefaultBaremetal()
-    .setExcHandler(an505.irqs.Timer0_IRQn, handleTimer0)
-    .setExcHandler(an505.irqs.Timer1_IRQn, handleTimer1);
+export const raw_exception_vectors linksection(".text.raw_isr_vector") =
+    @import("nonsecure-common/excvector.zig")
+        .getDefaultBaremetal()
+        .setExcHandler(an505.irqs.Timer0_IRQn, handleTimer0)
+        .setExcHandler(an505.irqs.Timer1_IRQn, handleTimer1);
 // zig fmt: on
-
 /// Used for communication between `main` and the interrupt handlers
 const CommBlock = struct {
     current_delay: u32 = 0,
