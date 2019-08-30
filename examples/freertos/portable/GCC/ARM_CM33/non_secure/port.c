@@ -305,7 +305,7 @@ void SysTick_Handler( void ) PRIVILEGED_FUNCTION;
 /**
  * @brief C part of SVC handler.
  */
-void vPortSVCHandler_C( uint32_t *pulCallerStackAddress ) PRIVILEGED_FUNCTION;
+void vPortSVCHandler_C( uint32_t *pulCallerStackAddress ) PRIVILEGED_FUNCTION __attribute__((used));
 /*-----------------------------------------------------------*/
 
 /**
@@ -319,7 +319,7 @@ static volatile uint32_t ulCriticalNesting = 0xaaaaaaaaUL;
 	 * @brief Saved as part of the task context to indicate which context the
 	 * task is using on the secure side.
 	 */
-	volatile SecureContextHandle_t xSecureContext = portNO_SECURE_CONTEXT;
+	volatile SecureContextHandle_t xSecureContext __attribute__((used)) = portNO_SECURE_CONTEXT;
 #else:
 	// Actually, this variable is referenced anyway...
 	volatile uint32_t xSecureContext = portNO_SECURE_CONTEXT;

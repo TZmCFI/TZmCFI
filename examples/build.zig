@@ -83,7 +83,10 @@ pub fn build(b: *Builder) !void {
         "freertos/portable/GCC/ARM_CM33/non_secure/portasm.c",
         "freertos/portable/MemMang/heap_4.c",
     };
-    const kernel_build_args = [_][]const u8{if (enable_cfi) "-DHAS_TZMCFI=1" else "-DHAS_TZMCFI=0"};
+    const kernel_build_args = [_][]const u8{
+        if (enable_cfi) "-DHAS_TZMCFI=1" else "-DHAS_TZMCFI=0",
+        "-flto",
+    };
     for (kernel_source_files) |file| {
         kernel.addCSourceFile(file, kernel_build_args);
     }
