@@ -23,7 +23,7 @@ pub fn build(b: *Builder) !void {
     exe_s.setLinkerScriptPath("secure/linker.ld");
     exe_s.setTarget(arch, .freestanding, .eabi);
     exe_s.setBuildMode(mode);
-    exe_s.addAssemblyFile("common/startup.s");
+    exe_s.addAssemblyFile("common/startup.S");
     exe_s.setOutputDir("zig-cache");
     exe_s.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
@@ -170,7 +170,7 @@ fn defineNonSecureApp(
     exe_ns.setLinkerScriptPath("nonsecure-common/linker.ld");
     exe_ns.setTarget(arch, .freestanding, .eabi);
     exe_ns.setBuildMode(mode);
-    exe_ns.addAssemblyFile("common/startup.s");
+    exe_ns.addAssemblyFile("common/startup.S");
     exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
