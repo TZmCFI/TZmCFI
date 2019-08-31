@@ -22,7 +22,7 @@ export fn main() void {
     _ = os.xTaskCreateRestricted(&idle_task_params, 0);
 
     warn("Creating a timer.\r\n");
-    const timer = os.xTimerCreate(c"saluton", 100, os.pdTRUE, null, timerHandler);
+    const timer = os.xTimerCreate(c"saluton", 100, os.pdTRUE, null, getTrampoline_timerHandler());
     _ = xTimerStart(timer, 0);
 
     warn("Entering the scheduler.\r\n");
@@ -34,8 +34,10 @@ fn xTimerStart(timer: os.TimerHandle_t, ticks: os.TickType_t) os.BaseType_t {
     return os.xTimerGenericCommand(timer, os.tmrCOMMAND_START, os.xTaskGetTickCount(), null, ticks);
 }
 
+extern fn getTrampoline_timerHandler() extern fn (_arg: ?*os.tmrTimerControl) void;
+
 var i: u32 = 0;
-extern fn timerHandler(_arg: ?*os.tmrTimerControl) void {
+export fn timerHandler(_arg: ?*os.tmrTimerControl) void {
     i +%= 1;
     warn("The timer has fired for {} time(s)!\r\n", i);
 }

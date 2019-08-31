@@ -85,6 +85,7 @@ pub fn build(b: *Builder) !void {
     };
     const kernel_build_args = [_][]const u8{
         if (enable_cfi) "-DHAS_TZMCFI=1" else "-DHAS_TZMCFI=0",
+        if (enable_cfi) "-fsanitize=cfi-icall" else "",
         "-flto",
     };
     for (kernel_source_files) |file| {
@@ -110,6 +111,7 @@ pub fn build(b: *Builder) !void {
     try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
         .name = "rtosbasic",
         .root = "nonsecure-rtosbasic.zig",
+        .c_source = "nonsecure-rtosbasic.cpp",
         .use_freertos = true,
     });
     try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
@@ -146,6 +148,7 @@ const NsAppDeps = struct {
 const NsAppInfo = struct {
     name: []const u8,
     root: []const u8,
+    c_source: ?[]const u8 = null,
     use_freertos: bool = false,
 };
 
@@ -182,6 +185,13 @@ fn defineNonSecureApp(
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_ns.enable_lto = true;
+
+    if (app_info.c_source) |c_source| {
+        exe_ns.addCSourceFile(c_source, [_][]const u8{
+            if (ns_app_deps.enable_cfi) "-fsanitize=cfi-icall" else "",
+            "-flto",
+        });
+    }
 
     var startup_args: [][]const u8 = undefined;
     if (ns_app_deps.enable_cfi) {
