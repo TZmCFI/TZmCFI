@@ -181,6 +181,7 @@ fn defineNonSecureApp(
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
+    exe_ns.enable_lto = true;
 
     var startup_args: [][]const u8 = undefined;
     if (ns_app_deps.enable_cfi) {

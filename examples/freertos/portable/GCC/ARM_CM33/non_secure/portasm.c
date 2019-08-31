@@ -31,6 +31,9 @@
 /* Portasm includes. */
 #include "portasm.h"
 
+extern void SecureContext_LoadContext();
+extern void SecureContext_SaveContext();
+
 void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
@@ -59,7 +62,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	ldm  r0!, {r1}									\n" /* Read from stack - r1 = xSecureContext */
 	"	push {r0, r1}									\n"
 	"   mov  r0, r1										\n"
-	"	bl SecureContext_LoadContext					\n" /* Restore the secure context. */
+	"	bl %[SecureContext_LoadContext]					\n" /* Restore the secure context. */
 	"	pop  {r0, r1}								    \n"
 
 	"	ldm  r0!, {r2-r4}								\n" /* Read from stack - r2 = PSPLIM, r3 = CONTROL and r4 = EXC_RETURN. */
@@ -100,6 +103,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"xRNRConst2: .word 0xe000ed98						\n"
 	"xRBARConst2: .word 0xe000ed9c						\n"
 	#endif /* configENABLE_MPU */
+	::[SecureContext_LoadContext]"X"(SecureContext_LoadContext)
 	);
 }
 /*-----------------------------------------------------------*/
@@ -216,8 +220,6 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	__asm volatile
 	(
 	"	.syntax unified									\n"
-	"	.extern SecureContext_SaveContext				\n"
-	"	.extern SecureContext_LoadContext				\n"
 	"													\n"
 	#if HAS_TZMCFI
 	"	mov lr, r0										\n" /* `r0` contains the actual `EXC_RETURN` */
@@ -230,7 +232,7 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	ldr r0, [r2]									\n" /* Read xSecureContext - Value of xSecureContext must be in r0 as it is used as a parameter later. */
 	"													\n"
 	"	push {r0-r2, r14}								\n"
-	"	bl SecureContext_SaveContext					\n"
+	"	bl %[SecureContext_SaveContext]					\n"
 	"	pop {r0-r3}										\n" /* LR is now in r3. */
 	"	mov lr, r3										\n" /* LR = r3. */
 	"	lsls r2, r3, #25								\n" /* r2 = r3 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
@@ -313,7 +315,7 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	ldr r2, xSecureContextConst						\n" /* Read the location of xSecureContext i.e. &( xSecureContext ). */
 	"	str r0, [r2]									\n" /* Restore the task's xSecureContext. */
 	"	push {r1,r4}									\n"
-	"	bl SecureContext_LoadContext					\n" /* Restore the secure context. */
+	"	bl %[SecureContext_LoadContext]					\n" /* Restore the secure context. */
 	"	pop {r1,r4}										\n"
 	"	mov lr, r4										\n" /* LR = r4. */
 	"	lsls r2, r4, #25								\n" /* r2 = r4 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
@@ -332,7 +334,7 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	ldr r2, xSecureContextConst						\n" /* Read the location of xSecureContext i.e. &( xSecureContext ). */
 	"	str r0, [r2]									\n" /* Restore the task's xSecureContext. */
 	"	push {r1,r3}									\n"
-	"	bl SecureContext_LoadContext					\n" /* Restore the secure context. */
+	"	bl %[SecureContext_LoadContext]					\n" /* Restore the secure context. */
 	"	pop {r1,r3}										\n"
 	"	mov lr, r3										\n" /* LR = r3. */
 	"	lsls r2, r3, #25								\n" /* r2 = r3 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
@@ -369,6 +371,9 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"xRNRConst: .word 0xe000ed98						\n"
 	"xRBARConst: .word 0xe000ed9c						\n"
 	#endif /* configENABLE_MPU */
+	:
+	: [SecureContext_LoadContext]"X"(SecureContext_LoadContext)
+	, [SecureContext_SaveContext]"X"(SecureContext_SaveContext)
 	);
 }
 /*-----------------------------------------------------------*/
