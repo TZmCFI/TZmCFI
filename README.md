@@ -1,5 +1,7 @@
 # TZmCFI prototype implementation
 
+<center><img src="docs/banner.jpg"></center>
+
 ## Prerequisite
 
 - Either of the following:
