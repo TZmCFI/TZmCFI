@@ -1,46 +1,36 @@
 use goblin::Object;
 use memmap::MmapOptions;
-use std::{collections::HashMap, fs::File, io};
+use std::{collections::HashMap, fs::File, io, path::PathBuf};
+use structopt::StructOpt;
+
+/// Makes a custom CMSE import library
+#[derive(StructOpt)]
+#[structopt(name = "tzmcfi_mkimplib")]
+struct Opt {
+    /// ELF files to load absolute address from
+    #[structopt(parse(from_os_str), required = true)]
+    input: Vec<PathBuf>,
+
+    /// Path to the generated assembly file. Defaults to stdout
+    #[structopt(short = "o", parse(from_os_str))]
+    output: Option<PathBuf>,
+
+    /// Addiitonal names of symbols to include
+    #[structopt(short = "s")]
+    symbols: Vec<String>,
+}
 
 fn main() {
-    use clap::{App, Arg};
+    let opt = Opt::from_args();
 
-    let matches = App::new("Make a custom CMSE import library")
-        .author("Tomoaki K.")
-        .about(".")
-        .arg(
-            Arg::with_name("INPUT")
-                .help("ELF file to load absolute address from")
-                .multiple(true)
-                .index(1)
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("output")
-                .help("Path to the generated assembly file. Defaults to stdout")
-                .takes_value(true)
-                .short("o")
-                .long("out"),
-        )
-        .arg(
-            Arg::with_name("symbol")
-                .help("Addiitonal names of symbols to include")
-                .takes_value(true)
-                .multiple(true)
-                .number_of_values(1)
-                .short("s")
-                .long("symbol"),
-        )
-        .get_matches();
-
-    let mut included_symbols: HashMap<&str, Option<u64>> = matches
-        .values_of("symbol")
-        .unwrap_or_default()
-        .map(|name| (name, None))
+    let mut included_symbols: HashMap<&str, Option<u64>> = opt
+        .symbols
+        .iter()
+        .map(|name| (name.as_str(), None))
         .collect();
 
     // Get symbol addresses
-    for input in matches.values_of_os("INPUT").unwrap() {
+    for input in opt.input.iter() {
         let file = File::open(input)
             .unwrap_or_else(|x| panic!("failed to open file {:?}: {:?}", input, x));
         let mmap = unsafe { MmapOptions::new().map(&file) }
@@ -100,17 +90,21 @@ fn main() {
     // Open the output stream
     let (mut out_file, mut out_stdout);
     let writer: &mut dyn io::Write;
-    let out_name;
-    if let Some(out_path) = matches.value_of_os("output") {
+    let path_display;
+    let out_name: &dyn std::fmt::Display;
+    if let Some(out_path) = &opt.output {
         let file = std::fs::File::create(out_path)
             .unwrap_or_else(|x| panic!("failed to open file {:?}: {:?}", out_path, x));
         out_file = io::BufWriter::new(file);
         writer = &mut out_file;
-        out_name = out_path;
+
+        path_display = out_path.display();
+        out_name = &path_display;
     } else {
         out_stdout = io::stdout();
         writer = &mut out_stdout;
-        out_name = std::ffi::OsStr::new("-");
+
+        out_name = &"-";
     }
 
     (|| -> Result<(), io::Error> {
@@ -124,5 +118,5 @@ fn main() {
         }
         Ok(())
     })()
-    .unwrap_or_else(|x| panic!("failed to write {:?}: {:?}", out_name, x));
+    .unwrap_or_else(|x| panic!("failed to write '{}': {:?}", out_name, x));
 }
