@@ -86,6 +86,7 @@ pub fn build(b: *Builder) !void {
     const kernel_build_args = [_][]const u8{
         if (enable_cfi) "-DHAS_TZMCFI=1" else "-DHAS_TZMCFI=0",
         if (enable_cfi) "-fsanitize=cfi-icall" else "",
+        if (enable_cfi) "-fsanitize=shadow-call-stack" else "",
         "-flto",
     };
     for (kernel_source_files) |file| {
@@ -189,9 +190,12 @@ fn defineNonSecureApp(
     if (app_info.c_source) |c_source| {
         exe_ns.addCSourceFile(c_source, [_][]const u8{
             if (ns_app_deps.enable_cfi) "-fsanitize=cfi-icall" else "",
+            if (ns_app_deps.enable_cfi) "-fsanitize=shadow-call-stack" else "",
             "-flto",
         });
     }
+
+    // TODO: `shadow-call-stack` on Zig code
 
     var startup_args: [][]const u8 = undefined;
     if (ns_app_deps.enable_cfi) {

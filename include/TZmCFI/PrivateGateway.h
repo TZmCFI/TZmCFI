@@ -19,6 +19,23 @@ void __TCPrivateEnterInterrupt(void (*isrBody)());
  */
 void __TCPrivateLeaveInterrupt(void);
 
+/**
+ * Pushes `lr` to the shadow stack and returns to `ip` (`r12`).
+ */
+void __TCPrivateShadowPush(void);
+
+/**
+ * Pops the top entry from the shadow stack and compares it against `lr`.
+ * Returns to `ip` (`r12`).
+ */
+void __TCPrivateShadowAssert(void);
+
+/**
+ * Pops the top entry from the shadow stack and compares it against `lr`.
+ * Returns to `lr`.
+ */
+void __TCPrivateShadowAssertReturn(void);
+
 #ifdef __cplusplus
 };
 #endif

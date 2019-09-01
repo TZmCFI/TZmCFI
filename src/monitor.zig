@@ -20,6 +20,7 @@
 const debug = @import("monitor/debug.zig");
 const ffi = @import("monitor/ffi.zig");
 const shadowexcstack = @import("monitor/shadowexcstack.zig");
+export const shadowstack = @import("monitor/shadowstack.zig");
 export const threads = @import("monitor/threads.zig");
 
 pub const TCResult = ffi.TCResult;
