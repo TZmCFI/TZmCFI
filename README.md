@@ -7,7 +7,11 @@
 - Either of the following:
     - [QEMU] 4.0.0 or later. Older versions are not tested but might work.
     - Arm [MPS2+] FPGA prototyping board configured with AN505. The encrypted FPGA image of AN505 is available from [Arm's website].
-- Zig [`2cb1f93`](https://github.com/ziglang/zig/commit/2cb1f93894be3f48f0c49004515fa5e8190f69d9) (Aug 16, 2019) or later
+- To enable the compiler-level CFI scheme:
+    - Our custom fork of Zig (TODO: Where is it?)
+    - Our custom fork of LLVM (TODO: Where is it?)
+- If you don't want the compiler-level CFI scheme, you still need:
+    - Zig [`2cb1f93`](https://github.com/ziglang/zig/commit/2cb1f93894be3f48f0c49004515fa5e8190f69d9) (Aug 16, 2019) or later
 - [Rust](https://www.rust-lang.org/en-US/) 1.31.0 or later.
 
 [QEMU]: https://www.qemu.org
