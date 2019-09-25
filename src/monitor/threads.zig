@@ -29,6 +29,8 @@ const allocator = &fixed_allocator.allocator;
 
 const NonSecureThread = struct {
     exc_stack_state: shadowexcstack.StackState,
+    secure_psp: usize,
+    secure_psp_limit: usize,
 };
 
 var threads = [1]?*NonSecureThread{null} ** 64;
@@ -46,6 +48,7 @@ pub fn init() void {
 
     // Default thread
     cur_thread = 0;
+    default_thread.secure_psp_limit = arm_m.getPspLimit();
     threads[0] = &default_thread;
 }
 
@@ -66,11 +69,22 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
 
     thread_info.exc_stack_state = exc_stack_state;
 
+    // Allocate a secure stack for the new thread. The size is a rough guess
+    // that should be enough for holding a single exception frame and a bounded,
+    // reasonable number of stack frames.
+    const StackType = [256]u8;
+    const stack_alignment = 8;
+    const stack = try allocator.alignedAlloc(StackType, stack_alignment, 1);
+    errdefer allocator.free(stack);
+
+    thread_info.secure_psp = @ptrToInt(&stack[0][0]) + stack[0].len;
+    thread_info.secure_psp_limit = @ptrToInt(&stack[0][0]);
+
     // Commit the update
     next_free_thread += 1;
     threads[thread_id] = thread_info;
 
-    warn("createThread({}) = {}\r\n", create_info, thread_id);
+    warn("createThread({}) → id = {}, info = {}\r\n", create_info, thread_id, thread_info);
 
     return thread_id;
 }
@@ -99,6 +113,10 @@ fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
 
     shadowexcstack.saveState(&old_thread.exc_stack_state);
     shadowexcstack.loadState(&new_thread.exc_stack_state);
+
+    old_thread.secure_psp = arm_m.getPsp();
+    arm_m.setPsp(new_thread.secure_psp);
+    arm_m.setPspLimit(new_thread.secure_psp_limit);
 
     cur_thread = @truncate(u8, new_thread_id);
 }
