@@ -21,18 +21,30 @@ void __TCPrivateLeaveInterrupt(void);
 
 /**
  * Pushes `lr` to the shadow stack and returns to `ip` (`r12`).
+ *
+ * This function uses a special calling convention:
+ *  - It returns to `ip` instead of `lr`.
+ *  - It does not kill any registers except for `ip`; most GPRs are
+ *    callee-saved.
  */
 void __TCPrivateShadowPush(void);
 
 /**
  * Pops the top entry from the shadow stack and compares it against `lr`.
  * Returns to `ip` (`r12`).
+ *
+ * This function uses the same special calling convention as 
+ * `__TCPrivateShadowPush` does.
  */
 void __TCPrivateShadowAssert(void);
 
 /**
  * Pops the top entry from the shadow stack and compares it against `lr`.
  * Returns to `lr`.
+ *
+ * This function uses a special calling convention:
+ *  - It does not kill any registers except for `ip`; most GPRs are
+ *    callee-saved.
  */
 void __TCPrivateShadowAssertReturn(void);
 

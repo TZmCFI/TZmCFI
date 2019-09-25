@@ -6,6 +6,7 @@ const FixedBufferAllocator = std.heap.FixedBufferAllocator;
 const arm_m = @import("../drivers/arm_m.zig");
 const arm_cmse = @import("../drivers/arm_cmse.zig");
 // ----------------------------------------------------------------------------
+const shadowstack = @import("shadowstack.zig");
 const shadowexcstack = @import("shadowexcstack.zig");
 const ffi = @import("ffi.zig");
 
@@ -29,6 +30,7 @@ const allocator = &fixed_allocator.allocator;
 
 const NonSecureThread = struct {
     exc_stack_state: shadowexcstack.StackState,
+    stack_state: shadowstack.StackState,
     secure_psp: usize,
     secure_psp_limit: usize,
 };
@@ -48,8 +50,12 @@ pub fn init() void {
 
     // Default thread
     cur_thread = 0;
+    default_thread.stack_state = shadowstack.StackState.new(allocator, null) catch 
+        @panic("allocation of a default shadow stack failed");
     default_thread.secure_psp_limit = arm_m.getPspLimit();
     threads[0] = &default_thread;
+
+    shadowstack.loadState(&default_thread.stack_state);
 }
 
 const CreateThreadError = error{OutOfMemory};
@@ -68,6 +74,11 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
     errdefer exc_stack_state.destroy(allocator);
 
     thread_info.exc_stack_state = exc_stack_state;
+
+    const stack_state = try shadowstack.StackState.new(allocator, create_info);
+    errdefer stack_state.destroy(allocator);
+
+    thread_info.stack_state = stack_state;
 
     // Allocate a secure stack for the new thread. The size is a rough guess
     // that should be enough for holding a single exception frame and a bounded,
@@ -113,6 +124,9 @@ fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
 
     shadowexcstack.saveState(&old_thread.exc_stack_state);
     shadowexcstack.loadState(&new_thread.exc_stack_state);
+
+    shadowstack.saveState(&old_thread.stack_state);
+    shadowstack.loadState(&new_thread.stack_state);
 
     old_thread.secure_psp = arm_m.getPsp();
     arm_m.setPsp(new_thread.secure_psp);
