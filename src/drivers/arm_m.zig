@@ -259,3 +259,13 @@ pub const irqs = struct {
         }
     }
 };
+
+pub inline fn getIpsr() usize {
+    return asm ("mrs %[out], ipsr"
+        : [out] "=r" (-> usize)
+    );
+}
+
+pub inline fn isHandlerMode() bool {
+    return getIpsr() != 0;
+}

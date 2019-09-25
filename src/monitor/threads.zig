@@ -3,6 +3,7 @@
 const std = @import("std");
 const FixedBufferAllocator = std.heap.FixedBufferAllocator;
 // ----------------------------------------------------------------------------
+const arm_m = @import("../drivers/arm_m.zig");
 const arm_cmse = @import("../drivers/arm_cmse.zig");
 // ----------------------------------------------------------------------------
 const shadowexcstack = @import("shadowexcstack.zig");
@@ -74,9 +75,19 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
     return thread_id;
 }
 
-const ActivateThreadError = error{BadThread};
+const ActivateThreadError = error{
+    BadThread,
+    ThreadMode,
+};
 
 fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
+    // Cannot switch contexts in Thread mode. We cannot switch secure process
+    // stacks while they are in use, not to mention that switching contexts
+    // in Thread mode is a weird thing to do.
+    if (!arm_m.isHandlerMode()) {
+        return error.ThreadMode;
+    }
+
     // This is probably faster than proper bounds checking
     const new_thread_id = usize(thread) & (threads.len - 1);
     const new_thread = threads[new_thread_id] orelse return error.BadThread;
@@ -127,6 +138,7 @@ extern fn TCLockdown(_1: usize, _2: usize, _3: usize, _4: usize) usize {
 extern fn TCActivateThread(thread: usize, _2: usize, _3: usize, _4: usize) usize {
     activateThread(thread) catch |err| switch (err) {
         error.BadThread => return @enumToInt(ffi.TC_RESULT.ERROR_INVALID_ARGUMENT),
+        error.ThreadMode => return @enumToInt(ffi.TC_RESULT.ERROR_INVALID_OPERATION),
     };
 
     return @enumToInt(ffi.TC_RESULT.SUCCESS);
