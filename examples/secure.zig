@@ -9,7 +9,7 @@ const builtin = @import("builtin");
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
 
-    an505.uart0.print("panic: {}\r\n", msg);
+    an505.uart0_s.print("panic: {}\r\n", msg);
     @breakpoint();
     unreachable;
 }
