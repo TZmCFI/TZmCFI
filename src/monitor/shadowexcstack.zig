@@ -223,7 +223,7 @@ pub const StackState = struct {
 
     /// Release the memory allocated for `self`. `self` must have been created
     /// by `new(allocator, _)`.
-    pub fn destroy(self: *Self, allocator: *Allocator) void {
+    pub fn destroy(self: *const Self, allocator: *Allocator) void {
         allocator.free(self.asSlice());
     }
 

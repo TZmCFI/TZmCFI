@@ -62,7 +62,7 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
     errdefer allocator.destroy(thread_info);
 
     const exc_stack_state = try shadowexcstack.StackState.new(allocator, create_info);
-    errdefer exc_stack_state.destroy(&allocator);
+    errdefer exc_stack_state.destroy(allocator);
 
     thread_info.exc_stack_state = exc_stack_state;
 
