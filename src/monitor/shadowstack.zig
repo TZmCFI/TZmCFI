@@ -143,7 +143,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
     //
-    //  if (lr == 0) { panic(); }
+    //  if (g_shadow_stack_top[-1] == 0) { panic(); }
     //  if (g_shadow_stack_top[-1] != lr) { panic(); }
     //  g_shadow_stack_top -= 1;
     //  bxns(r12)
