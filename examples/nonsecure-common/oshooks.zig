@@ -8,15 +8,34 @@ const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 
 export const SystemCoreClock: u32 = 25000000;
 
-export fn SecureContext_LoadContext(contextId: u32) void {
-    if (!@import("build_options").HAS_TZMCFI) {
+// `SecureContext_LoadContext`
+comptime {
+    if (@import("build_options").HAS_TZMCFI) {
+        // Call `TCActivateThread` to switch contexts. This has to be a tail
+        // call so that we don't need to spill `lr`. The reason is that we
+        // must not have shadow stack entries for the current interrupt
+        // handling context at the point of calling `TCActivateThread`,
+        // because the destination shadow stack does not have those entries and
+        // subsequent shadow assert operations will fail.
+        asm (
+            \\  .syntax unified
+            \\  .thumb
+            \\  .type SecureContext_LoadContext function
+            \\  .global SecureContext_LoadContext
+            \\  SecureContext_LoadContext:
+            \\      b TCActivateThread
+            \\      // result is ignored, sadly
+        );
+    } else {
         // TZmCFI is disabled, ignore the call
-        return;
-    }
-
-    const result = tzmcfi.TCActivateThread(contextId);
-    if (result != tzmcfi.TC_RESULT_SUCCESS) {
-        @panic("TCActivateThread failed");
+        asm (
+            \\  .syntax unified
+            \\  .thumb
+            \\  .type SecureContext_LoadContext function
+            \\  .global SecureContext_LoadContext
+            \\  SecureContext_LoadContext:
+            \\      bx lr
+        );
     }
 }
 

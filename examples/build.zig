@@ -186,6 +186,7 @@ fn defineNonSecureApp(
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_ns.enable_lto = true;
+    exe_ns.enable_shadow_call_stack = true;
 
     if (app_info.c_source) |c_source| {
         exe_ns.addCSourceFile(c_source, [_][]const u8{
