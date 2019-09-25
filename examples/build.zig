@@ -186,7 +186,8 @@ fn defineNonSecureApp(
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_ns.enable_lto = true;
-    exe_ns.enable_shadow_call_stack = true;
+    exe_ns.enable_shadow_call_stack = ns_app_deps.enable_cfi;
+    // TODO: Enable `cfi-icall` on Zig code
 
     if (app_info.c_source) |c_source| {
         exe_ns.addCSourceFile(c_source, [_][]const u8{
@@ -195,8 +196,6 @@ fn defineNonSecureApp(
             "-flto",
         });
     }
-
-    // TODO: `shadow-call-stack` on Zig code
 
     var startup_args: [][]const u8 = undefined;
     if (ns_app_deps.enable_cfi) {
