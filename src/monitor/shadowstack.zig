@@ -21,8 +21,8 @@ export fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") void {
     asm volatile (
         \\ sg
         \\ # Calling a secure gateway automatically clears LR[0]. It's useful
-        \\ # to do `bxns lr` in Secure code, but when used in Non-Secure mode,
-        \\ # it causes SecureFault.
+        \\ # for doing `bxns lr` in Secure code, but when used in Non-Secure
+        \\ # mode, it just causes SecureFault.
         \\ orr lr, #1
         \\
         \\ # TODO: validate `lr`

@@ -1,13 +1,15 @@
 // Thread management
+// ----------------------------------------------------------------------------
 const std = @import("std");
 const FixedBufferAllocator = std.heap.FixedBufferAllocator;
-
+// ----------------------------------------------------------------------------
 const arm_cmse = @import("../drivers/arm_cmse.zig");
-
+// ----------------------------------------------------------------------------
 const shadowexcstack = @import("shadowexcstack.zig");
 const ffi = @import("ffi.zig");
 
 const warn = @import("debug.zig").warn;
+// ----------------------------------------------------------------------------
 
 // TODO: Critical section
 //       We currently put a trust on the Non-Secure code calling these functions
