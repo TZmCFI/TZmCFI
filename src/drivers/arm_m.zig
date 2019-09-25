@@ -269,3 +269,95 @@ pub inline fn getIpsr() usize {
 pub inline fn isHandlerMode() bool {
     return getIpsr() != 0;
 }
+
+/// Read the current main stack pointer.
+pub inline fn getMsp() usize {
+    return asm ("mrs %[out], msp"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Read the current process stack pointer.
+pub inline fn getPsp() usize {
+    return asm ("mrs %[out], psp"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Read the current main stack pointer limit.
+pub inline fn getMspLimit() usize {
+    return asm ("mrs %[out], msplim"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Read the current process stack pointer limit.
+pub inline fn getPspLimit() usize {
+    return asm ("mrs %[out], psplim"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Write the current main stack pointer.
+pub inline fn setMsp(value: usize) void {
+    return asm volatile ("msr msp, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Write the current process stack pointer.
+pub inline fn setPsp(value: usize) void {
+    return asm volatile ("msr psp, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Write the current main stack pointer limit.
+pub inline fn setMspLimit(value: usize) void {
+    return asm volatile ("msr msplim, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Write the current process stack pointer limit.
+pub inline fn setPspLimit(value: usize) void {
+    return asm volatile ("msr psplim, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Read the control register.
+pub inline fn getControl() usize {
+    return asm ("mrs %[out], control"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Write the control register.
+pub inline fn setControl(value: usize) void {
+    return asm volatile ("msr control, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+pub const control = struct {
+    /// Secure Floating-point active.
+    pub const SPFA: usize = 1 << 3;
+
+    /// Floating-point context active.
+    pub const FPCA: usize = 1 << 2;
+
+    /// Stack-pointer select.
+    pub const SPSEL: usize = 1 << 1;
+
+    /// Not privileged.
+    pub const nPRIV: usize = 1 << 0;
+
+    pub const set = setControl;
+    pub const get = getControl;
+};

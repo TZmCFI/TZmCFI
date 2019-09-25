@@ -92,8 +92,15 @@ SECTIONS
 
     /* Reserve stack space */
     . = ALIGN(8);
-    . = . + 0x4000;
+    PROVIDE(_main_stack_limit = .);
+    . = . + 0x400;
     PROVIDE(_main_stack_top = .);
+
+    /* Reserve stack space */
+    . = ALIGN(8);
+    PROVIDE(_handler_stack_limit = .);
+    . = . + 0x400;
+    PROVIDE(_handler_stack_top = .);
 
     _end = .;
     PROVIDE(end = .);

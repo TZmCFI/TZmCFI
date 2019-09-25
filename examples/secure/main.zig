@@ -30,6 +30,30 @@ export fn main() void {
     an505.uart0_s.print("(Hit ^A X to quit QEMU)\r\n");
     an505.uart0_s.print("The Secure code is running!\r\n");
 
+    // Intialize secure stacks
+    // -----------------------------------------------------------------------
+    // On reset, MSP is used for both of Thread and Handler modes. We want to
+    // set a new stack pointer only for Handler mode by updating MSP, but MSP
+    // is currently in use. So, we first copy MSP To PSP and then switch to
+    // PSP.
+    asm volatile (
+        \\ mrs r0, msp
+        \\ msr psp, r0
+        \\ mrs r0, control
+        \\ orr r0, #2       // SPSEL = 1 (Use PSP in Thread mode)
+        \\ msr control, r0
+        :
+        :
+        : "r0"
+    );
+
+    // Now we can safely update MSP.
+    arm_m.setMsp(@ptrToInt(_handler_stack_top));
+
+    // Set stack limits.
+    arm_m.setMspLimit(@ptrToInt(_handler_stack_limit));
+    arm_m.setPspLimit(@ptrToInt(_main_stack_limit));
+
     // Configure SAU
     // -----------------------------------------------------------------------
     const Region = arm_cmse.SauRegion;
@@ -141,4 +165,7 @@ export const exception_vectors linksection(".isr_vector") =
         .setExcHandler(arm_m.irqs.Reset_IRQn, handleReset);
 // zig fmt: on
 extern fn _main_stack_top() void;
+extern fn _handler_stack_top() void;
+extern fn _main_stack_limit() void;
+extern fn _handler_stack_limit() void;
 extern fn handleReset() void;
