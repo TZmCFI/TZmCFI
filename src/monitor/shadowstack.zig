@@ -10,7 +10,7 @@ const warn = @import("debug.zig").warn;
 // ----------------------------------------------------------------------------
 export var g_shadow_stack_top: [*]usize = undefined;
 
-/// Bundles the state of a single instance of shadow exception stack.
+/// Bundles the state of a single instance of shadow stack.
 pub const StackState = struct {
     top: [*]usize,
     frames: []usize,
