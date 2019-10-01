@@ -112,18 +112,20 @@ pub fn build(b: *Builder) !void {
     try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
         .name = "rtosbasic",
         .root = "nonsecure-rtosbasic.zig",
-        .c_source = "nonsecure-rtosbasic.cpp",
-        .use_freertos = true,
+        .meta = struct {
+            const use_freertos = true;
+            fn modifyExeStep(_builder: *Builder, step: *LibExeObjStep, opts: ModifyExeStepOpts) void {
+                step.addCSourceFile("nonsecure-rtosbasic.cpp", opts.c_flags);
+            }
+        },
     });
     try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
         .name = "basic",
         .root = "nonsecure-basic.zig",
-        .use_freertos = false,
     });
     try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
         .name = "bench-latency",
         .root = "nonsecure-bench-latency.zig",
-        .use_freertos = false,
     });
 
     // We don't define the default rule.
@@ -149,8 +151,13 @@ const NsAppDeps = struct {
 const NsAppInfo = struct {
     name: []const u8,
     root: []const u8,
+    meta: type = struct {},
     c_source: ?[]const u8 = null,
     use_freertos: bool = false,
+};
+
+pub const ModifyExeStepOpts = struct {
+    c_flags: [][]const u8,
 };
 
 /// Define build steps for a single example application.
@@ -174,6 +181,11 @@ fn defineNonSecureApp(
 
     const name = app_info.name;
 
+    // Additional options
+    // -------------------------------------------------------
+    const meta = app_info.meta;
+    const use_freertos = if (@hasDecl(meta, "use_freertos")) meta.use_freertos else false;
+
     // The Non-Secure part
     // -------------------------------------------------------
     const exe_ns_name = if (want_gdb) name ++ "-dbg" else name;
@@ -189,12 +201,14 @@ fn defineNonSecureApp(
     exe_ns.enable_shadow_call_stack = ns_app_deps.enable_cfi;
     // TODO: Enable `cfi-icall` on Zig code
 
-    if (app_info.c_source) |c_source| {
-        exe_ns.addCSourceFile(c_source, [_][]const u8{
+    if (@hasDecl(meta, "modifyExeStep")) {
+        const c_flags = [_][]const u8{
             if (ns_app_deps.enable_cfi) "-fsanitize=cfi-icall" else "",
             if (ns_app_deps.enable_cfi) "-fsanitize=shadow-call-stack" else "",
             "-flto",
-        });
+        };
+
+        meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts { .c_flags = c_flags[0..] });
     }
 
     var startup_args: [][]const u8 = undefined;
@@ -209,7 +223,7 @@ fn defineNonSecureApp(
 
     exe_ns.addBuildOption(bool, "HAS_TZMCFI", ns_app_deps.enable_cfi);
 
-    if (app_info.use_freertos) {
+    if (use_freertos) {
         for (kernel_include_dirs) |path| {
             exe_ns.addIncludeDir(path);
         }
