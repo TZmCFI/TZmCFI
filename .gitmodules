@@ -1,0 +1,3 @@
+[submodule "examples/coremark"]
+	path = examples/nonsecure-bench-coremark/coremark
+	url = https://github.com/eembc/coremark.git
