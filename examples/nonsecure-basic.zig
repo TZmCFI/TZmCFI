@@ -5,10 +5,10 @@ const warn = @import("nonsecure-common/debug.zig").warn;
 
 // The (unprocessed) Non-Secure exception vector table.
 // zig fmt: off
-export const raw_exception_vectors linksection(".text.raw_isr_vector") = 
+export const raw_exception_vectors linksection(".text.raw_isr_vector") =
     @import("nonsecure-common/excvector.zig")
         .getDefaultBaremetal()
-        .setExcHandler(arm_m.irqs.SysTick_IRQn, handleSysTick);
+        .setTcExcHandler(arm_m.irqs.SysTick_IRQn, handleSysTick);
 // zig fmt: on
 export fn main() void {
     warn("yay\r\n");

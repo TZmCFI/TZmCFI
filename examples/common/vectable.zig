@@ -37,6 +37,29 @@ pub fn VecTable(comptime num_irqs: usize, comptime nameProvider: var) type {
             this.handlers[exc_number - 1] = handler;
             return this;
         }
+
+        /// Register a TZmCFI-optimized exception handler.
+        ///
+        /// When using TZmCFI's exception trampolines, the performance of
+        /// exception handlers can be improved by using an alternate calling
+        /// convention in which exception handlers return directly to the
+        /// exception return trampoline.
+        ///
+        /// This method creates a wrapper method to use this calling convention,
+        /// and passes it to `setExcHandler`. It automatically changes it back
+        /// to the default calling convention if the build option `HAS_TZMCFI`
+        /// is disabled.
+        pub fn setTcExcHandler(self: Self, exc_number: usize, comptime handler: extern fn () void) Self {
+            return self.setExcHandler(
+                exc_number,
+                struct {
+                    extern fn _() void {
+                        @setTcExcHandler(@import("build_options").HAS_TZMCFI);
+                        @inlineCall(handler);
+                    }
+                }._,
+            );
+        }
     };
 }
 
