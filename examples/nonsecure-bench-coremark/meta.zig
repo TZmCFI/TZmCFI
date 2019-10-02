@@ -29,7 +29,6 @@ pub fn modifyExeStep(builder: *Builder, step: *LibExeObjStep, opts: ModifyExeSte
 
     step.defineCMacro("PERFORMANCE_RUN");
 
-    // The iteration count must be adjusted so that the benchmark runs for
-    // at least 10 seconds.
-    step.defineCMacro("ITERATIONS=10000");
+    // Automatically derive the iteration count.
+    step.defineCMacro("ITERATIONS=0");
 }

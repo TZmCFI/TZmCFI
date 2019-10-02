@@ -4,12 +4,18 @@ const c = @cImport({
 });
 const warn = @import("../nonsecure-common/debug.zig").warn;
 
+const an505 = @import("../drivers/an505.zig");
+
+const TIMER_RESET_VALUE: u32 = 0x80000000;
+const SYSTEM_CORE_CLOCK: comptime_int = 25000000;
+
 /// This function will be called right before starting the timed portion of the benchmark.
 ///
 /// Implementation may be capturing a system timer (as implemented in the example code)
 /// or zeroing some system parameters - e.g. setting the cpu clocks cycles to 0.
 export fn start_time() void {
-    @panic("todo");
+    an505.timer0.setValue(TIMER_RESET_VALUE);
+    an505.timer0.regCtrl().* = 0b0001; // enable
 }
 
 /// This function will be called right after ending the timed portion of the benchmark.
@@ -17,7 +23,7 @@ export fn start_time() void {
 /// Implementation may be capturing a system timer (as implemented in the example code)
 /// or other system parameters - e.g. reading the current value of cpu cycles counter.
 export fn stop_time() void {
-    @panic("todo");
+    an505.timer0.regCtrl().* = 0b0000;
 }
 
 /// Return an abstract "ticks" number that signifies time on the system.
@@ -28,7 +34,7 @@ export fn stop_time() void {
 /// The sample implementation returns millisecs by default,
 /// and the resolution is controlled by <TIMER_RES_DIVIDER>
 export fn get_time() c.CORE_TICKS {
-    @panic("todo");
+    return TIMER_RESET_VALUE - an505.timer0.getValue();
 }
 
 /// Convert the value returned by get_time to seconds.
@@ -36,7 +42,7 @@ export fn get_time() c.CORE_TICKS {
 /// The <secs_ret> type is used to accomodate systems with no support for floating point.
 /// Default implementation implemented by the EE_TICKS_PER_SEC macro above.
 export fn time_in_secs(ticks: c.CORE_TICKS) c.secs_ret {
-    @panic("todo");
+    return @intToFloat(f64, ticks) / SYSTEM_CORE_CLOCK;
 }
 
 export var default_num_contexts: c.ee_u32 = 1;
@@ -53,15 +59,21 @@ comptime {
 /// Target specific initialization code
 export fn portable_init(p: *c.core_portable, _argc: *c_int, _argv: ?[*]([*]u8)) void {
     p.portable_id = 1;
-    warn("* portable_init");
+    warn("* portable_init\r\n");
 }
 
 /// Target specific final code
 export fn portable_fini(p: *c.core_portable) void {
     p.portable_id = 0;
-    warn("* portable_fini");
+    warn("* portable_fini - system halted\r\n");
+
+    while (true) {}
 }
 
 export fn uart_send_char(ch: u8) void {
-    warn("{}", [_]u8{ch});
+    if (ch == '\n') {
+        warn("\r\n");
+    } else {
+        warn("{}", [_]u8{ch});
+    }
 }
