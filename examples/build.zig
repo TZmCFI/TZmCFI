@@ -114,7 +114,7 @@ pub fn build(b: *Builder) !void {
         .root = "nonsecure-rtosbasic.zig",
         .meta = struct {
             const use_freertos = true;
-            fn modifyExeStep(_builder: *Builder, step: *LibExeObjStep, opts: ModifyExeStepOpts) void {
+            fn modifyExeStep(_builder: *Builder, step: *LibExeObjStep, opts: ModifyExeStepOpts) error{}!void {
                 step.addCSourceFile("nonsecure-rtosbasic.cpp", opts.c_flags);
             }
         },
@@ -122,6 +122,11 @@ pub fn build(b: *Builder) !void {
     try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
         .name = "basic",
         .root = "nonsecure-basic.zig",
+    });
+    try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
+        .name = "bench-coremark",
+        .root = "nonsecure-bench-coremark.zig",
+        .meta = @import("nonsecure-bench-coremark/meta.zig"),
     });
     try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
         .name = "bench-latency",
@@ -208,7 +213,7 @@ fn defineNonSecureApp(
             "-flto",
         };
 
-        meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts { .c_flags = c_flags[0..] });
+        try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts { .c_flags = c_flags[0..] });
     }
 
     var startup_args: [][]const u8 = undefined;
