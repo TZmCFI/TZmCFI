@@ -213,6 +213,7 @@ fn defineNonSecureApp(
             try c_flags.append("-fsanitize=shadow-call-stack");
         }
         try c_flags.append("-flto");
+        try c_flags.append("-msoft-float");
 
         try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts { .c_flags = c_flags.toSliceConst() });
     }
