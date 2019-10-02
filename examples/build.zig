@@ -207,13 +207,14 @@ fn defineNonSecureApp(
     // TODO: Enable `cfi-icall` on Zig code
 
     if (@hasDecl(meta, "modifyExeStep")) {
-        const c_flags = [_][]const u8{
-            if (ns_app_deps.enable_cfi) "-fsanitize=cfi-icall" else "",
-            if (ns_app_deps.enable_cfi) "-fsanitize=shadow-call-stack" else "",
-            "-flto",
-        };
+        var c_flags = std.ArrayList([]const u8).init(b.allocator);
+        if (ns_app_deps.enable_cfi) {
+            try c_flags.append("-fsanitize=cfi-icall");
+            try c_flags.append("-fsanitize=shadow-call-stack");
+        }
+        try c_flags.append("-flto");
 
-        try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts { .c_flags = c_flags[0..] });
+        try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts { .c_flags = c_flags.toSliceConst() });
     }
 
     var startup_args: [][]const u8 = undefined;
