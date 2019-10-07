@@ -276,12 +276,13 @@ fn defineNonSecureApp(
 
     ns_app_deps.cfi_opts.configureBuildStep(exe_ns);
 
-    if (@hasDecl(meta, "modifyExeStep")) {
-        var c_flags = std.ArrayList([]const u8).init(b.allocator);
-        try ns_app_deps.cfi_opts.addCFlagsTo(&c_flags);
-        try c_flags.append("-flto");
-        try c_flags.append("-msoft-float");
+    // The C/C++ compiler options
+    var c_flags = std.ArrayList([]const u8).init(b.allocator);
+    try ns_app_deps.cfi_opts.addCFlagsTo(&c_flags);
+    try c_flags.append("-flto");
+    try c_flags.append("-msoft-float");
 
+    if (@hasDecl(meta, "modifyExeStep")) {
         try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts{ .c_flags = c_flags.toSliceConst() });
     }
 
@@ -300,7 +301,7 @@ fn defineNonSecureApp(
             exe_ns.addIncludeDir(path);
         }
         exe_ns.linkLibrary(kernel);
-        exe_ns.addCSourceFile("nonsecure-common/oshooks.c", [_][]const u8{});
+        exe_ns.addCSourceFile("nonsecure-common/oshooks.c", c_flags.toSliceConst());
     }
 
     exe_ns.addAssemblyFile(implib_path);
