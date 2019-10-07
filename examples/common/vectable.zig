@@ -47,14 +47,14 @@ pub fn VecTable(comptime num_irqs: usize, comptime nameProvider: var) type {
         ///
         /// This method creates a wrapper method to use this calling convention,
         /// and passes it to `setExcHandler`. It automatically changes it back
-        /// to the default calling convention if the build option `HAS_TZMCFI`
+        /// to the default calling convention if the build option `HAS_TZMCFI_SES`
         /// is disabled.
         pub fn setTcExcHandler(self: Self, exc_number: usize, comptime handler: extern fn () void) Self {
             return self.setExcHandler(
                 exc_number,
                 struct {
                     extern fn _() void {
-                        @setTcExcHandler(@import("build_options").HAS_TZMCFI);
+                        @setTcExcHandler(@import("build_options").HAS_TZMCFI_SES);
                         @inlineCall(handler);
                     }
                 }._,

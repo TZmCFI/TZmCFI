@@ -73,7 +73,7 @@ void vRestoreContextOfFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_
 	"	adds r0, #32									\n" /* Discard everything up to r0. */
 	"	msr  psp, r0									\n" /* This is now the new top of stack to use in the task. */
 	"	isb												\n"
-	#if HAS_TZMCFI
+	#if HAS_TZMCFI_SES
 	// `r4` isn't needed - TZmCFI tracks `EXC_RETURN`.
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* Finally, return from an exception handler. */
@@ -155,7 +155,7 @@ void vStartFirstTask( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
 	(
-#if HAS_TZMCFI
+#if HAS_TZMCFI_SES
 	"   ldr r0, =_main_stack_top						\n"
 #else
 	"	ldr r0, xVTORConst								\n" /* Use the NVIC offset register to locate the stack. */
@@ -221,7 +221,7 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	(
 	"	.syntax unified									\n"
 	"													\n"
-	#if HAS_TZMCFI
+	#if HAS_TZMCFI_SES
 	"	mov lr, r0										\n" /* `r0` contains the actual `EXC_RETURN` */
 	// The old `lr` points the retrun trampoline, which we don't need because we'll jump
 	// to `__TCPrivateLeaveInterrupt` directly.
@@ -321,7 +321,7 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	lsls r2, r4, #25								\n" /* r2 = r4 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
 	"	bpl restore_ns_context							\n" /* bpl - branch if positive or zero. If r2 >= 0 ==> Bit[6] in EXC_RETURN is 0 i.e. non-secure stack was used. */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	#if HAS_TZMCFI
+	#if HAS_TZMCFI_SES
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
 	#else
@@ -340,7 +340,7 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	lsls r2, r3, #25								\n" /* r2 = r3 << 25. Bit[6] of EXC_RETURN is 1 if secure stack was used, 0 if non-secure stack was used to store stack frame. */
 	"	bpl restore_ns_context							\n" /* bpl - branch if positive or zero. If r2 >= 0 ==> Bit[6] in EXC_RETURN is 0 i.e. non-secure stack was used. */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	#if HAS_TZMCFI
+	#if HAS_TZMCFI_SES
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
 	#else
@@ -356,7 +356,7 @@ void PendSV_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	"	vldmiaeq r1!, {s16-s31}							\n" /* Restore the FPU registers which are not restored automatically. */
 	#endif /* configENABLE_FPU */
 	"	msr psp, r1										\n" /* Remember the new top of stack for the task. */
-	#if HAS_TZMCFI
+	#if HAS_TZMCFI_SES
 	"   cpsid f											\n"
 	"	b    __TCPrivateLeaveInterrupt					\n" /* return from an exception handler. */
 	#else
@@ -382,7 +382,7 @@ void SVC_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 {
 	__asm volatile
 	(
-#if HAS_TZMCFI
+#if HAS_TZMCFI_SES
 	// TZmCFI's exception trampoline passes `EXC_RETURN` via `r0`
 	"	tst r0, #4										\n"
 #else

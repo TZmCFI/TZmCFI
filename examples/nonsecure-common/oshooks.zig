@@ -10,7 +10,7 @@ export const SystemCoreClock: u32 = 25000000;
 
 // `SecureContext_LoadContext`
 comptime {
-    if (@import("build_options").HAS_TZMCFI) {
+    if (@import("build_options").HAS_TZMCFI_CTX) {
         // Call `TCActivateThread` to switch contexts. This has to be a tail
         // call so that we don't need to spill `lr`. The reason is that we
         // must not have shadow stack entries for the current interrupt
@@ -48,7 +48,7 @@ export fn SecureContext_FreeContext(contextId: i32) void {
 }
 
 export fn SecureContext_AllocateContext(contextId: u32, taskPrivileged: u32, pc: usize, lr: usize, exc_return: usize, frame: usize) u32 {
-    if (!@import("build_options").HAS_TZMCFI) {
+    if (!@import("build_options").HAS_TZMCFI_CTX) {
         // TZmCFI is disabled, ignore the call
         return 0;
     }

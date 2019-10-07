@@ -3,12 +3,25 @@ const std = @import("std");
 const Builder = @import("std").build.Builder;
 const Step = @import("std").build.Step;
 const LibExeObjStep = @import("std").build.LibExeObjStep;
+const warn = @import("std").debug.warn;
 
 pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
     const enable_trace = b.option(bool, "trace", "Enable tracing") orelse false;
-    const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
+    const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse false;
+
+    const cfi_opts = CfiOpts {
+        .ctx = b.option(bool, "cfi-ctx", "Enable TZmCFI context management (default = cfi)")
+            orelse enable_cfi,
+        .ses = b.option(bool, "cfi-ses", "Enable TZmCFI shadow exception stacks (default = cfi)")
+            orelse enable_cfi,
+        .ss = b.option(bool, "cfi-ss", "Enable TZmCFI shadow stacks (default = cfi)")
+            orelse enable_cfi,
+        .icall = b.option(bool, "cfi-icall", "Enable indirect call CFI (default = cfi)")
+            orelse enable_cfi,
+    };
+    try cfi_opts.validate();
 
     const arch = builtin.Arch{ .thumb = .v8m_mainline };
 
@@ -85,13 +98,7 @@ pub fn build(b: *Builder) !void {
     };
     var kernel_build_args = std.ArrayList([]const u8).init(b.allocator);
     try kernel_build_args.append("-flto");
-    if (enable_cfi) {
-        try kernel_build_args.append("-DHAS_TZMCFI=1");
-        try kernel_build_args.append("-fsanitize=cfi-icall");
-        try kernel_build_args.append("-fsanitize=shadow-call-stack");
-    } else {
-        try kernel_build_args.append("-DHAS_TZMCFI=0");
-    }
+    try cfi_opts.addCFlagsTo(&kernel_build_args);
     for (kernel_source_files) |file| {
         kernel.addCSourceFile(file, kernel_build_args.toSliceConst());
     }
@@ -105,7 +112,7 @@ pub fn build(b: *Builder) !void {
         .arch = arch,
         .mode = mode,
         .want_gdb = want_gdb,
-        .enable_cfi = enable_cfi,
+        .cfi_opts = &cfi_opts,
         .implib_path = implib_path,
         .implib_step = &implib.step,
         .exe_s = exe_s,
@@ -146,12 +153,65 @@ pub fn build(b: *Builder) !void {
     // We don't define the default rule.
 }
 
+const CfiOpts = struct {
+    /// Use TZmCFI context management API
+    ctx: bool,
+    /// TZmCFI shadow exception stacks
+    ses: bool,
+    /// TZmCFI shadow stacks
+    ss: bool,
+    /// LLVM indirect call validator
+    icall: bool,
+
+    const Self = @This();
+
+    fn validate(self: *const Self) !void {
+        if (self.ss and !self.ctx) {
+            // Shadow stacks are managed by context management API.
+            warn("error: cfi-ss requires cfi-ctx\n");
+            return error.IncompatibleCfiOpts;
+        }
+
+        if (self.ses and !self.ctx) {
+            // Shadow exception stacks are managed by context management API.
+            warn("error: cfi-ses requires cfi-ctx\n");
+            return error.IncompatibleCfiOpts;
+        }
+
+        if (self.ss and !self.ses) {
+            // TZmCFI's shadow stacks do not work without shadow exception stacks.
+            // Probably because the shadow stack routines mess up the lowest bit
+            // of `EXC_RETURN`.
+            warn("error: cfi-ss requires cfi-ses\n");
+            return error.IncompatibleCfiOpts;
+        }
+    }
+
+    fn addCFlagsTo(self: *const Self, args: var) !void {
+        try args.append(if (self.ses) "-DHAS_TZMCFI_SES=1" else "-DHAS_TZMCFI_SES=0");
+        if (self.ss) {
+            try args.append("-fsanitize=shadow-call-stack");
+        }
+        if (self.icall) {
+            try args.append("-fsanitize=cfi-icall");
+        }
+    }
+
+    fn configureBuildStep(self: *const Self, step: *LibExeObjStep) void {
+        step.enable_shadow_call_stack = self.ss;
+        // TODO: Enable `cfi-icall` on Zig code
+
+        step.addBuildOption(bool, "HAS_TZMCFI_CTX", self.ctx);
+        step.addBuildOption(bool, "HAS_TZMCFI_SES", self.ses);
+    }
+};
+
 const NsAppDeps = struct {
     // General
     arch: builtin.Arch,
     mode: builtin.Mode,
     want_gdb: bool,
-    enable_cfi: bool,
+    cfi_opts: *const CfiOpts,
 
     // Secure dependency
     implib_path: []const u8,
@@ -213,15 +273,12 @@ fn defineNonSecureApp(
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_ns.enable_lto = true;
-    exe_ns.enable_shadow_call_stack = ns_app_deps.enable_cfi;
-    // TODO: Enable `cfi-icall` on Zig code
+
+    ns_app_deps.cfi_opts.configureBuildStep(exe_ns);
 
     if (@hasDecl(meta, "modifyExeStep")) {
         var c_flags = std.ArrayList([]const u8).init(b.allocator);
-        if (ns_app_deps.enable_cfi) {
-            try c_flags.append("-fsanitize=cfi-icall");
-            try c_flags.append("-fsanitize=shadow-call-stack");
-        }
+        try ns_app_deps.cfi_opts.addCFlagsTo(&c_flags);
         try c_flags.append("-flto");
         try c_flags.append("-msoft-float");
 
@@ -229,7 +286,7 @@ fn defineNonSecureApp(
     }
 
     var startup_args: [][]const u8 = undefined;
-    if (ns_app_deps.enable_cfi) {
+    if (ns_app_deps.cfi_opts.ses) {
         startup_args = &comptime [_][]const u8{};
     } else {
         // Disable TZmCFI's exception trampolines by updating VTOR to the
@@ -237,8 +294,6 @@ fn defineNonSecureApp(
         startup_args = &comptime [_][]const u8{"-DSET_ORIGINAL_VTOR"};
     }
     exe_ns.addCSourceFile("common/startup.S", startup_args);
-
-    exe_ns.addBuildOption(bool, "HAS_TZMCFI", ns_app_deps.enable_cfi);
 
     if (use_freertos) {
         for (kernel_include_dirs) |path| {
