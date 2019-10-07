@@ -83,14 +83,17 @@ pub fn build(b: *Builder) !void {
         "freertos/portable/GCC/ARM_CM33/non_secure/portasm.c",
         "freertos/portable/MemMang/heap_4.c",
     };
-    const kernel_build_args = [_][]const u8{
-        if (enable_cfi) "-DHAS_TZMCFI=1" else "-DHAS_TZMCFI=0",
-        if (enable_cfi) "-fsanitize=cfi-icall" else "",
-        if (enable_cfi) "-fsanitize=shadow-call-stack" else "",
-        "-flto",
-    };
+    var kernel_build_args = std.ArrayList([]const u8).init(b.allocator);
+    try kernel_build_args.append("-flto");
+    if (enable_cfi) {
+        try kernel_build_args.append("-DHAS_TZMCFI=1");
+        try kernel_build_args.append("-fsanitize=cfi-icall");
+        try kernel_build_args.append("-fsanitize=shadow-call-stack");
+    } else {
+        try kernel_build_args.append("-DHAS_TZMCFI=0");
+    }
     for (kernel_source_files) |file| {
-        kernel.addCSourceFile(file, kernel_build_args);
+        kernel.addCSourceFile(file, kernel_build_args.toSliceConst());
     }
 
     // The Non-Secure part
