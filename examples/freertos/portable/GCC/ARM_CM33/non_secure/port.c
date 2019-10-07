@@ -728,7 +728,9 @@ uint8_t ucSVCNumber;
 
 	return pxTopOfStack;
 }
+
 /*-----------------------------------------------------------*/
+
 
 BaseType_t xPortStartScheduler( void ) /* PRIVILEGED_FUNCTION */
 {

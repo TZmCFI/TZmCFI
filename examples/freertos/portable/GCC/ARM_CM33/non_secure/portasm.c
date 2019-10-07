@@ -399,29 +399,3 @@ void SVC_Handler( void ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
 	);
 }
 /*-----------------------------------------------------------*/
-
-void vPortAllocateSecureContext( uint32_t ulSecureStackSize ) /* __attribute__ (( naked )) */
-{
-	__asm volatile
-	(
-	"	svc %0											\n" /* Secure context is allocated in the supervisor call. */
-	"	bx lr											\n" /* Return. */
-	:: "i" ( portSVC_ALLOCATE_SECURE_CONTEXT ) : "memory"
-	);
-}
-/*-----------------------------------------------------------*/
-
-void vPortFreeSecureContext( uint32_t *pulTCB ) /* __attribute__ (( naked )) PRIVILEGED_FUNCTION */
-{
-	__asm volatile
-	(
-	"	ldr r1, [r0]									\n" /* The first item in the TCB is the top of the stack. */
-	"	ldr r0, [r1]									\n" /* The first item on the stack is the task's xSecureContext. */
-	"	cmp r0, #0										\n" /* Raise svc if task's xSecureContext is not NULL. */
-	"	it ne											\n"
-	"	svcne %0										\n" /* Secure context is freed in the supervisor call. */
-	"	bx lr											\n" /* Return. */
-	:: "i" ( portSVC_FREE_SECURE_CONTEXT ) : "memory"
-	);
-}
-/*-----------------------------------------------------------*/

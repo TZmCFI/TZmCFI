@@ -109,11 +109,6 @@ extern void vPortExitCritical( void ) /* PRIVILEGED_FUNCTION */;
 extern uint32_t ulSetInterruptMaskFromISR( void ) /* __attribute__(( naked )) PRIVILEGED_FUNCTION */;
 extern void vClearInterruptMaskFromISR( uint32_t ulMask ) /* __attribute__(( naked )) PRIVILEGED_FUNCTION */;
 
-#if( configENABLE_TRUSTZONE == 1 )
-	extern void vPortAllocateSecureContext( uint32_t ulSecureStackSize );
-	extern void vPortFreeSecureContext( uint32_t *pulTCB ) /* PRIVILEGED_FUNCTION */;
-#endif /* configENABLE_TRUSTZONE */
-
 #if( configENABLE_MPU == 1 )
 	extern BaseType_t xIsPrivileged( void ) /* __attribute__ (( naked )) */;
 	extern void vResetPrivilege( void ) /* __attribute__ (( naked )) */;
@@ -241,7 +236,7 @@ typedef struct MPU_SETTINGS
 	 *
 	 * @param[in] pxTCB The TCB of the task being deleted.
 	 */
-	#define portCLEAN_UP_TCB( pxTCB )							vPortFreeSecureContext( ( uint32_t * ) pxTCB )
+	#define portCLEAN_UP_TCB( pxTCB ) /* TZmCFI does not support context deletion */
 #else
 	#define portCLEAN_UP_TCB( pxTCB )
 #endif /* configENABLE_TRUSTZONE */
