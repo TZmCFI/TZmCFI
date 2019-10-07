@@ -136,6 +136,65 @@ pub const Spcb = struct {
 /// Represents an instance of Security Privilege Control Block.
 pub const spcb = Spcb.withBase(0x50080000);
 
+/// Non-Secure Privilege Control Block.
+///
+/// This is a part of Arm CoreLink SSE-200 Subsystem for Embedded.
+pub const Nspcb = struct {
+    base: usize,
+
+    const Self = @This();
+
+    /// Construct a `Spcb` object using the specified MMIO base address.
+    pub fn withBase(base: usize) Self {
+        return Self{ .base = base };
+    }
+
+    /// Non-secure Access AHB slave Peripheral Protection Control #0.
+    pub fn regAhbnsppcN(self: Self) *volatile [1]u32 {
+        return @intToPtr(*volatile [1]u32, self.base + 0x050);
+    }
+
+    /// Non-Secure Unprivileged Access AHB slave Peripheral Protection Control #0.
+    pub fn regAhbnspppcN(self: Self) *volatile [1]u32 {
+        return @intToPtr(*volatile [1]u32, self.base + 0x090);
+    }
+
+    /// Expansion 0–3 Non-Secure Unprivileged Access AHB slave Peripheral Protection Control.
+    pub fn regAhbnspppcexpN(self: Self) *volatile [4]u32 {
+        return @intToPtr(*volatile [4]u32, self.base + 0x0a0);
+    }
+
+    /// Non-Secure Unprivileged Access APB slave Peripheral Protection Control #0–1.
+    pub fn regApbnspppcN(self: Self) *volatile [2]u32 {
+        return @intToPtr(*volatile [2]u32, self.base + 0x0b0);
+    }
+
+    /// Expansion 0–3 Non-Secure Unprivileged Access APB slave Peripheral Protection Control.
+    pub fn regApbnspppcexpN(self: Self) *volatile [4]u32 {
+        return @intToPtr(*volatile [4]u32, self.base + 0x0c0);
+    }
+
+    pub const Bus = Spcb.Bus;
+    pub const PpcIface = Spcb.PpcIface;
+
+    pub fn setPpcAccess(self: Self, iface: PpcIface, allow: bool) void {
+        const reg =  switch (iface.bus) {
+            .Ahb => &self.regAhbnspppcN()[iface.group],
+            .AhbExp => &self.regAhbnspppcexpN()[iface.group],
+            .Apb => &self.regApbnspppcN()[iface.group],
+            .ApbExp => &self.regApbnspppcexpN()[iface.group],
+        };
+        if (allow) {
+            reg.* |= u32(1) << @intCast(u5, iface.num);
+        } else {
+            reg.* &= ~(u32(1) << @intCast(u5, iface.num));
+        }
+    }
+};
+
+/// Represents an instance of Non-Secure Privilege Control Block.
+pub const nspcb = Nspcb.withBase(0x40080000);
+
 /// Represents peripherals controlled by PPC.
 ///
 /// Each constant is of type `Spcb.PpcIface` and can be passed to

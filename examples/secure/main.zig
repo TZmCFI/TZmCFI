@@ -95,7 +95,7 @@ export fn main() void {
     // -----------------------------------------------------------------------
     arm_cmse.sau.regCtrl().* |= arm_cmse.Sau.CTRL_ENABLE;
 
-    // Allow Non-Secure access to the timers
+    // Allow non-Secure unprivileged access to the timers
     // -----------------------------------------------------------------------
     arm_m.nvic.targetIrqToNonSecure(an505.irqs.Timer0_IRQn - 16);
     arm_m.nvic.targetIrqToNonSecure(an505.irqs.Timer1_IRQn - 16);
@@ -104,6 +104,10 @@ export fn main() void {
     an505.spcb.setPpcAccess(an505.ppc.timer0_, .NonSecure, true);
     an505.spcb.setPpcAccess(an505.ppc.timer1_, .NonSecure, true);
     an505.spcb.setPpcAccess(an505.ppc.dual_timer_, .NonSecure, true);
+
+    an505.nspcb.setPpcAccess(an505.ppc.timer0_, true);
+    an505.nspcb.setPpcAccess(an505.ppc.timer1_, true);
+    an505.nspcb.setPpcAccess(an505.ppc.dual_timer_, true);
 
     // Initialize TZmCFI Monitor
     // -----------------------------------------------------------------------
