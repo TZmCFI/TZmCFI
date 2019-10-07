@@ -135,6 +135,13 @@ pub fn build(b: *Builder) !void {
         .name = "bench-latency",
         .root = "nonsecure-bench-latency.zig",
     });
+    try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
+        .name = "bench-rtos",
+        .root = "nonsecure-bench-rtos.zig",
+        .meta = struct {
+            const use_freertos = true;
+        },
+    });
 
     // We don't define the default rule.
 }
