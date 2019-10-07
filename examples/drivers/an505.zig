@@ -178,7 +178,7 @@ pub const Nspcb = struct {
     pub const PpcIface = Spcb.PpcIface;
 
     pub fn setPpcAccess(self: Self, iface: PpcIface, allow: bool) void {
-        const reg =  switch (iface.bus) {
+        const reg = switch (iface.bus) {
             .Ahb => &self.regAhbnspppcN()[iface.group],
             .AhbExp => &self.regAhbnspppcexpN()[iface.group],
             .Apb => &self.regApbnspppcN()[iface.group],

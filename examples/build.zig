@@ -218,7 +218,7 @@ fn defineNonSecureApp(
         try c_flags.append("-flto");
         try c_flags.append("-msoft-float");
 
-        try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts { .c_flags = c_flags.toSliceConst() });
+        try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts{ .c_flags = c_flags.toSliceConst() });
     }
 
     var startup_args: [][]const u8 = undefined;
