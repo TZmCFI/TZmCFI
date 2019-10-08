@@ -1,11 +1,15 @@
+// The build script for example applications.
+// ----------------------------------------------------------------------------
 const builtin = @import("builtin");
+
 const std = @import("std");
-const Builder = @import("std").build.Builder;
-const Step = @import("std").build.Step;
-const LibExeObjStep = @import("std").build.LibExeObjStep;
-const warn = @import("std").debug.warn;
-const allocPrint = @import("std").fmt.allocPrint;
-const eql = @import("std").mem.eql;
+const Builder = std.build.Builder;
+const Step = std.build.Step;
+const LibExeObjStep = std.build.LibExeObjStep;
+const warn = std.debug.warn;
+const allocPrint = std.fmt.allocPrint;
+const eql = std.mem.eql;
+// ----------------------------------------------------------------------------
 
 pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
