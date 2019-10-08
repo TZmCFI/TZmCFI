@@ -111,6 +111,28 @@ TCResult TCLockdown(void);
  */
 TCResult TCActivateThread(TCThread thread);
 
+/*
+ * Statistical Profiler API                    
+ * ----------------------------------------------------------------------------
+ * This API must be enabled via a build option to use. Otherwise, these
+ * functions are no-op.
+ */
+
+/**
+ * Starts the collection of statistical information.
+ */
+void TCDebugStartProfiler(void);
+
+/**
+ * Stops the collection of statistical information.
+ */
+void TCDebugStopProfiler(void);
+
+/**
+ * Dumps statistical information.
+ */
+void TCDebugDumpProfile(void);
+
 #ifdef __cplusplus
 };
 #endif

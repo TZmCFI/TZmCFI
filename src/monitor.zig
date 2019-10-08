@@ -22,6 +22,7 @@ const ffi = @import("monitor/ffi.zig");
 const shadowexcstack = @import("monitor/shadowexcstack.zig");
 export const shadowstack = @import("monitor/shadowstack.zig");
 export const threads = @import("monitor/threads.zig");
+comptime { _ = @import("monitor/profiler.zig"); }
 
 pub const TCResult = ffi.TCResult;
 pub const TCThread = ffi.TCThread;

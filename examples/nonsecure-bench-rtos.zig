@@ -2,6 +2,7 @@
 const std = @import("std");
 const arm_m = @import("arm_m");
 const an505 = @import("drivers/an505.zig");
+const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 const warn = @import("nonsecure-common/debug.zig").warn;
 
 // FreeRTOS-related thingy
@@ -208,12 +209,15 @@ const measure = struct {
     var overhead: i32 = 0;
 
     fn __measureStart() void {
+        tzmcfi.TCDebugStartProfiler();
         an505.timer0.setValue(TIMER_RESET_VALUE);
         an505.timer0.regCtrl().* = 0b0001; // enable
     }
 
     fn __measureEnd() void {
         an505.timer0.regCtrl().* = 0b0000;
+        tzmcfi.TCDebugStopProfiler();
+        tzmcfi.TCDebugDumpProfile();
     }
 
     inline fn start() void {

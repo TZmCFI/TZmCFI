@@ -9,6 +9,7 @@ pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
     const enable_trace = b.option(bool, "trace", "Enable tracing") orelse false;
+    const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
     const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse false;
 
     const cfi_opts = CfiOpts {
@@ -22,6 +23,11 @@ pub fn build(b: *Builder) !void {
             orelse enable_cfi,
     };
     try cfi_opts.validate();
+
+    if (enable_profile and !enable_trace) {
+        warn("error: -Dprofile is pointless without -Dtrace\r\n");
+        return error.BadTracingOptions;
+    }
 
     const arch = builtin.Arch{ .thumb = .v8m_mainline };
 
@@ -44,6 +50,7 @@ pub fn build(b: *Builder) !void {
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_s.addIncludeDir("../include");
     exe_s.addBuildOption(bool, "ENABLE_TRACE", enable_trace);
+    exe_s.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
 
     // CMSE import library (generated from the Secure binary)
     // -------------------------------------------------------
