@@ -12,7 +12,7 @@ pub fn build(b: *Builder) !void {
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
     const log_level = b.option([]const u8, "log-level", "One of: None, Critical, Warning, Trace") orelse "Critical";
     const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
-    const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse false;
+    const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
 
     const cfi_opts = CfiOpts {
         .ctx = b.option(bool, "cfi-ctx", "Enable TZmCFI context management (default = cfi)")
