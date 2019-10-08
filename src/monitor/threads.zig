@@ -10,7 +10,7 @@ const shadowstack = @import("shadowstack.zig");
 const shadowexcstack = @import("shadowexcstack.zig");
 const ffi = @import("ffi.zig");
 
-const warn = @import("debug.zig").warn;
+const log = @import("debug.zig").log;
 // ----------------------------------------------------------------------------
 
 // TODO: Critical section
@@ -95,7 +95,7 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
     next_free_thread += 1;
     threads[thread_id] = thread_info;
 
-    warn("createThread({}) → id = {}, info = {}\r\n", create_info, thread_id, thread_info);
+    log(.Trace, "createThread({}) → id = {}, info = {}\r\n", create_info, thread_id, thread_info);
 
     return thread_id;
 }
@@ -120,7 +120,7 @@ fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
     const old_thread_id = usize(cur_thread);
     const old_thread = threads[old_thread_id].?;
 
-    warn("activateThread({} → {})\r\n", old_thread_id, new_thread_id);
+    log(.Trace, "activateThread({} → {})\r\n", old_thread_id, new_thread_id);
 
     shadowexcstack.saveState(&old_thread.exc_stack_state);
     shadowexcstack.loadState(&new_thread.exc_stack_state);

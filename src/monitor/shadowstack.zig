@@ -6,7 +6,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 // ----------------------------------------------------------------------------
 const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
-const warn = @import("debug.zig").warn;
+const log = @import("debug.zig").log;
 // ----------------------------------------------------------------------------
 export var g_shadow_stack_top: [*]usize = undefined;
 
@@ -53,7 +53,7 @@ pub fn saveState(state: *StackState) void {
 
 pub fn loadState(state: *const StackState) void {
     g_shadow_stack_top = state.top;
-    warn("shadowstack.loadState({x})\n", state);
+    log(.Trace, "shadowstack.loadState({x})\n", state);
 }
 
 export fn TCShadowStackOverflow() noreturn {

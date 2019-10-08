@@ -18,7 +18,7 @@ const threads = @import("threads.zig");
 
 const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
 
-const warn = @import("debug.zig").warn;
+const log = @import("debug.zig").log;
 // ----------------------------------------------------------------------------
 
 /// A copy of a portion of an exception frame.
@@ -304,7 +304,7 @@ fn popShadowExcStack(msp: usize, psp: usize) usize {
 
     // Validate *two* top entries.
     if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
-        warn("popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 1)[0]);
+        log(.Warning, "popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 1)[0]);
         @panic("Exception stack integrity check has failed.");
     }
     if (exc_stack.moveNext()) {
@@ -312,7 +312,7 @@ fn popShadowExcStack(msp: usize, psp: usize) usize {
             @panic("The number of entries in the shadow exception stack is lower than expected.");
         }
         if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
-            warn("popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 2)[0]);
+            log(.Warning, "popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 2)[0]);
             @panic("Exception stack integrity check has failed.");
         }
     }

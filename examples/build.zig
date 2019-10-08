@@ -4,11 +4,13 @@ const Builder = @import("std").build.Builder;
 const Step = @import("std").build.Step;
 const LibExeObjStep = @import("std").build.LibExeObjStep;
 const warn = @import("std").debug.warn;
+const allocPrint = @import("std").fmt.allocPrint;
+const eql = @import("std").mem.eql;
 
 pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
-    const enable_trace = b.option(bool, "trace", "Enable tracing") orelse false;
+    const log_level = b.option([]const u8, "log-level", "One of: None, Critical, Warning, Trace") orelse "Critical";
     const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
     const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse false;
 
@@ -24,9 +26,9 @@ pub fn build(b: *Builder) !void {
     };
     try cfi_opts.validate();
 
-    if (enable_profile and !enable_trace) {
-        warn("error: -Dprofile is pointless without -Dtrace\r\n");
-        return error.BadTracingOptions;
+    if (enable_profile and eql(u8, log_level, "None")) {
+        warn("error: -Dprofile is pointless with -Dlog-level=None\r\n");
+        return error.BadOptions;
     }
 
     const arch = builtin.Arch{ .thumb = .v8m_mainline };
@@ -49,7 +51,7 @@ pub fn build(b: *Builder) !void {
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_s.addIncludeDir("../include");
-    exe_s.addBuildOption(bool, "ENABLE_TRACE", enable_trace);
+    exe_s.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", log_level));
     exe_s.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
 
     // CMSE import library (generated from the Secure binary)

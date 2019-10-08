@@ -5,7 +5,9 @@ const an505 = @import("drivers/an505.zig");
 const builtin = @import("builtin");
 
 // Pass build options to `tzmcfi`, which picks them up via `@import("root")`
+// See `src/monitor/options.zig`.
 pub const TC_ENABLE_PROFILER = @import("build_options").ENABLE_PROFILE;
+pub const TC_LOG_LEVEL = @import("build_options").LOG_LEVEL;
 
 /// The global panic handler. (The compiler looks for `pub fn panic` in the root
 /// source file. See `zig/std/special/panic.zig`.)

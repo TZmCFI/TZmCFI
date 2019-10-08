@@ -1,9 +1,17 @@
+// ----------------------------------------------------------------------------
 const format = @import("std").fmt.format;
+// ----------------------------------------------------------------------------
+const options = @import("options.zig");
+const LogLevel = options.LogLevel;
+const isLogLevelEnabled = options.isLogLevelEnabled;
+// ----------------------------------------------------------------------------
 
 /// Output a formatted text via a global debug output function.
-pub fn warn(comptime fmt: []const u8, args: ...) void {
-    if (cur_handler) |handler| {
-        format({}, error{}, handler, fmt, args) catch unreachable;
+pub fn log(comptime level: LogLevel, comptime fmt: []const u8, args: ...) void {
+    if (comptime isLogLevelEnabled(level)) {
+        if (cur_handler) |handler| {
+            format({}, error{}, handler, fmt, args) catch unreachable;
+        }
     }
 }
 

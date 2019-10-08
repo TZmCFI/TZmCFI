@@ -111,9 +111,7 @@ export fn main() void {
 
     // Initialize TZmCFI Monitor
     // -----------------------------------------------------------------------
-    if (@import("build_options").ENABLE_TRACE) {
-        tzmcfi_monitor.setWarnHandler(tcWarnHandler);
-    }
+    tzmcfi_monitor.setWarnHandler(tcWarnHandler);
     tzmcfi_monitor.TCInitialize(0x00200000);
 
     // Boot the Non-Secure code

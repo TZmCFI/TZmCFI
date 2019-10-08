@@ -22,7 +22,8 @@ const ffi = @import("monitor/ffi.zig");
 const shadowexcstack = @import("monitor/shadowexcstack.zig");
 export const shadowstack = @import("monitor/shadowstack.zig");
 export const threads = @import("monitor/threads.zig");
-comptime { _ = @import("monitor/profiler.zig"); }
+export const profiler = @import("monitor/profiler.zig");
+export const options = @import("monitor/options.zig");
 
 pub const TCResult = ffi.TCResult;
 pub const TCThread = ffi.TCThread;
@@ -32,3 +33,5 @@ pub const TCThreadCreateInfo = ffi.TCThreadCreateInfo;
 pub const TCInitialize = shadowexcstack.TCInitialize;
 
 pub const setWarnHandler = debug.setWarnHandler;
+
+pub const LogLevel = options.LogLevel;
