@@ -12,7 +12,7 @@
     - Our custom fork of LLVM (TODO: Where is it?)
 - If you don't want the compiler-level CFI scheme, you still need:
     - Zig [`2cb1f93`](https://github.com/ziglang/zig/commit/2cb1f93894be3f48f0c49004515fa5e8190f69d9) (Aug 16, 2019) or later
-- [Rust](https://www.rust-lang.org/en-US/) 1.31.0 or later.
+- [Rust](https://www.rust-lang.org/en-US/) 1.38.0 or later.
 
 [QEMU]: https://www.qemu.org
 [MPS2+]: https://www.arm.com/products/development-tools/development-boards/mps2-plus
@@ -20,7 +20,7 @@
 
 ## Running the example application
 
-    $ cargo +nightly build --all
+    $ cargo build --all
 
     $ cd examples
     $ zig build -Drelease-small qemu:rtosbasic
