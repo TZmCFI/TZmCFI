@@ -1,5 +1,6 @@
 // The root source file for the “bench-rtos” example application.
 const std = @import("std");
+const arm_m = @import("arm_m");
 const an505 = @import("drivers/an505.zig");
 const warn = @import("nonsecure-common/debug.zig").warn;
 
@@ -60,7 +61,7 @@ const task1_params = os.TaskParameters_t{
     .pcName = c"task1",
     .usStackDepth = task1_stack.len,
     .pvParameters = null,
-    .uxPriority = 2,
+    .uxPriority = 2 | os.portPRIVILEGE_BIT,
     .puxStackBuffer = &task1_stack,
     .xRegions = regions_with_peripheral_access,
     .pxTaskBuffer = null,
@@ -105,6 +106,14 @@ const task3_params = os.TaskParameters_t{
 var global_mutex: os.SemaphoreHandle_t = undefined;
 
 extern fn task1Main(_arg: ?*c_void) void {
+    // Disable SysTick
+    arm_m.sys_tick.regCsr().* = 0;
+
+    // Make us unprivileged
+    os.vResetPrivilege();
+
+    // -----------------------------------------------------------------------
+
     seqmon.mark(1);
 
     // `xTaskCreateRestricted` without dispatch
