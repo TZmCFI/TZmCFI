@@ -50,7 +50,7 @@ pub fn init() void {
 
     // Default thread
     cur_thread = 0;
-    default_thread.stack_state = shadowstack.StackState.new(allocator, null) catch 
+    default_thread.stack_state = shadowstack.StackState.new(allocator, null) catch
         @panic("allocation of a default shadow stack failed");
     default_thread.secure_psp_limit = arm_m.getPspLimit();
     threads[0] = &default_thread;
