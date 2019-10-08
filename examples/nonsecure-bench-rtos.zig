@@ -8,6 +8,7 @@ const os = @cImport({
     @cInclude("FreeRTOS.h");
     @cInclude("task.h");
     @cInclude("timers.h");
+    @cInclude("semphr.h");
 });
 export const _oshooks = @import("nonsecure-common/oshooks.zig");
 
@@ -22,6 +23,9 @@ export fn main() void {
     // Get the measurement overhead
     measure.calculateOverhead();
     warn("Overhead: {} cycles (this value is subtracted from all subsequent measurements)\r\n", measure.overhead);
+
+    global_mutex = xSemaphoreCreateBinary();
+    _ = xSemaphoreGive(global_mutex);
 
     _ = os.xTaskCreateRestricted(&task1_params, 0);
 
@@ -64,12 +68,22 @@ const task1_params = os.TaskParameters_t{
 
 var task2_stack = [1]u32{0} ** 128;
 
-const task2_params = os.TaskParameters_t{
-    .pvTaskCode = task2Main,
-    .pcName = c"task2",
+const task2a_params = os.TaskParameters_t{
+    .pvTaskCode = task2aMain,
+    .pcName = c"task2a",
     .usStackDepth = task2_stack.len,
     .pvParameters = null,
-    .uxPriority = 4,
+    .uxPriority = 4, // > task1
+    .puxStackBuffer = &task2_stack,
+    .xRegions = regions_with_peripheral_access,
+    .pxTaskBuffer = null,
+};
+const task2b_params = os.TaskParameters_t{
+    .pvTaskCode = task2bMain,
+    .pcName = c"task2b",
+    .usStackDepth = task2_stack.len,
+    .pvParameters = null,
+    .uxPriority = 4, // > task1
     .puxStackBuffer = &task2_stack,
     .xRegions = regions_with_peripheral_access,
     .pxTaskBuffer = null,
@@ -87,6 +101,8 @@ const task3_params = os.TaskParameters_t{
     .xRegions = regions_with_peripheral_access,
     .pxTaskBuffer = null,
 };
+
+var global_mutex: os.SemaphoreHandle_t = undefined;
 
 extern fn task1Main(_arg: ?*c_void) void {
     seqmon.mark(1);
@@ -109,18 +125,44 @@ extern fn task1Main(_arg: ?*c_void) void {
     // `xTaskCreateRestricted` without dispatch
     var task2_handle: os.TaskHandle_t = undefined;
     measure.start();
-    _ = os.xTaskCreateRestricted(&task2_params, &task2_handle);
+    _ = os.xTaskCreateRestricted(&task2a_params, &task2_handle);
 
     // task2 returns to here by calling `vTaskDelete`
     measure.end();
     seqmon.mark(4);
     warn("Unpriv vTaskDelete with dispatch: {} cycles\r\n", measure.getNumCycles());
 
+    // `xSemaphoreTake` without dispatch
+    measure.start();
+    _ = xSemaphoreTake(global_mutex, portMAX_DELAY);
+    measure.end();
+    warn("Unpriv xSemaphoreTake without dispatch: {} cycles\r\n", measure.getNumCycles());
+
+    // `xSemaphoreGive` without dispatch
+    measure.start();
+    _ = xSemaphoreGive(global_mutex);
+    measure.end();
+    warn("Unpriv xSemaphoreGive without dispatch: {} cycles\r\n", measure.getNumCycles());
+
+    seqmon.mark(5);
+    _ = xSemaphoreTake(global_mutex, portMAX_DELAY);
+
+    // Create a high-priority task `task2b` to be dispatched on `xSemaphoreGive`
+    _ = os.xTaskCreateRestricted(&task2b_params, &task2_handle);
+
+    seqmon.mark(7);
+
+    // `xSemaphoreTake` with dispatch (to `task2b`)
+    measure.start();
+    _ = xSemaphoreGive(global_mutex);
+
+    seqmon.mark(9);
+
     warn("Done!\r\n");
     while (true) {}
 }
 
-extern fn task2Main(_arg: ?*c_void) void {
+extern fn task2aMain(_arg: ?*c_void) void {
     measure.end();
     warn("Unpriv xTaskCreateRestricted with dispatch: {} cycles\r\n", measure.getNumCycles());
 
@@ -128,6 +170,21 @@ extern fn task2Main(_arg: ?*c_void) void {
 
     // `vTaskDelete`
     measure.start();
+    _ = os.vTaskDelete(null);
+    unreachable;
+}
+
+extern fn task2bMain(_arg: ?*c_void) void {
+    seqmon.mark(6);
+
+    // This will block and gives the control back to task1
+    _ = xSemaphoreTake(global_mutex, portMAX_DELAY);
+
+    measure.end();
+    warn("Unpriv xSemaphoreGive with dispatch: {} cycles\r\n", measure.getNumCycles());
+
+    seqmon.mark(8);
+
     _ = os.vTaskDelete(null);
     unreachable;
 }
@@ -185,6 +242,20 @@ const seqmon = struct {
         next_ordinal += 1;
     }
 };
+
+// FreeRTOS wrapper
+const queueQUEUE_TYPE_MUTEX = 1;
+const queueQUEUE_TYPE_BINARY_SEMAPHORE = 3;
+const semGIVE_BLOCK_TIME = 0;
+const semSEMAPHORE_QUEUE_ITEM_LENGTH = 0;
+const portMAX_DELAY = 0xffffffff;
+fn xSemaphoreCreateBinary() os.SemaphoreHandle_t {
+    return os.xQueueGenericCreate(1, semSEMAPHORE_QUEUE_ITEM_LENGTH, queueQUEUE_TYPE_BINARY_SEMAPHORE);
+}
+const xSemaphoreTake = os.xQueueSemaphoreTake;
+fn xSemaphoreGive(semaphore: os.SemaphoreHandle_t) @typeOf(os.xQueueGenericSend).ReturnType {
+    return os.xQueueGenericSend(semaphore, null, semGIVE_BLOCK_TIME, os.queueSEND_TO_BACK);
+}
 
 // Zig panic handler. See `panicking.zig` for details.
 const panicking = @import("nonsecure-common/panicking.zig");
