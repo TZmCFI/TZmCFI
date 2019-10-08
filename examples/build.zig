@@ -9,12 +9,13 @@ const LibExeObjStep = std.build.LibExeObjStep;
 const warn = std.debug.warn;
 const allocPrint = std.fmt.allocPrint;
 const eql = std.mem.eql;
+const toLower = std.ascii.toLower;
 // ----------------------------------------------------------------------------
 
 pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
-    const log_level = b.option([]const u8, "log-level", "One of: None, Critical, Warning, Trace") orelse "Critical";
+    const log_level = try logLevelOptions(b);
     const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
     const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
 
@@ -356,4 +357,31 @@ fn defineNonSecureApp(
     const run_qemu = b.addSystemCommand(qemu_args.toSliceConst());
     qemu.dependOn(&run_qemu.step);
     run_qemu.step.dependOn(exe_both);
+}
+
+fn logLevelOptions(b: *Builder) ![]const u8 {
+    // Must be synchronized with `LogLevel` in `options.zig`
+    const log_levels = [_][]const u8 { "None", "Crticial", "Warning", "Trace" };
+    var selected: ?[]const u8 = null;
+
+    for (log_levels) |level| {
+        const opt_name = try allocPrint(b.allocator, "log-{}", level);
+        for (opt_name) |*c| {
+            c.* = toLower(c.*);
+        }
+
+        const opt_desc = try allocPrint(b.allocator, "Set log level to {}", level);
+
+        const set = b.option(bool, opt_name, opt_desc) orelse false;
+
+        if (set) {
+            if (selected != null) {
+                warn("Multiple log levels are specified\n");
+                b.markInvalidUserInput();
+            }
+            selected = level;
+        }
+    } 
+
+    return selected orelse "Warning";
 }
