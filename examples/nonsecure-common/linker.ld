@@ -27,7 +27,7 @@ SECTIONS
         __privileged_functions_start__ = .;
         *(privileged_functions)
         . = ALIGN(32);
-        __privileged_functions_end__ = .;
+        __privileged_functions_end__ = . - 1;
     } > CODEMEM
 
     freertos_system_calls :
@@ -36,7 +36,7 @@ SECTIONS
         __syscalls_flash_start__ = .;
         *(freertos_system_calls)
         . = ALIGN(32);
-        __syscalls_flash_end__ = .;
+        __syscalls_flash_end__ = . - 1;
     } > CODEMEM
 
     .text :
@@ -74,7 +74,7 @@ SECTIONS
         __privileged_sram_start__ = .;
         *(privileged_data)
         . = ALIGN(32);
-        __privileged_sram_end__ = .;
+        __privileged_sram_end__ = .  -1;
     } > SRAM
 
     /* used by the startup to initialize data */
