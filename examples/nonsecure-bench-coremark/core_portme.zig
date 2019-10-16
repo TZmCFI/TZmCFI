@@ -42,7 +42,7 @@ export fn get_time() c.CORE_TICKS {
 /// The <secs_ret> type is used to accomodate systems with no support for floating point.
 /// Default implementation implemented by the EE_TICKS_PER_SEC macro above.
 export fn time_in_secs(ticks: c.CORE_TICKS) c.secs_ret {
-    return ticks / SYSTEM_CORE_CLOCK;
+    return @intToFloat(f64, ticks) / SYSTEM_CORE_CLOCK;
 }
 
 export var default_num_contexts: c.ee_u32 = 1;
