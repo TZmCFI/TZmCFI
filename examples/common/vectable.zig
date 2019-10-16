@@ -8,6 +8,7 @@ pub fn VecTable(comptime num_irqs: usize, comptime nameProvider: var) type {
         const Self = @This();
 
         pub fn new() Self {
+            @setEvalBranchQuota(10000);
             comptime {
                 var self: Self = undefined;
                 self.stack = null;
@@ -16,7 +17,6 @@ pub fn VecTable(comptime num_irqs: usize, comptime nameProvider: var) type {
                 while (i < num_irqs + 16) : (i += 1) {
                     const name = nameProvider(i) orelse getDefaultName(i);
                     self.handlers[i - 1] = unhandled(name);
-                    i += 1;
                 }
 
                 return self;
