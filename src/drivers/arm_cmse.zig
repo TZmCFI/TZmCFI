@@ -191,24 +191,34 @@ pub const CheckOptions = struct {
 
 /// The address information returned by a `TT` instruction.
 pub const AddressInfo = packed union {
-    flags: packed struct {
-        mpu_region: u8,
-        sau_region: u8,
-        mpu_region_valid: bool,
-        sau_region_valid: bool,
-        read_ok: bool,
-        readwrite_ok: bool,
-        nonsecure_read_ok: bool,
-        nonsecure_readwrite_ok: bool,
-        secure: bool,
-        idau_region_valid: bool,
-        idau_region: u8,
-    },
+    flags: AddressInfoFlags,
     value: u32,
+};
+
+const AddressInfoFlags = packed struct {
+    mpu_region: u8,
+    sau_region: u8,
+    mpu_region_valid: bool,
+    sau_region_valid: bool,
+    read_ok: bool,
+    readwrite_ok: bool,
+    nonsecure_read_ok: bool,
+    nonsecure_readwrite_ok: bool,
+    secure: bool,
+    idau_region_valid: bool,
+    idau_region: u8,
 };
 
 test "AddressInfo is word-sized" {
     assert(@sizeOf(AddressInfo) == 4);
+}
+
+test "AddressInfo has the correct layout" {
+    assert(@bitOffsetOf(AddressInfoFlags, "mpu_region_valid") == 16);
+    assert(@bitOffsetOf(AddressInfoFlags, "read_ok") == 18);
+    assert(@bitOffsetOf(AddressInfoFlags, "nonsecure_read_ok") == 20);
+    assert(@bitOffsetOf(AddressInfoFlags, "secure") == 22);
+    assert(@bitOffsetOf(AddressInfoFlags, "idau_region") == 24);
 }
 
 /// Export a Non-Secure-callable function.
