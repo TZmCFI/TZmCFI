@@ -5,6 +5,14 @@ pub const ENABLE_PROFILER: bool = if (@hasDecl(root, "TC_ENABLE_PROFILER"))
 else
     false;
 
+/// Controls whether the shadow stack return routine checks the integrity of a
+/// return address (and aborts on failure) or just discards a non-trustworthy
+/// return address.
+pub const ABORTING_SHADOWSTACK: bool =  if (@hasDecl(root, "TC_ABORTING_SHADOWSTACK"))
+    root.TC_ABORTING_SHADOWSTACK
+else
+    false;
+
 /// Compile-time log level.
 pub const LOG_LEVEL: LogLevel = if (@hasDecl(root, "TC_LOG_LEVEL"))
     if (@typeOf(root.TC_LOG_LEVEL) == LogLevel)

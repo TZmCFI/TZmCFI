@@ -26,6 +26,8 @@ pub fn build(b: *Builder) !void {
             orelse enable_cfi,
         .ss = b.option(bool, "cfi-ss", "Enable TZmCFI shadow stacks (default = cfi)")
             orelse enable_cfi,
+        .aborting_ss = b.option(bool, "cfi-aborting-ss", "Use the aborting implementation of SS (default = false)")
+            orelse false,
         .icall = b.option(bool, "cfi-icall", "Enable indirect call CFI (default = cfi)")
             orelse enable_cfi,
     };
@@ -58,6 +60,7 @@ pub fn build(b: *Builder) !void {
     exe_s.addIncludeDir("../include");
     exe_s.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", log_level));
     exe_s.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
+    exe_s.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
 
     // CMSE import library (generated from the Secure binary)
     // -------------------------------------------------------
@@ -176,6 +179,8 @@ const CfiOpts = struct {
     ss: bool,
     /// LLVM indirect call validator
     icall: bool,
+    /// Abort on shadow stack integrity check failure
+    aborting_ss: bool,
 
     const Self = @This();
 
@@ -196,6 +201,12 @@ const CfiOpts = struct {
             // TZmCFI's shadow stacks do not work without shadow exception stacks.
             // Probably because the shadow stack routines mess up the lowest bit
             // of `EXC_RETURN`.
+            warn("error: cfi-ss requires cfi-ses\n");
+            return error.IncompatibleCfiOpts;
+        }
+
+        if (self.aborting_ss and !self.ss) {
+            // `aborting_ss` makes no sense without `ss`
             warn("error: cfi-ss requires cfi-ses\n");
             return error.IncompatibleCfiOpts;
         }
