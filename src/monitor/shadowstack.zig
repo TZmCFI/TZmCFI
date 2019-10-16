@@ -8,6 +8,9 @@ const Allocator = std.mem.Allocator;
 const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
 const log = @import("debug.zig").log;
 const ABORTING_SHADOWSTACK = @import("options.zig").ABORTING_SHADOWSTACK;
+
+const markEvent = @import("profiler.zig").markEvent;
+const ENABLE_PROFILER = @import("profiler.zig").ACTIVE;
 // ----------------------------------------------------------------------------
 export var g_shadow_stack_top: [*]usize = undefined;
 
@@ -69,10 +72,34 @@ export fn TCShadowStackMismatch() noreturn {
     @panic("Shadow stack: Return target mismatch");
 }
 
+export fn TCShadowStackLogPush() void {
+    markEvent(.ShadowPush);
+}
+
+export fn TCShadowStackLogAssertReturn() void {
+    markEvent(.ShadowAssertReturn);
+}
+
+export fn TCShadowStackLogAssert() void {
+    markEvent(.ShadowAssert);
+}
+
 // Non-Secure application interface
 // ----------------------------------------------------------------------------
 
 export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
+    asm volatile (
+        \\ sg
+    );
+
+    if (ENABLE_PROFILER) {
+        asm volatile (
+            \\ push {r0, r1, r2, r3, lr}
+            \\ bl TCShadowStackLogPush
+            \\ pop {r0, r1, r2, r3, lr}
+        );
+    }
+
     // r12 = continuation
     // lr = trustworthy return target of the caller with bit[0] cleared
     // kill: r12
@@ -84,7 +111,6 @@ export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
     //
     asm volatile (
         \\ .syntax unified
-        \\ sg
         \\
         \\ push {r0, r1, r2}
         \\ ldr r2, .L_g_shadow_stack_top_const1 // Get &g_shadow_stack_top
@@ -106,6 +132,18 @@ export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
 }
 
 export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") noreturn {
+    asm volatile (
+        \\ sg
+    );
+
+    if (ENABLE_PROFILER) {
+        asm volatile (
+            \\ push {r0, r1, r2, r3, lr}
+            \\ bl TCShadowStackLogAssertReturn
+            \\ pop {r0, r1, r2, r3, lr}
+        );
+    }
+    
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
     if (comptime ABORTING_SHADOWSTACK) {
@@ -116,7 +154,7 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
         //  bxns(lr)
         //
         asm volatile (
-            \\ sg
+            \\ .syntax unified
             \\
             \\ push {r0, r1}
             \\ ldr r12, .L_g_shadow_stack_top_const2 // Get &g_shadow_stack_top
@@ -145,7 +183,7 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
         //  bxns(lr)
         //
         asm volatile (
-            \\ sg
+            \\ .syntax unified
             \\
             \\ push {r0}
             \\ ldr r12, .L_g_shadow_stack_top_const2 // Get &g_shadow_stack_top
@@ -169,6 +207,18 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
 }
 
 export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn {
+    asm volatile (
+        \\ sg
+    );
+
+    if (ENABLE_PROFILER) {
+        asm volatile (
+            \\ push {r0, r1, r2, r3, lr}
+            \\ bl TCShadowStackLogAssert
+            \\ pop {r0, r1, r2, r3, lr}
+        );
+    }
+    
     // r12 = continuation
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
@@ -180,7 +230,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
         //  bxns(r12)
         //
         asm volatile (
-            \\ sg
+            \\ .syntax unified
             \\
             \\ push {r0, r1, r2}
             \\ ldr r2, .L_g_shadow_stack_top_const3 // Get &g_shadow_stack_top
@@ -213,7 +263,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
         //  bxns(r12)
         //
         asm volatile (
-            \\ sg
+            \\ .syntax unified
             \\
             \\ push {r0, r2}
             \\ ldr r2, .L_g_shadow_stack_top_const3 // Get &g_shadow_stack_top

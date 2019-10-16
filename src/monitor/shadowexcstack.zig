@@ -19,6 +19,8 @@ const threads = @import("threads.zig");
 const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
 
 const log = @import("debug.zig").log;
+
+const markEvent = @import("profiler.zig").markEvent;
 // ----------------------------------------------------------------------------
 
 /// A copy of a portion of an exception frame.
@@ -325,6 +327,8 @@ fn popShadowExcStack(msp: usize, psp: usize) usize {
 const Usizex2 = @Vector(2, usize);
 
 export fn __tcEnterInterrupt(isr_body: usize, exc_return: usize, msp: usize, psp: usize) Usizex2 {
+    markEvent(.EnterInterrupt);
+
     pushShadowExcStack(exc_return, msp, psp);
 
     // TODO: Conceal `r3` and `r4`?
@@ -333,6 +337,8 @@ export fn __tcEnterInterrupt(isr_body: usize, exc_return: usize, msp: usize, psp
 }
 
 export fn __tcLeaveInterrupt(msp: usize, psp: usize) usize {
+    markEvent(.LeaveInterrupt);
+
     return popShadowExcStack(msp, psp);
 }
 

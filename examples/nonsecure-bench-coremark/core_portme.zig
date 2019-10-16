@@ -6,6 +6,8 @@ const warn = @import("../nonsecure-common/debug.zig").warn;
 
 const an505 = @import("../drivers/an505.zig");
 
+const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
+
 const TIMER_RESET_VALUE: u32 = 0x80000000;
 const SYSTEM_CORE_CLOCK: comptime_int = 20000000;
 
@@ -14,6 +16,7 @@ const SYSTEM_CORE_CLOCK: comptime_int = 20000000;
 /// Implementation may be capturing a system timer (as implemented in the example code)
 /// or zeroing some system parameters - e.g. setting the cpu clocks cycles to 0.
 export fn start_time() void {
+    tzmcfi.TCDebugStartProfiler();
     an505.timer0.setValue(TIMER_RESET_VALUE);
     an505.timer0.regCtrl().* = 0b0001; // enable
 }
@@ -24,6 +27,8 @@ export fn start_time() void {
 /// or other system parameters - e.g. reading the current value of cpu cycles counter.
 export fn stop_time() void {
     an505.timer0.regCtrl().* = 0b0000;
+    tzmcfi.TCDebugStopProfiler();
+    tzmcfi.TCDebugDumpProfile();
 }
 
 /// Return an abstract "ticks" number that signifies time on the system.
