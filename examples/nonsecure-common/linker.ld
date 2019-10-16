@@ -55,8 +55,6 @@ SECTIONS
     _etext = .;
     PROVIDE(etext = .);
 
-    __unprivileged_flash_end__ = .;
-
     .rodata :
     {
         *(.rodata)
@@ -67,6 +65,8 @@ SECTIONS
     __exidx_start = .;
     .ARM.exidx   : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) } > CODEMEM
     __exidx_end = .;
+
+    __unprivileged_flash_end__ = .;
 
     privileged_data :
     {
