@@ -157,7 +157,7 @@ pub inline fn checkAddressRange(ptr: var, size: usize, options: CheckOptions) Ch
 
     const info1 = if (options.unpriv) ttat(start) else tta(start);
     const info2 = if (size > 1)
-        (if (options.unpriv) ttat(start) else tta(start))
+        (if (options.unpriv) ttat(end) else tta(end))
     else
         (info1);
 
