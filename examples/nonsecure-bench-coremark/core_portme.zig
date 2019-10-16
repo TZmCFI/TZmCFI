@@ -7,7 +7,7 @@ const warn = @import("../nonsecure-common/debug.zig").warn;
 const an505 = @import("../drivers/an505.zig");
 
 const TIMER_RESET_VALUE: u32 = 0x80000000;
-const SYSTEM_CORE_CLOCK: comptime_int = 25000000;
+const SYSTEM_CORE_CLOCK: comptime_int = 20000000;
 
 /// This function will be called right before starting the timed portion of the benchmark.
 ///
