@@ -4,11 +4,14 @@ const builtin = @import("builtin");
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
 // ----------------------------------------------------------------------------
 const arm_cmse = @import("../drivers/arm_cmse.zig");
 
 const arm_m = @import("../drivers/arm_m.zig");
 const EXC_RETURN = arm_m.EXC_RETURN;
+const getMspNs = arm_m.getMspNs;
+const getPspNs = arm_m.getPspNs;
 // ----------------------------------------------------------------------------
 const constants = @import("../constants.zig");
 const VEC_TABLE = constants.VEC_TABLE;
@@ -190,13 +193,12 @@ const ChainedExceptionStackIterator = struct {
 
         const new_exc_return = self.getOriginalLr();
 
+        // An execption context never uses PSP.
+        assert((self.exc_return & EXC_RETURN.SPSEL) == 0);
+
         // Unwind the stack
         const frameSize = if ((self.exc_return & EXC_RETURN.FTYPE) != 0) usize(32) else usize(104);
-        if ((self.exc_return & EXC_RETURN.SPSEL) != 0) {
-            self.psp += frameSize;
-        } else {
-            self.msp += frameSize;
-        }
+        self.msp += frameSize;
 
         self.exc_return = new_exc_return;
         self.fillFrameAddress();
@@ -258,8 +260,8 @@ pub const StackState = struct {
 var g_stack: StackState = undefined;
 
 /// Perform the shadow push operation.
-fn pushShadowExcStack(exc_return: usize, msp: usize, psp: usize) void {
-    var exc_stack = ChainedExceptionStackIterator.new(exc_return, msp, psp);
+fn pushShadowExcStack(exc_return: usize) void {
+    var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
 
     const stack = &g_stack;
     var new_top: [*]Frame = stack.top;
@@ -303,7 +305,7 @@ fn pushShadowExcStack(exc_return: usize, msp: usize, psp: usize) void {
 
 /// Perform the shadow pop (assert) opertion and get the `EXC_RETURN` that
 /// corresponds to the current exception activation.
-fn popShadowExcStack(msp: usize, psp: usize) usize {
+fn popShadowExcStack() usize {
     const stack = &g_stack;
 
     if (stack.top == stack.current) {
@@ -312,7 +314,7 @@ fn popShadowExcStack(msp: usize, psp: usize) usize {
 
     const exc_return = (stack.top - 1)[0].exc_return;
 
-    var exc_stack = ChainedExceptionStackIterator.new(exc_return, msp, psp);
+    var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
 
     // Validate *two* top entries.
     if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
@@ -336,20 +338,20 @@ fn popShadowExcStack(msp: usize, psp: usize) usize {
 
 const Usizex2 = @Vector(2, usize);
 
-export fn __tcEnterInterrupt(isr_body: usize, exc_return: usize, msp: usize, psp: usize) Usizex2 {
+export fn __tcEnterInterrupt(isr_body: usize, exc_return: usize) Usizex2 {
     markEvent(.EnterInterrupt);
 
-    pushShadowExcStack(exc_return, msp, psp);
+    pushShadowExcStack(exc_return);
 
     // TODO: Conceal `r3` and `r4`?
     var ret = [2]usize{ exc_return, isr_body };
     return @bitCast(Usizex2, ret);
 }
 
-export fn __tcLeaveInterrupt(msp: usize, psp: usize) usize {
+export fn __tcLeaveInterrupt() usize {
     markEvent(.LeaveInterrupt);
 
-    return popShadowExcStack(msp, psp);
+    return popShadowExcStack();
 }
 
 pub fn saveState(state: *StackState) void {
@@ -381,8 +383,6 @@ pub export nakedcc fn __TCPrivateEnterInterrupt() linksection(".gnu.sgstubs") no
         \\
         \\ # r0 = handler function pointer
         \\ mov r1, lr
-        \\ mrs r2, msp_ns
-        \\ mrs r3, psp_ns
         \\
         \\ bl __tcEnterInterrupt
         \\
@@ -401,9 +401,6 @@ pub export nakedcc fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") no
 
     asm volatile (
         \\ sg
-        \\
-        \\ mrs r0, msp_ns
-        \\ mrs r1, psp_ns
         \\
         \\ bl __tcLeaveInterrupt
         \\
