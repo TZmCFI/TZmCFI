@@ -24,10 +24,10 @@ export fn main() void {
 
     // Get the measurement overhead
     measure.calculateOverhead();
-    warn("Overhead: {} cycles (this value is subtracted from all subsequent measurements)\r\n", measure.overhead);
+    warn("Overhead: {} cycles (this value is subtracted from all subsequent measurements)\r\n", measure.overhead.*);
 
-    global_mutex = xSemaphoreCreateBinary();
-    _ = xSemaphoreGive(global_mutex);
+    global_mutex.* = xSemaphoreCreateBinary();
+    _ = xSemaphoreGive(global_mutex.*);
 
     _ = os.xTaskCreateRestricted(&task1_params, 0);
 
@@ -35,7 +35,7 @@ export fn main() void {
     unreachable;
 }
 
-var task1_stack = [1]u32{0} ** 128;
+var task1_stack align(32) = [1]u32{0} ** 192;
 
 const regions_with_peripheral_access = [3]os.MemoryRegion_t{
     // TODO: It seems that this is actually not needed for measurements to work.
@@ -46,8 +46,8 @@ const regions_with_peripheral_access = [3]os.MemoryRegion_t{
         .ulParameters = 0,
     },
     os.MemoryRegion_t{
-        .pvBaseAddress = null,
-        .ulLengthInBytes = 0,
+        .pvBaseAddress = @ptrCast(*c_void, &unpriv_state),
+        .ulLengthInBytes = @sizeOf(@typeOf(unpriv_state)) + 32,
         .ulParameters = 0,
     },
     os.MemoryRegion_t{
@@ -68,7 +68,7 @@ const task1_params = os.TaskParameters_t{
     .pxTaskBuffer = null,
 };
 
-var task2_stack = [1]u32{0} ** 128;
+var task2_stack align(32) = [1]u32{0} ** 192;
 
 const task2a_params = os.TaskParameters_t{
     .pvTaskCode = task2aMain,
@@ -91,7 +91,7 @@ const task2b_params = os.TaskParameters_t{
     .pxTaskBuffer = null,
 };
 
-var task3_stack = [1]u32{0} ** 32;
+var task3_stack align(32) = [1]u32{0} ** 32;
 
 const task3_params = os.TaskParameters_t{
     .pvTaskCode = badTaskMain,
@@ -104,7 +104,7 @@ const task3_params = os.TaskParameters_t{
     .pxTaskBuffer = null,
 };
 
-var global_mutex: os.SemaphoreHandle_t = undefined;
+const global_mutex = &unpriv_state.global_mutex;
 
 extern fn task1Main(_arg: ?*c_void) void {
     // Disable SysTick
@@ -144,18 +144,18 @@ extern fn task1Main(_arg: ?*c_void) void {
 
     // `xSemaphoreTake` without dispatch
     measure.start();
-    _ = xSemaphoreTake(global_mutex, portMAX_DELAY);
+    _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
     measure.end();
     warn("Unpriv xSemaphoreTake without dispatch: {} cycles\r\n", measure.getNumCycles());
 
     // `xSemaphoreGive` without dispatch
     measure.start();
-    _ = xSemaphoreGive(global_mutex);
+    _ = xSemaphoreGive(global_mutex.*);
     measure.end();
     warn("Unpriv xSemaphoreGive without dispatch: {} cycles\r\n", measure.getNumCycles());
 
     seqmon.mark(5);
-    _ = xSemaphoreTake(global_mutex, portMAX_DELAY);
+    _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
 
     // Create a high-priority task `task2b` to be dispatched on `xSemaphoreGive`
     _ = os.xTaskCreateRestricted(&task2b_params, &task2_handle);
@@ -164,7 +164,7 @@ extern fn task1Main(_arg: ?*c_void) void {
 
     // `xSemaphoreTake` with dispatch (to `task2b`)
     measure.start();
-    _ = xSemaphoreGive(global_mutex);
+    _ = xSemaphoreGive(global_mutex.*);
 
     seqmon.mark(9);
 
@@ -188,7 +188,7 @@ extern fn task2bMain(_arg: ?*c_void) void {
     seqmon.mark(6);
 
     // This will block and gives the control back to task1
-    _ = xSemaphoreTake(global_mutex, portMAX_DELAY);
+    _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
 
     measure.end();
     warn("Unpriv xSemaphoreGive with dispatch: {} cycles\r\n", measure.getNumCycles());
@@ -203,10 +203,17 @@ extern fn badTaskMain(_arg: ?*c_void) void {
     @panic("this task is not supposed to run");
 }
 
+/// unprivilileged state data
+var unpriv_state align(32) = struct {
+    overhead: i32 = 0,
+    next_ordinal: u32 = 0,
+    global_mutex: os.SemaphoreHandle_t = undefined,
+} {};
+
 /// Measurement routines
 const measure = struct {
     const TIMER_RESET_VALUE: u32 = 0x80000000;
-    var overhead: i32 = 0;
+    const overhead = &unpriv_state.overhead;
 
     fn __measureStart() void {
         tzmcfi.TCDebugStartProfiler();
@@ -231,28 +238,28 @@ const measure = struct {
     fn calculateOverhead() void {
         start();
         end();
-        overhead = getNumCycles();
+        overhead.* = getNumCycles();
     }
 
     fn getNumCycles() i32 {
-        return @intCast(i32, TIMER_RESET_VALUE - an505.timer0.getValue()) - overhead;
+        return @intCast(i32, TIMER_RESET_VALUE - an505.timer0.getValue()) - overhead.*;
     }
 };
 
 /// Execution sequence monitoring
 const seqmon = struct {
-    var next_ordinal: u32 = 0;
+    const next_ordinal = &unpriv_state.next_ordinal;
 
     /// Declare a checkpoint. `ordinal` is a sequence number that starts at
     /// `0`. Aborts the execution on a sequence violation.
     fn mark(ordinal: u32) void {
-        if (ordinal != next_ordinal) {
-            warn("execution sequence violation: expected {}, got {}\r\n", ordinal, next_ordinal);
+        if (ordinal != next_ordinal.*) {
+            warn("execution sequence violation: expected {}, got {}\r\n", ordinal, next_ordinal.*);
             @panic("execution sequence violation");
         }
 
         warn("[{}]\r\n", ordinal);
-        next_ordinal += 1;
+        next_ordinal.* += 1;
     }
 };
 
