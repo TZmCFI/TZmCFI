@@ -37,13 +37,18 @@ const Frame = struct {
     /// The original location of the exception frame.
     frame: usize = 0,
 
+    /// The saved R12 (IP). This register is used to store code pointers in
+    /// our shadow stack implementation.
+    r12: usize = 0,
+
     const Self = @This();
 
     fn eq(self: Self, rhs: Self) bool {
         return self.pc == rhs.pc and
             self.lr == rhs.lr and
             self.exc_return == rhs.exc_return and
-            self.frame == rhs.frame;
+            self.frame == rhs.frame and
+            self.r12 == rhs.r12;
     }
 };
 
@@ -143,6 +148,9 @@ const ChainedExceptionStackIterator = struct {
     fn getOriginalLr(self: *const Self) usize {
         return self.frame[5];
     }
+    fn getOriginalR12(self: *const Self) usize {
+        return self.frame[4];
+    }
     fn getFrameAddress(self: *const Self) usize {
         return @ptrToInt(self.frame);
     }
@@ -156,6 +164,7 @@ const ChainedExceptionStackIterator = struct {
             .lr = self.getOriginalLr(),
             .frame = self.getFrameAddress(),
             .exc_return = self.getExcReturn(),
+            .r12 = self.getOriginalR12(),
         };
     }
 
@@ -217,6 +226,7 @@ pub const StackState = struct {
             .lr = create_info.initialLR,
             .exc_return = create_info.excReturn,
             .frame = create_info.exceptionFrame,
+            .r12 = 0x12121212,
         };
         self.top += 1;
 

@@ -14,7 +14,7 @@ pub inline fn reverse(comptime T: type, start: [*]T, end: [*]T) void {
 }
 
 inline fn swap_noalias(comptime T: type, noalias x: *T, noalias y: *T) void {
-    if (@sizeOf(T) == 16 and @alignOf(T) >= 4) {
+    if (@sizeOf(T) == 20 and @alignOf(T) >= 4) {
         var x1: usize = undefined;
         var x2: usize = undefined;
         var x3: usize = undefined;
@@ -28,6 +28,10 @@ inline fn swap_noalias(comptime T: type, noalias x: *T, noalias y: *T) void {
             \\ ldm %[y], {r6, r8, r10, r11}
             \\ stm %[y], {r2, r3, r4, r5}
             \\ stm %[x], {r6, r8, r10, r11}
+            \\ ldr r2, [%[x], 16]
+            \\ ldr r6, [%[y], 16]
+            \\ str r2, [%[y], 16]
+            \\ str r6, [%[x], 16]
             :
             : [x] "r" (x),
               [y] "r" (y)
