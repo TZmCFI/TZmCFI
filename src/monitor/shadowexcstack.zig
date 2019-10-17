@@ -144,7 +144,28 @@ const ChainedExceptionStackIterator = struct {
     }
 
     fn fillFrameAddress(self: *Self) void {
-        if ((self.exc_return & EXC_RETURN.SPSEL) != 0) {
+        if ((self.exc_return & EXC_RETURN.S) != 0) {
+            // `g_exception_entry_pc_set` only contains non-Secure exception
+            // entries. Thus it's invalid for `getOriginalPc()` to be included
+            // in `g_exception_entry_pc_set`.
+            assert(!g_exception_entry_pc_set.contains(self.getOriginalPc()));
+
+            //   Assumption: For every exception entry chain A → B, A never
+            //   belongs to Secure mode.
+            // 
+            // This assumption makes things simpler. When a Non-Secure
+            // exception takes in Secure mode, additional state context data is
+            // pushed, changing the layout of an exception frame.
+            // We think this use case is extremely rare, so we chose to assume
+            // this never happens and not to introduce additional latency by
+            // addressing this case.
+            //
+            // Since there are no more exception entry chains, the chained
+            // exception stack ends here, so does unwinding. Still, we need an
+            // exception frame for `asFrame` to read. Just use a dummy
+            // exception frame here.
+            self.frame = @ptrCast([*]const usize, &dummy_exc_frame[0]);
+        } else if ((self.exc_return & EXC_RETURN.SPSEL) != 0) {
             self.frame = @intToPtr([*]const usize, self.psp);
         } else {
             self.frame = @intToPtr([*]const usize, self.msp);
@@ -212,6 +233,8 @@ const ChainedExceptionStackIterator = struct {
         return true;
     }
 };
+
+const dummy_exc_frame = [1]usize { 0 } ** 7;
 
 /// The default shadow stack
 var g_default_stack_storage: [32]Frame = undefined;
