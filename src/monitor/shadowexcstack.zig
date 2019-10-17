@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
+const rotr = std.math.rotr;
 // ----------------------------------------------------------------------------
 const arm_cmse = @import("../drivers/arm_cmse.zig");
 
@@ -105,12 +106,17 @@ const ExecptionEntryPCSet = struct {
         }
 
         self.start = start & ~usize(1);
-        self.len = (size - 2) * VEC_TABLE.TRAMPOLINE_STRIDE;
+        self.len = size - 2;
     }
 
     fn contains(self: *const Self, pc: usize) bool {
         const rel = pc -% self.start;
-        return pc < self.len and pc % VEC_TABLE.TRAMPOLINE_STRIDE == 0;
+
+        // return pc < (self.len << stride_shift) and pc % VEC_TABLE.TRAMPOLINE_STRIDE == 0;
+
+        // Use a bit rotation trick to do alignment and boundary checks
+        // at the same time.
+        return rotr(usize, rel, VEC_TABLE.TRAMPOLINE_STRIDE_SHIFT) < self.len;
     }
 };
 
