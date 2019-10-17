@@ -330,6 +330,66 @@ pub inline fn setPspLimit(value: usize) void {
     );
 }
 
+/// Read the current non-Secure main stack pointer.
+pub inline fn getMspNs() usize {
+    return asm ("mrs %[out], msp_ns"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Read the current non-Secure process stack pointer.
+pub inline fn getPspNs() usize {
+    return asm ("mrs %[out], psp_ns"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Read the current non-Secure main stack pointer limit.
+pub inline fn getMspLimitNs() usize {
+    return asm ("mrs %[out], msplim_ns"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Read the current non-Secure process stack pointer limit.
+pub inline fn getPspLimitNs() usize {
+    return asm ("mrs %[out], psplim_ns"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Write the current non-Secure main stack pointer.
+pub inline fn setMspNs(value: usize) void {
+    return asm volatile ("msr msp_ns, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Write the current non-Secure process stack pointer.
+pub inline fn setPspNs(value: usize) void {
+    return asm volatile ("msr psp_ns, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Write the current non-Secure main stack pointer limit.
+pub inline fn setMspLimitNs(value: usize) void {
+    return asm volatile ("msr msplim_ns, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Write the current non-Secure process stack pointer limit.
+pub inline fn setPspLimitNs(value: usize) void {
+    return asm volatile ("msr psplim_ns, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
 /// Read the control register.
 pub inline fn getControl() usize {
     return asm ("mrs %[out], control"
@@ -340,6 +400,21 @@ pub inline fn getControl() usize {
 /// Write the control register.
 pub inline fn setControl(value: usize) void {
     return asm volatile ("msr control, %[value]"
+        :
+        : [value] "r" (value)
+    );
+}
+
+/// Read the non-Secure control register.
+pub inline fn getControlNs() usize {
+    return asm ("mrs %[out], control_ns"
+        : [out] "=r" (-> usize)
+    );
+}
+
+/// Write the non-Secure control register.
+pub inline fn setControlNs(value: usize) void {
+    return asm volatile ("msr control_ns, %[value]"
         :
         : [value] "r" (value)
     );
