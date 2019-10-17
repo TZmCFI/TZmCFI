@@ -88,6 +88,8 @@ export fn TCShadowStackLogAssert() void {
 // ----------------------------------------------------------------------------
 
 export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
+    @setRuntimeSafety(false);
+
     asm volatile (
         \\ sg
     );
@@ -132,6 +134,8 @@ export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
 }
 
 export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") noreturn {
+    @setRuntimeSafety(false);
+    
     asm volatile (
         \\ sg
     );
@@ -207,6 +211,8 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
 }
 
 export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn {
+    @setRuntimeSafety(false);
+    
     asm volatile (
         \\ sg
     );
