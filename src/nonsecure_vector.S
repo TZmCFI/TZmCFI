@@ -60,7 +60,7 @@ NormalExceptionTrampolines:
     .endr
 
 .LInvokeSecureTrampoline:
-    // r0 = Address to the inner trampoline
+    // r0 = EXC_RETURN
 
     // Jump to the secure part of the exception trampoline.
     ldr r1, =__TCPrivateEnterInterrupt
