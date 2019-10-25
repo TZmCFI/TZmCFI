@@ -20,17 +20,12 @@ pub fn build(b: *Builder) !void {
     const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
     const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
 
-    const cfi_opts = CfiOpts {
-        .ctx = b.option(bool, "cfi-ctx", "Enable TZmCFI context management (default = cfi)")
-            orelse enable_cfi,
-        .ses = b.option(bool, "cfi-ses", "Enable TZmCFI shadow exception stacks (default = cfi)")
-            orelse enable_cfi,
-        .ss = b.option(bool, "cfi-ss", "Enable TZmCFI shadow stacks (default = cfi)")
-            orelse enable_cfi,
-        .aborting_ss = b.option(bool, "cfi-aborting-ss", "Use the aborting implementation of SS (default = false)")
-            orelse false,
-        .icall = b.option(bool, "cfi-icall", "Enable indirect call CFI (default = cfi)")
-            orelse enable_cfi,
+    const cfi_opts = CfiOpts{
+        .ctx = b.option(bool, "cfi-ctx", "Enable TZmCFI context management (default = cfi)") orelse enable_cfi,
+        .ses = b.option(bool, "cfi-ses", "Enable TZmCFI shadow exception stacks (default = cfi)") orelse enable_cfi,
+        .ss = b.option(bool, "cfi-ss", "Enable TZmCFI shadow stacks (default = cfi)") orelse enable_cfi,
+        .aborting_ss = b.option(bool, "cfi-aborting-ss", "Use the aborting implementation of SS (default = false)") orelse false,
+        .icall = b.option(bool, "cfi-icall", "Enable indirect call CFI (default = cfi)") orelse enable_cfi,
     };
     try cfi_opts.validate();
 
@@ -178,12 +173,16 @@ pub fn build(b: *Builder) !void {
 const CfiOpts = struct {
     /// Use TZmCFI context management API
     ctx: bool,
+
     /// TZmCFI shadow exception stacks
     ses: bool,
+
     /// TZmCFI shadow stacks
     ss: bool,
+
     /// LLVM indirect call validator
     icall: bool,
+
     /// Abort on shadow stack integrity check failure
     aborting_ss: bool,
 
@@ -377,7 +376,7 @@ fn defineNonSecureApp(
 
 fn logLevelOptions(b: *Builder) ![]const u8 {
     // Must be synchronized with `LogLevel` in `options.zig`
-    const log_levels = [_][]const u8 { "None", "Crticial", "Warning", "Trace" };
+    const log_levels = [_][]const u8{ "None", "Crticial", "Warning", "Trace" };
     var selected: ?[]const u8 = null;
 
     for (log_levels) |level| {

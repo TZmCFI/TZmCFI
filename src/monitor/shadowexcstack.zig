@@ -153,7 +153,7 @@ const ChainedExceptionStackIterator = struct {
 
             //   Assumption: For every exception entry chain A → B, A never
             //   belongs to Secure mode.
-            // 
+            //
             // This assumption makes things simpler. When a Non-Secure
             // exception takes in Secure mode, additional state context data is
             // pushed, changing the layout of an exception frame.
@@ -235,7 +235,7 @@ const ChainedExceptionStackIterator = struct {
     }
 };
 
-const dummy_exc_frame = [1]usize { 0 } ** 7;
+const dummy_exc_frame = [1]usize{0} ** 7;
 
 /// The default shadow stack
 var g_default_stack_storage: [32]Frame = undefined;

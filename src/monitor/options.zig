@@ -8,7 +8,7 @@ else
 /// Controls whether the shadow stack return routine checks the integrity of a
 /// return address (and aborts on failure) or just discards a non-trustworthy
 /// return address.
-pub const ABORTING_SHADOWSTACK: bool =  if (@hasDecl(root, "TC_ABORTING_SHADOWSTACK"))
+pub const ABORTING_SHADOWSTACK: bool = if (@hasDecl(root, "TC_ABORTING_SHADOWSTACK"))
     root.TC_ABORTING_SHADOWSTACK
 else
     false;

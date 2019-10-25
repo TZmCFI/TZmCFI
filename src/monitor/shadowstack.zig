@@ -135,7 +135,7 @@ export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
 
 export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") noreturn {
     @setRuntimeSafety(false);
-    
+
     asm volatile (
         \\ sg
     );
@@ -147,11 +147,10 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\ pop {r0, r1, r2, r3, lr}
         );
     }
-    
+
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
     if (comptime ABORTING_SHADOWSTACK) {
-        //
         //  if (g_shadow_stack_top[-1] == 0) { panic(); }
         //  if (g_shadow_stack_top[-1] != lr) { panic(); }
         //  g_shadow_stack_top -= 1;
@@ -181,7 +180,7 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
         );
     } else { // ABORTING_SHADOWSTACK
         //
-        //  lr = g_shadow_stack_top[-1]; 
+        //  lr = g_shadow_stack_top[-1];
         //  if (lr == 0) { panic(); }
         //  g_shadow_stack_top -= 1;
         //  bxns(lr)
@@ -212,7 +211,7 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
 
 export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn {
     @setRuntimeSafety(false);
-    
+
     asm volatile (
         \\ sg
     );
@@ -224,12 +223,11 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\ pop {r0, r1, r2, r3, lr}
         );
     }
-    
+
     // r12 = continuation
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
     if (comptime ABORTING_SHADOWSTACK) {
-        //
         //  if (g_shadow_stack_top[-1] == 0) { panic(); }
         //  if (g_shadow_stack_top[-1] != lr) { panic(); }
         //  g_shadow_stack_top -= 1;
@@ -263,7 +261,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
         );
     } else { // ABORTING_SHADOWSTACK
         //
-        //  lr = g_shadow_stack_top[-1]; 
+        //  lr = g_shadow_stack_top[-1];
         //  if (lr == 0) { panic(); }
         //  g_shadow_stack_top -= 1;
         //  bxns(r12)
@@ -292,7 +290,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\ .L_underflow_trampoline2: b TCShadowStackUnderflow
             \\ .L_g_shadow_stack_top_const3: .word g_shadow_stack_top
         );
-    }// ABORTING_SHADOWSTACK
+    } // ABORTING_SHADOWSTACK
     unreachable;
 }
 

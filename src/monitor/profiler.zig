@@ -11,7 +11,7 @@ const log = @import("debug.zig").log;
 pub const ACTIVE: bool = @import("options.zig").ENABLE_PROFILER;
 // ----------------------------------------------------------------------------
 
-pub const Event = enum (u8) {
+pub const Event = enum(u8) {
     EnterInterrupt = 0,
     LeaveInterrupt,
     ShadowPush,
@@ -23,7 +23,7 @@ pub const Event = enum (u8) {
 
 const num_event_types = @enumToInt(Event.Count);
 
-const event_short_names = [_][]const u8 {
+const event_short_names = [_][]const u8{
     "EntInt",
     "LeaInt",
     "ShPush",
@@ -31,7 +31,7 @@ const event_short_names = [_][]const u8 {
     "ShAsrtRet",
 };
 
-var event_count = [1]usize { 0 } ** num_event_types;
+var event_count = [1]usize{0} ** num_event_types;
 var profile_running: u8 = 0;
 
 pub inline fn markEvent(e: Event) void {
@@ -76,7 +76,7 @@ extern fn TCDebugDumpProfile(_1: usize, _2: usize, _3: usize, _4: usize) usize {
     log(.Critical, "# TCDebugDumpProfile\r\n");
 
     var buf: [10]u8 = undefined;
-    
+
     comptime var line: u32 = 1;
     inline while (line <= 3) : (line += 1) {
         log(.Critical, " | ");
@@ -87,10 +87,10 @@ extern fn TCDebugDumpProfile(_1: usize, _2: usize, _3: usize, _4: usize) usize {
             if (line == 1) {
                 log(.Critical, "{}", event_short_names[i]);
             } else if (line == 2) {
-                log(.Critical, "{}:", ("-" ** 10)[0..width - 1]);
+                log(.Critical, "{}:", ("-" ** 10)[0 .. width - 1]);
             } else if (line == 3) {
                 const len = formatIntBuf(&buf, event_count[i], 10, false, FormatOptions{});
-                log(.Critical, "{}", (" " ** 10)[0..width - len]);
+                log(.Critical, "{}", (" " ** 10)[0 .. width - len]);
                 log(.Critical, "{}", buf[0..len]);
             }
             log(.Critical, " | ");

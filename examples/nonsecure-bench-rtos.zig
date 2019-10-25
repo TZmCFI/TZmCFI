@@ -208,7 +208,7 @@ var unpriv_state align(32) = struct {
     overhead: i32 = 0,
     next_ordinal: u32 = 0,
     global_mutex: os.SemaphoreHandle_t = undefined,
-} {};
+}{};
 
 /// Measurement routines
 const measure = struct {
