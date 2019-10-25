@@ -436,3 +436,13 @@ pub const control = struct {
     pub const set = setControl;
     pub const get = getControl;
 };
+
+/// Set `FAULTMASK`, disabling all interrupts.
+pub inline fn setFaultmask() void {
+    asm volatile ("cpsid f");
+}
+
+/// Clear `FAULTMASK`, re-enabling all interrupts.
+pub inline fn clearFaultmask() void {
+    asm volatile ("cpsie f");
+}

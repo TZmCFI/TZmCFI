@@ -13,17 +13,6 @@ const ffi = @import("ffi.zig");
 const log = @import("debug.zig").log;
 // ----------------------------------------------------------------------------
 
-// TODO: Critical section
-//       We currently put a trust on the Non-Secure code calling these functions
-//       in a way that it does not cause data race. We assume the Non-Secure
-//       code is protected by TZmCFI in a way we intended. For example,
-//       `TCCreateThread` is called only by the initialization code, outside any
-//       exception handlers, and `TCActivateThread` is called only by a PendSV
-//       handler, which is configured with the lowest priority. When it's
-//       violated (e.g., because of a rogue Non-Secure developer or compromised
-//       firmware upgrade process), well, that means the Secure code is compro-
-//       mised.
-
 var arena: [8192]u8 = undefined;
 var fixed_allocator: FixedBufferAllocator = undefined;
 const allocator = &fixed_allocator.allocator;
@@ -64,6 +53,9 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
     if (usize(next_free_thread) >= threads.len) {
         return error.OutOfMemory;
     }
+
+    arm_m.setFaultmask();
+    defer arm_m.clearFaultmask();
 
     const thread_id = usize(next_free_thread);
 
@@ -112,6 +104,9 @@ fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
     if (!arm_m.isHandlerMode()) {
         return error.ThreadMode;
     }
+
+    arm_m.setFaultmask();
+    defer arm_m.clearFaultmask();
 
     // This is probably faster than proper bounds checking
     const new_thread_id = usize(thread) & (threads.len - 1);
