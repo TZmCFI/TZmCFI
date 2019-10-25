@@ -16,7 +16,7 @@ pub export nakedcc fn TCRaisePrivilege() linksection(".gnu.sgstubs") noreturn {
         \\ msr control_ns, r0
         \\ mov r0, #0
         \\
-        \\ bx lr
+        \\ bxns lr
     );
     unreachable;
 }
