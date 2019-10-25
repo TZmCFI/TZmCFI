@@ -16,6 +16,7 @@ pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
     const log_level = try logLevelOptions(b);
+    const accel_raise_pri = b.option(bool, "accel-raise-pri", "Accelerate vRaisePriority (default = true)") orelse true;
     const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
     const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
 
@@ -95,6 +96,7 @@ pub fn build(b: *Builder) !void {
         "freertos/portable/GCC/ARM_CM33/non_secure",
         "freertos/portable/GCC/ARM_CM33/secure",
         "nonsecure-common", // For `FreeRTOSConfig.h`
+        "../include",
     };
     for (kernel_include_dirs) |path| {
         kernel.addIncludeDir(path);
@@ -116,6 +118,9 @@ pub fn build(b: *Builder) !void {
     var kernel_build_args = std.ArrayList([]const u8).init(b.allocator);
     try kernel_build_args.append("-flto");
     try cfi_opts.addCFlagsTo(&kernel_build_args);
+    if (accel_raise_pri) {
+        try kernel_build_args.append("-DportACCEL_RAISE_PRIVILEGE=1");
+    }
     for (kernel_source_files) |file| {
         kernel.addCSourceFile(file, kernel_build_args.toSliceConst());
     }
@@ -392,7 +397,7 @@ fn logLevelOptions(b: *Builder) ![]const u8 {
             }
             selected = level;
         }
-    } 
+    }
 
     return selected orelse "Warning";
 }

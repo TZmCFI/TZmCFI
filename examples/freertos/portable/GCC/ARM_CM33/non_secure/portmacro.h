@@ -28,6 +28,8 @@
 #ifndef PORTMACRO_H
 #define PORTMACRO_H
 
+#include <TZmCFI/Gateway.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -250,6 +252,9 @@ typedef struct MPU_SETTINGS
 	 */
 	#define portIS_PRIVILEGED()									xIsPrivileged()
 
+#if ( portACCEL_RAISE_PRIVILEGE )
+	#define portRAISE_PRIVILEGE()								TCRaisePrivilege();
+#else
 	/**
 	 * @brief Raise an SVC request to raise privilege.
 	 *
@@ -258,6 +263,7 @@ typedef struct MPU_SETTINGS
 	 * the privilege is not raised.
 	 */
 	#define portRAISE_PRIVILEGE()								__asm volatile ( "svc %0 \n" :: "i" ( portSVC_RAISE_PRIVILEGE ) : "memory" );
+#endif
 
 	/**
 	 * @brief Lowers the privilege level by setting the bit 0 of the CONTROL

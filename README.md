@@ -62,6 +62,10 @@ Enable the collection of statistical information. The profiler API must be used 
 
 This option controls `@import("root").TC_ENABLE_PROFILER`.
 
+### `-Daccel-raise-pri={false|true}` — `portRAISE_PRIVILEGE` acceleration
+
+When enabled, `portRAISE_PRIVILEGE()` is replaced with a TrustZone-based implementation that is simpler and more performant than the original, traditional implementation. This drastically cuts down (by about 200 cycles) the runtime overhead of FreeRTOS system calls incurred by shadow exception stacks.
+
 ### Standard build modes
 
 Zig defines four standard build modes (at the point of writing), which you can choose via one of the following command-line options (the descriptions are taken from [Zig's website]):

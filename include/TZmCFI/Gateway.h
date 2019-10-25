@@ -111,8 +111,22 @@ TCResult TCLockdown(void);
  */
 TCResult TCActivateThread(TCThread thread);
 
+/**
+ * Enables privileged access in non-Secure Thread mode.
+ *
+ * This is accomplished by resetting `nPRIV` bit in `CONTROL_NS`. This is
+ * traditionally implemented using a SVC handler, which incurs a severe overhead
+ * when shadow exception stacks are enabled. This function implements it as
+ * a Secure function, which not only avoids the overhead of SES, but also can be
+ * faster than the traditional approach.
+ *
+ * Note that with control-flow integrity, access to this function can be
+ * reliably controlled.
+ */
+void TCRaisePrivilege(void);
+
 /*
- * Statistical Profiler API                    
+ * Statistical Profiler API
  * ----------------------------------------------------------------------------
  * This API must be enabled via a build option to use. Otherwise, these
  * functions are no-op.

@@ -24,6 +24,7 @@ export const shadowstack = @import("monitor/shadowstack.zig");
 export const threads = @import("monitor/threads.zig");
 export const profiler = @import("monitor/profiler.zig");
 export const options = @import("monitor/options.zig");
+export const nsutils = @import("monitor/nsutils.zig");
 
 pub const TCResult = ffi.TCResult;
 pub const TCThread = ffi.TCThread;
