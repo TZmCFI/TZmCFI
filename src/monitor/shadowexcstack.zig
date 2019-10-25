@@ -443,6 +443,6 @@ pub export nakedcc fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") no
 
 // Export the gateway functions to Non-Secure
 comptime {
-    @export("__acle_se___TCPrivateEnterInterrupt", __TCPrivateEnterInterrupt, builtin.GlobalLinkage.Strong);
-    @export("__acle_se___TCPrivateLeaveInterrupt", __TCPrivateLeaveInterrupt, builtin.GlobalLinkage.Strong);
+    @export("__acle_se___TCPrivateEnterInterrupt", __TCPrivateEnterInterrupt, .Strong);
+    @export("__acle_se___TCPrivateLeaveInterrupt", __TCPrivateLeaveInterrupt, .Strong);
 }

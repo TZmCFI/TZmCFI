@@ -289,8 +289,8 @@ pub fn exportNonSecureCallable(comptime name: []const u8, comptime func: extern 
             unreachable;
         }
     };
-    @export(name, Veneer.veneer, builtin.GlobalLinkage.Strong);
-    @export("__acle_se_" ++ name, Veneer.veneer, builtin.GlobalLinkage.Strong);
+    @export(name, Veneer.veneer, .Strong);
+    @export("__acle_se_" ++ name, Veneer.veneer, .Strong);
 }
 
 /// Security Attribution Unit.
