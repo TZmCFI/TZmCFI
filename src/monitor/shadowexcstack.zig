@@ -147,8 +147,9 @@ const ChainedExceptionStackIterator = struct {
         if ((self.exc_return & EXC_RETURN.S) != 0) {
             // `g_exception_entry_pc_set` only contains non-Secure exception
             // entries. Thus it's invalid for `getOriginalPc()` to be included
-            // in `g_exception_entry_pc_set`.
-            assert(!g_exception_entry_pc_set.contains(self.getOriginalPc()));
+            // in `g_exception_entry_pc_set`. But we can't check that here;
+            // `getOriginalPc` assumes the exception frame is in a non-Secure
+            // stack.
 
             //   Assumption: For every exception entry chain A → B, A never
             //   belongs to Secure mode.
