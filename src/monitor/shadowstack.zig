@@ -7,12 +7,18 @@ const Allocator = std.mem.Allocator;
 // ----------------------------------------------------------------------------
 const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
 const log = @import("debug.zig").log;
-const ABORTING_SHADOWSTACK = @import("options.zig").ABORTING_SHADOWSTACK;
+const options = @import("options.zig");
+const ABORTING_SHADOWSTACK = options.ABORTING_SHADOWSTACK;
+const setShadowStackGuard = options.setShadowStackGuard;
 
 const markEvent = @import("profiler.zig").markEvent;
 const ENABLE_PROFILER = @import("profiler.zig").ACTIVE;
 // ----------------------------------------------------------------------------
 export var g_shadow_stack_top: [*]usize = undefined;
+
+const MPU_GRANULARITY = 32;
+const STACK_ALIGN = MPU_GRANULARITY;
+const STACK_SIZE = 16;
 
 /// Bundles the state of a single instance of shadow stack.
 pub const StackState = struct {
@@ -24,15 +30,20 @@ pub const StackState = struct {
     /// Construct a `StackState` by allocating memory from `allocator`.
     pub fn new(allocator: *Allocator, create_info: ?*const TCThreadCreateInfo) !Self {
         // TODO: make stack size variable
-        const frames = try allocator.alloc(usize, 16);
+
+        // Add two guard pages before and after the stack. MPU is used to detect
+        // stack overflow/underflow by prohibiting memory access to the guard
+        // pages.
+        const gp_ents = MPU_GRANULARITY / @sizeOf(usize);
+
+        var frames = try allocator.alignedAlloc(usize, STACK_ALIGN, STACK_SIZE + gp_ents * 2);
+
+        // Exclude the guard pages
+        frames = frames[gp_ents .. frames.len - gp_ents];
 
         for (frames) |*frame| {
-            frame.* = 1;
+            frame.* = 0;
         }
-
-        // Cap both ends with sentinel values
-        frames[0] = 0;
-        frames[frames.len - 1] = 0;
 
         return fromSlice(frames);
     }
@@ -46,7 +57,7 @@ pub const StackState = struct {
     fn fromSlice(frames: []usize) Self {
         return Self{
             .frames = frames,
-            .top = @ptrCast([*]usize, &frames[1]),
+            .top = @ptrCast([*]usize, &frames[0]),
         };
     }
 };
@@ -57,15 +68,13 @@ pub fn saveState(state: *StackState) void {
 
 pub fn loadState(state: *const StackState) void {
     g_shadow_stack_top = state.top;
+
+    // Configure MPU regions for the stack guard pages
+    const start = @ptrToInt(&state.frames[0]);
+    const end = start + state.frames.len * @sizeOf(usize);
+    setShadowStackGuard(start, end);
+
     log(.Trace, "shadowstack.loadState({x})\n", state);
-}
-
-export fn TCShadowStackOverflow() noreturn {
-    @panic("Shadow stack: Overflow");
-}
-
-export fn TCShadowStackUnderflow() noreturn {
-    @panic("Shadow stack: Underflow");
 }
 
 export fn TCShadowStackMismatch() noreturn {
@@ -107,27 +116,22 @@ export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
     // kill: r12
     //
     //  assume(lr != 0);
-    //  if (g_shadow_stack_top.* == 0) { panic(); }
     //  g_shadow_stack_top.* = lr;
     //  g_shadow_stack_top += 1;
     //
     asm volatile (
         \\ .syntax unified
         \\
-        \\ push {r0, r1, r2}
+        \\ push {r0, r2}
         \\ ldr r2, .L_g_shadow_stack_top_const1 // Get &g_shadow_stack_top
         \\ ldr r0, [r2]                         // Get g_shadow_stack_top
         \\ bic r12, #1                          // Mark that `r12` is a Non-Secure address.
-        \\ ldr r1, [r0, #0]                     // Load g_shadow_stack_top[0]
-        \\ add r0, #4                           // g_shadow_stack_top + 1
-        \\ cbz r1, .L_overflow_trampoline       // if (g_shadow_stack_top.* == 0) { panic(); }
-        \\ str lr, [r0, #-4]                    // g_shadow_stack_top[0] = lr
+        \\ str lr, [r0], #4                     // g_shadow_stack_top[0] = lr, g_shadow_stack_top + 1
         \\ str r0, [r2]                         // g_shadow_stack_top = (g_shadow_stack_top + 1)
-        \\ pop {r0, r1, r2}
+        \\ pop {r0, r2}
         \\
         \\ bxns r12
         \\
-        \\ .L_overflow_trampoline: b TCShadowStackOverflow
         \\ .L_g_shadow_stack_top_const1: .word g_shadow_stack_top
     );
     unreachable;
@@ -151,7 +155,6 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
     if (comptime ABORTING_SHADOWSTACK) {
-        //  if (g_shadow_stack_top[-1] == 0) { panic(); }
         //  if (g_shadow_stack_top[-1] != lr) { panic(); }
         //  g_shadow_stack_top -= 1;
         //  bxns(lr)
@@ -162,26 +165,22 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\ push {r0, r1}
             \\ ldr r12, .L_g_shadow_stack_top_const2 // Get &g_shadow_stack_top
             \\ ldr r0, [r12]                         // Get g_shadow_stack_top
-            \\ add r0, #-4                           // g_shadow_stack_top - 1
-            \\ ldr r1, [r0]                          // Load g_shadow_stack_top[-1]
-            \\ cbz r1, .L_underflow_trampoline       // if (g_shadow_stack_top[-1] == 0) { panic(); }
-            \\ cmp r1, lr                            // g_shadow_stack_top[-1] != lr
-            \\ bne .L_mismatch_trampoline            // if (g_shadow_stack_top[-1] != lr) { ... }
+            \\ ldr r1, [r0, #-4]!                    // g_shadow_stack_top - 1, Load g_shadow_stack_top[-1]
             \\ str r0, [r12]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
+            \\ cmp r1, lr                            // g_shadow_stack_top[-1] != lr
             \\ pop {r0, r1}
+            \\ bne .L_mismatch_trampoline            // if (g_shadow_stack_top[-1] != lr) { ... }
             \\
             \\ mov r12, #0
             \\
             \\ bxns lr
             \\
             \\ .L_mismatch_trampoline: b TCShadowStackMismatch
-            \\ .L_underflow_trampoline: b TCShadowStackUnderflow
             \\ .L_g_shadow_stack_top_const2: .word g_shadow_stack_top
         );
     } else { // ABORTING_SHADOWSTACK
         //
         //  lr = g_shadow_stack_top[-1];
-        //  if (lr == 0) { panic(); }
         //  g_shadow_stack_top -= 1;
         //  bxns(lr)
         //
@@ -191,10 +190,7 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\ push {r0}
             \\ ldr r12, .L_g_shadow_stack_top_const2 // Get &g_shadow_stack_top
             \\ ldr r0, [r12]                         // Get g_shadow_stack_top
-            \\ add r0, #-4                           // g_shadow_stack_top - 1
-            \\ ldr lr, [r0]                          // Load g_shadow_stack_top[-1]
-            \\ cmp lr, #0                            // if (lr == 0)
-            \\ beq .L_underflow_trampoline           //   { panic(); }
+            \\ ldr lr, [r0, #-4]!                    // g_shadow_stack_top - 1, load g_shadow_stack_top[-1]
             \\ str r0, [r12]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
             \\ pop {r0}
             \\
@@ -202,7 +198,6 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\
             \\ bxns lr
             \\
-            \\ .L_underflow_trampoline: b TCShadowStackUnderflow
             \\ .L_g_shadow_stack_top_const2: .word g_shadow_stack_top
         );
     } // ABORTING_SHADOWSTACK
@@ -228,7 +223,6 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
     if (comptime ABORTING_SHADOWSTACK) {
-        //  if (g_shadow_stack_top[-1] == 0) { panic(); }
         //  if (g_shadow_stack_top[-1] != lr) { panic(); }
         //  g_shadow_stack_top -= 1;
         //  bxns(r12)
@@ -240,13 +234,11 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\ ldr r2, .L_g_shadow_stack_top_const3 // Get &g_shadow_stack_top
             \\ bic r12, #1                          // Mark that `r12` is a Non-Secure address.
             \\ ldr r0, [r2]                         // Get g_shadow_stack_top
-            \\ add r0, #-4                          // g_shadow_stack_top - 1
-            \\ ldr r1, [r0]                         // Load g_shadow_stack_top[-1]
-            \\ cbz r1, .L_underflow_trampoline2     // if (g_shadow_stack_top[-1] == 0) { panic(); }
-            \\ cmp r1, lr                           // g_shadow_stack_top[-1] != lr
-            \\ bne .L_mismatch_trampoline2          // if (g_shadow_stack_top[-1] != lr) { ... }
+            \\ ldr r1, [r0, #-4]!                   // g_shadow_stack_top - 1, Load g_shadow_stack_top[-1]
             \\ str r0, [r2]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
+            \\ cmp r1, lr                           // g_shadow_stack_top[-1] != lr
             \\ pop {r0, r1, r2}
+            \\ bne .L_mismatch_trampoline2          // if (g_shadow_stack_top[-1] != lr) { ... }
             \\
             \\ // Calling a secure gateway automatically clears LR[0]. It's useful
             \\ // for doing `bxns lr` in Secure code, but when used in Non-Secure
@@ -256,13 +248,11 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\ bxns r12
             \\
             \\ .L_mismatch_trampoline2: b TCShadowStackMismatch
-            \\ .L_underflow_trampoline2: b TCShadowStackUnderflow
             \\ .L_g_shadow_stack_top_const3: .word g_shadow_stack_top
         );
     } else { // ABORTING_SHADOWSTACK
         //
         //  lr = g_shadow_stack_top[-1];
-        //  if (lr == 0) { panic(); }
         //  g_shadow_stack_top -= 1;
         //  bxns(r12)
         //
@@ -273,10 +263,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\ ldr r2, .L_g_shadow_stack_top_const3 // Get &g_shadow_stack_top
             \\ bic r12, #1                          // Mark that `r12` is a Non-Secure address.
             \\ ldr r0, [r2]                         // Get g_shadow_stack_top
-            \\ add r0, #-4                          // g_shadow_stack_top - 1
-            \\ ldr lr, [r0]                         // Load g_shadow_stack_top[-1]
-            \\ cmp lr, #0                           // if (lr == 0)
-            \\ beq .L_underflow_trampoline2         //   { panic(); }
+            \\ ldr lr, [r0, #-4]!                   // g_shadow_stack_top - 1, load g_shadow_stack_top[-1]
             \\ str r0, [r2]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
             \\ pop {r0, r2}
             \\
@@ -287,7 +274,6 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\
             \\ bxns r12
             \\
-            \\ .L_underflow_trampoline2: b TCShadowStackUnderflow
             \\ .L_g_shadow_stack_top_const3: .word g_shadow_stack_top
         );
     } // ABORTING_SHADOWSTACK

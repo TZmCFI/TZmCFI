@@ -446,3 +446,86 @@ pub inline fn setFaultmask() void {
 pub inline fn clearFaultmask() void {
     asm volatile ("cpsie f");
 }
+
+/// Memory Protection Unit.
+pub const Mpu = struct {
+    base: usize,
+
+    const Self = @This();
+
+    /// Construct an `Mpu` object using the specified MMIO base address.
+    pub fn withBase(base: usize) Self {
+        return Self{ .base = base };
+    }
+
+    // Register Accessors
+    // -----------------------------------------------------------------------
+
+    /// MPU Type Register
+    pub fn regType(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x00);
+    }
+
+    /// MPU Control Register
+    pub fn regCtrl(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x04);
+    }
+
+    /// Privileged default enable.
+    pub const CTRL_PRIVDEFENA: u32 = 1 << 2;
+
+    /// HardFault, NMI enable.
+    pub const CTRL_HFNMIENA: u32 = 1 << 1;
+
+    /// Enable.
+    pub const CTRL_ENABLE: u32 = 1 << 0;
+
+    /// MPU Region Number Register
+    pub fn regRnr(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x08);
+    }
+
+    /// MPU Region Base Address Register
+    pub fn regRbar(self: Self) *volatile u32 {
+        return self.regRbarA(0);
+    }
+
+    /// MPU Region Limit Address Register
+    pub fn regRlar(self: Self) *volatile u32 {
+        return self.regRlarA(0);
+    }
+
+    /// MPU Region Base Address Register Alias `n` (where 1 ≤ `n` ≤ 3)
+    pub fn regRbarA(self: Self, n: usize) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x14 + (n - 1) * 8);
+    }
+
+    /// MPU Region Limit Address Register Alias `n` (where 1 ≤ `n` ≤ 3)
+    pub fn regRlarA(self: Self, n: usize) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x18 + (n - 1) * 8);
+    }
+
+    /// MPU Memory Attribute Indirection Register `n` (where 0 ≤ `n` ≤ 1)
+    pub fn regMair(self: Self, n: usize) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x30 + n * 4);
+    }
+
+    pub const RBAR_BASE_MASK: u32 = 0xffffffe0;
+    pub const RBAR_SH_NON_SHAREABLE: u32 = 0b00 << 3;
+    pub const RBAR_SH_OUTER_SHAREABLE: u32 = 0b10 << 3;
+    pub const RBAR_SH_INNER_SHAREABLE: u32 = 0b11 << 3;
+    pub const RBAR_AP_RW_PRIV: u32 = 0b00 << 1;
+    pub const RBAR_AP_RW_ANY: u32 = 0b01 << 1;
+    pub const RBAR_AP_RO_PRIV: u32 = 0b10 << 1;
+    pub const RBAR_AP_RO_ANY: u32 = 0b11 << 1;
+    pub const RBAR_XN: u32 = 1;
+
+    pub const RLAR_LIMIT_MASK: u32 = 0xffffffe0;
+    pub const RLAR_PXN: u32 = 1 << 4;
+    pub const RLAR_ATTR_MASK: u32 = 0b111 << 1;
+    pub const RLAR_EN: u32 = 1;
+};
+
+/// Represents theMemory Protection Unit instance corresponding to the current
+/// security mode.
+pub const mpu = Mpu.withBase(0xe000ed90);

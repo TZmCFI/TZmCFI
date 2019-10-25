@@ -1,5 +1,5 @@
 // The root source file for the Secure part of this project.
-export const _ = @import("secure/main.zig");
+export const main_module = @import("secure/main.zig");
 
 const an505 = @import("drivers/an505.zig");
 const builtin = @import("builtin");
@@ -9,6 +9,10 @@ const builtin = @import("builtin");
 pub const TC_ENABLE_PROFILER = @import("build_options").ENABLE_PROFILE;
 pub const TC_ABORTING_SHADOWSTACK = @import("build_options").ABORTING_SHADOWSTACK;
 pub const TC_LOG_LEVEL = @import("build_options").LOG_LEVEL;
+
+// `tzmcfi` hooks
+pub const tcSetShadowStackGuard = main_module.tcSetShadowStackGuard;
+pub const tcResetShadowStackGuard = main_module.tcResetShadowStackGuard;
 
 /// The global panic handler. (The compiler looks for `pub fn panic` in the root
 /// source file. See `zig/std/special/panic.zig`.)

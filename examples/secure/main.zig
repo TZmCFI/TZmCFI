@@ -109,6 +109,27 @@ export fn main() void {
     an505.nspcb.setPpcAccess(an505.ppc.timer1_, true);
     an505.nspcb.setPpcAccess(an505.ppc.dual_timer_, true);
 
+    // Initialize Secure MPU
+    // -----------------------------------------------------------------------
+    // TZmCFI Shadow Stack utilizes MPU for bound checking.
+    const mpu = arm_m.mpu;
+    const Mpu = arm_m.Mpu;
+    //
+    //  - `CTRL_HFNMIENA`: Keep MPU on even if the current execution priority
+    //    is less than 0 (e.g., in a HardFault handler and when `FAULTMASK` is
+    //    set to 1).
+    //
+    //  - `CTRL_PRIVDEFENA`: Allow privileged access everywhere as if MPU
+    //    is not enabled. Region overlaps still cause access violation, which
+    //    we utilize for the bound checking.
+    //
+    mpu.regCtrl().* = Mpu.CTRL_ENABLE | Mpu.CTRL_HFNMIENA | Mpu.CTRL_PRIVDEFENA;
+
+    // The region 2
+    mpu.regRnr().* = 0;
+    mpu.regRbarA(2).* = 0 | Mpu.RBAR_AP_RW_ANY;
+    mpu.regRlarA(2).* = Mpu.RLAR_LIMIT_MASK | Mpu.RLAR_EN;
+
     // Initialize TZmCFI Monitor
     // -----------------------------------------------------------------------
     tzmcfi_monitor.setWarnHandler(tcWarnHandler);
@@ -155,6 +176,25 @@ extern fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) usize {
 
 comptime {
     arm_cmse.exportNonSecureCallable("debugOutput", nsDebugOutput);
+}
+
+pub fn tcSetShadowStackGuard(stack_start: usize, stack_end: usize) void {
+    const mpu = arm_m.mpu;
+    const Mpu = arm_m.Mpu;
+
+    mpu.regRnr().* = 0;
+
+    // `stack_start - 32 .. stack_start`, overlapping the region 2
+    mpu.regRbar().* = (stack_start - 32) | Mpu.RBAR_AP_RW_ANY;
+    mpu.regRlar().* = (stack_start - 32) | Mpu.RLAR_EN;
+
+    // `stack_end .. stack_end + 32`, overlapping the region 2
+    mpu.regRbarA(1).* = stack_end | Mpu.RBAR_AP_RW_ANY;
+    mpu.regRlarA(1).* = stack_end | Mpu.RLAR_EN;
+}
+
+pub fn tcResetShadowStackGuard() void {
+    @panic("tcResetShadowStackGuard: not implemented");
 }
 
 // Build the exception vector table

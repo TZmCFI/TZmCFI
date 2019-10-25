@@ -40,3 +40,22 @@ pub const LogLevel = enum(u8) {
 pub fn isLogLevelEnabled(level: LogLevel) bool {
     return @enumToInt(level) >= @enumToInt(LOG_LEVEL);
 }
+
+/// A function for configuring MPU guard regions for a shadow stack.
+///
+/// The two parameters `start` and `end` specify the starting and ending
+/// addresses of a shadow stack. `start` and `end` are aligned to 32-byte blocks
+/// and `start` is less than `end`. The callee must configure MPU to ensure
+/// memory access at the following ranges fails and triggers an exception:
+///
+///  - `start - 32 .. start`
+///  - `end .. end + 32`
+///
+/// The intended way to implement this is to set up at least 3 MPU regions: the
+/// first one at `start - 32 .. start`, the second one at `end .. end + 32`, and
+/// the last one overlapping both of them. Memory access always fails regardless
+/// of privileged/unprivileged modes in a region overlap.
+pub const setShadowStackGuard: fn(usize, usize)void = root.tcSetShadowStackGuard;
+
+/// A function for removing MPU guard regions for a shadow stack.
+pub const resetShadowStackGuard: fn(usize, usize)void = root.tcResetShadowStackGuard;
