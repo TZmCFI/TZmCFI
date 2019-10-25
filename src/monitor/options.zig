@@ -55,7 +55,7 @@ pub fn isLogLevelEnabled(level: LogLevel) bool {
 /// first one at `start - 32 .. start`, the second one at `end .. end + 32`, and
 /// the last one overlapping both of them. Memory access always fails regardless
 /// of privileged/unprivileged modes in a region overlap.
-pub const setShadowStackGuard: fn(usize, usize)void = root.tcSetShadowStackGuard;
+pub const setShadowStackGuard: fn (usize, usize) void = root.tcSetShadowStackGuard;
 
 /// A function for removing MPU guard regions for a shadow stack.
-pub const resetShadowStackGuard: fn(usize, usize)void = root.tcResetShadowStackGuard;
+pub const resetShadowStackGuard: fn (usize, usize) void = root.tcResetShadowStackGuard;

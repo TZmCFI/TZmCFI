@@ -1,10 +1,12 @@
+// ----------------------------------------------------------------------------
 const std = @import("std");
-
+// ----------------------------------------------------------------------------
 const arm_cmse = @import("arm_cmse");
 const arm_m = @import("arm_m");
 const an505 = @import("../drivers/an505.zig");
-
+// ----------------------------------------------------------------------------
 const tzmcfi_monitor = @import("tzmcfi-monitor");
+// ----------------------------------------------------------------------------
 
 extern var __nsc_start: usize;
 extern var __nsc_end: usize;
@@ -114,7 +116,6 @@ export fn main() void {
     // TZmCFI Shadow Stack utilizes MPU for bound checking.
     const mpu = arm_m.mpu;
     const Mpu = arm_m.Mpu;
-    //
     //  - `CTRL_HFNMIENA`: Keep MPU on even if the current execution priority
     //    is less than 0 (e.g., in a HardFault handler and when `FAULTMASK` is
     //    set to 1).
@@ -155,6 +156,8 @@ fn tcWarnHandler(ctx: void, data: []const u8) error{}!void {
     }
 }
 
+// ----------------------------------------------------------------------------
+
 /// The Non-Secure-callable function that outputs zero or more bytes to the
 /// debug output.
 extern fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) usize {
@@ -178,6 +181,8 @@ comptime {
     arm_cmse.exportNonSecureCallable("debugOutput", nsDebugOutput);
 }
 
+// ----------------------------------------------------------------------------
+
 pub fn tcSetShadowStackGuard(stack_start: usize, stack_end: usize) void {
     const mpu = arm_m.mpu;
     const Mpu = arm_m.Mpu;
@@ -197,6 +202,7 @@ pub fn tcResetShadowStackGuard() void {
     @panic("tcResetShadowStackGuard: not implemented");
 }
 
+// ----------------------------------------------------------------------------
 // Build the exception vector table
 // zig fmt: off
 const VecTable = @import("../common/vectable.zig").VecTable;
