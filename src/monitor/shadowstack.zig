@@ -132,6 +132,7 @@ export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
         \\
         \\ bxns r12
         \\
+        \\ .align 2
         \\ .L_g_shadow_stack_top_const1: .word g_shadow_stack_top
     );
     unreachable;
@@ -175,6 +176,7 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\
             \\ bxns lr
             \\
+            \\ .align 2
             \\ .L_mismatch_trampoline: b TCShadowStackMismatch
             \\ .L_g_shadow_stack_top_const2: .word g_shadow_stack_top
         );
@@ -198,6 +200,7 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\
             \\ bxns lr
             \\
+            \\ .align 2
             \\ .L_g_shadow_stack_top_const2: .word g_shadow_stack_top
         );
     } // ABORTING_SHADOWSTACK
@@ -247,6 +250,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\
             \\ bxns r12
             \\
+            \\ .align 2
             \\ .L_mismatch_trampoline2: b TCShadowStackMismatch
             \\ .L_g_shadow_stack_top_const3: .word g_shadow_stack_top
         );
@@ -274,6 +278,7 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
             \\
             \\ bxns r12
             \\
+            \\ .align 2
             \\ .L_g_shadow_stack_top_const3: .word g_shadow_stack_top
         );
     } // ABORTING_SHADOWSTACK
