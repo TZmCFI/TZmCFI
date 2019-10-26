@@ -16,7 +16,6 @@ pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
     const want_gdb = b.option(bool, "gdb", "Build for using gdb with qemu") orelse false;
     const log_level = try logLevelOptions(b);
-    const accel_raise_pri = b.option(bool, "accel-raise-pri", "Accelerate vRaisePriority (default = true)") orelse true;
     const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
     const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
 
@@ -29,8 +28,17 @@ pub fn build(b: *Builder) !void {
     };
     try cfi_opts.validate();
 
+    const accel_raise_pri = b.option(bool, "accel-raise-pri", "Accelerate vRaisePriority (default = cfi-ctx)") orelse cfi_opts.ctx;
+
     if (enable_profile and eql(u8, log_level, "None")) {
         warn("error: -Dprofile is pointless with -Dlog-level=None\r\n");
+        return error.BadOptions;
+    }
+
+    if (accel_raise_pri and !cfi_opts.ctx) {
+        // `TCRaisePrivilege` is a Secure function, so each thread needs its own
+        // Secure stack 
+        warn("error: -Daccel-raise-pri requires -Dcfi-ctx\r\n");
         return error.BadOptions;
     }
 
