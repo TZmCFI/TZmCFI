@@ -26,20 +26,24 @@ pub fn build(b: *Builder) !void {
         .aborting_ss = b.option(bool, "cfi-aborting-ss", "Use the aborting implementation of SS (default = false)") orelse false,
         .icall = b.option(bool, "cfi-icall", "Enable indirect call CFI (default = cfi)") orelse enable_cfi,
     };
-    try cfi_opts.validate();
+    cfi_opts.validate() catch |e| switch (e) {
+        error.IncompatibleCfiOpts => {
+            b.markInvalidUserInput();
+        },
+    };
 
     const accel_raise_pri = b.option(bool, "accel-raise-pri", "Accelerate vRaisePriority (default = cfi-ctx)") orelse cfi_opts.ctx;
 
     if (enable_profile and eql(u8, log_level, "None")) {
         warn("error: -Dprofile is pointless with -Dlog-level=None\r\n");
-        return error.BadOptions;
+        b.markInvalidUserInput();
     }
 
     if (accel_raise_pri and !cfi_opts.ctx) {
         // `TCRaisePrivilege` is a Secure function, so each thread needs its own
         // Secure stack 
         warn("error: -Daccel-raise-pri requires -Dcfi-ctx\r\n");
-        return error.BadOptions;
+        b.markInvalidUserInput();
     }
 
     const arch = builtin.Arch{ .thumb = .v8m_mainline };
