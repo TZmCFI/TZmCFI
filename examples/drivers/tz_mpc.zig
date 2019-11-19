@@ -127,5 +127,5 @@ fn filterMasks(masks: Masks, filter: u32) Masks {
 /// Returns `0b11111000...000` where the number of trailing zeros is specified
 /// by `pos`. `pos` must be in `[0, 31]`.
 fn onesFrom(pos: u32) u32 {
-    return u32(0xffffffff) << @intCast(u5, pos);
+    return @as(u32, 0xffffffff) << @intCast(u5, pos);
 }

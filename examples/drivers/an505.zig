@@ -126,9 +126,9 @@ pub const Spcb = struct {
             },
         };
         if (allow) {
-            reg.* |= u32(1) << @intCast(u5, iface.num);
+            reg.* |= @as(u32, 1) << @intCast(u5, iface.num);
         } else {
-            reg.* &= ~(u32(1) << @intCast(u5, iface.num));
+            reg.* &= ~(@as(u32, 1) << @intCast(u5, iface.num));
         }
     }
 };
@@ -185,9 +185,9 @@ pub const Nspcb = struct {
             .ApbExp => &self.regApbnspppcexpN()[iface.group],
         };
         if (allow) {
-            reg.* |= u32(1) << @intCast(u5, iface.num);
+            reg.* |= @as(u32, 1) << @intCast(u5, iface.num);
         } else {
-            reg.* &= ~(u32(1) << @intCast(u5, iface.num));
+            reg.* &= ~(@as(u32, 1) << @intCast(u5, iface.num));
         }
     }
 };

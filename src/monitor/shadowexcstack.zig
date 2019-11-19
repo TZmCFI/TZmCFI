@@ -105,7 +105,7 @@ const ExecptionEntryPCSet = struct {
             }
         }
 
-        self.start = start & ~usize(1);
+        self.start = start & ~@as(usize, 1);
         self.len = size - 2;
     }
 
@@ -225,7 +225,7 @@ const ChainedExceptionStackIterator = struct {
         assert((self.exc_return & EXC_RETURN.SPSEL) == 0);
 
         // Unwind the stack
-        const frameSize = if ((self.exc_return & EXC_RETURN.FTYPE) != 0) usize(32) else usize(104);
+        const frameSize = if ((self.exc_return & EXC_RETURN.FTYPE) != 0) @as(usize, 32) else @as(usize, 104);
         self.msp += frameSize;
 
         self.exc_return = new_exc_return;

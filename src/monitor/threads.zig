@@ -50,14 +50,14 @@ pub fn init() void {
 const CreateThreadError = error{OutOfMemory};
 
 fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ffi.TCThread {
-    if (usize(next_free_thread) >= threads.len) {
+    if (@as(usize, next_free_thread) >= threads.len) {
         return error.OutOfMemory;
     }
 
     arm_m.setFaultmask();
     defer arm_m.clearFaultmask();
 
-    const thread_id = usize(next_free_thread);
+    const thread_id = @as(usize, next_free_thread);
 
     const thread_info = try allocator.create(NonSecureThread);
     errdefer allocator.destroy(thread_info);
@@ -109,10 +109,10 @@ fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
     defer arm_m.clearFaultmask();
 
     // This is probably faster than proper bounds checking
-    const new_thread_id = usize(thread) & (threads.len - 1);
+    const new_thread_id = @as(usize, thread) & (threads.len - 1);
     const new_thread = threads[new_thread_id] orelse return error.BadThread;
 
-    const old_thread_id = usize(cur_thread);
+    const old_thread_id = @as(usize, cur_thread);
     const old_thread = threads[old_thread_id].?;
 
     log(.Trace, "activateThread({} → {})\r\n", old_thread_id, new_thread_id);

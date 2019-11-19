@@ -136,7 +136,7 @@ pub const Nvic = struct {
 
     /// Set the target state of the interrupt number `irq` to Non-Secure (Armv8-M or later).
     pub fn targetIrqToNonSecure(self: Self, irq: usize) void {
-        self.regItns()[irq >> 5] |= u32(1) << @truncate(u5, irq);
+        self.regItns()[irq >> 5] |= @as(u32, 1) << @truncate(u5, irq);
     }
 };
 
