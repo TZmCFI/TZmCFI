@@ -122,13 +122,11 @@ export nakedcc fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") noreturn {
     asm volatile (
         \\ .syntax unified
         \\
-        \\ push {r0, r2}
-        \\ ldr r2, .L_g_shadow_stack_top_const1 // Get &g_shadow_stack_top
-        \\ ldr r0, [r2]                         // Get g_shadow_stack_top
+        \\ ldr r5, .L_g_shadow_stack_top_const1 // Get &g_shadow_stack_top
+        \\ ldr r4, [r5]                         // Get g_shadow_stack_top
         \\ bic r12, #1                          // Mark that `r12` is a Non-Secure address.
-        \\ str lr, [r0], #4                     // g_shadow_stack_top[0] = lr, g_shadow_stack_top + 1
-        \\ str r0, [r2]                         // g_shadow_stack_top = (g_shadow_stack_top + 1)
-        \\ pop {r0, r2}
+        \\ str lr, [r4], #4                     // g_shadow_stack_top[0] = lr, g_shadow_stack_top + 1
+        \\ str r4, [r5]                         // g_shadow_stack_top = (g_shadow_stack_top + 1)
         \\
         \\ bxns r12
         \\

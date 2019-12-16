@@ -24,8 +24,7 @@ void __TCPrivateLeaveInterrupt(void);
  *
  * This function uses a special calling convention:
  *  - It returns to `ip` instead of `lr`.
- *  - It does not kill any registers except for `ip`; most GPRs are
- *    callee-saved.
+ *  - It kills `ip`, `r4`, and `r5`
  */
 void __TCPrivateShadowPush(void);
 
