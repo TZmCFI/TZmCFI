@@ -72,7 +72,7 @@ export fn cvt(_arg_arg: f64, _arg_ndigits: c_int, decpt: [*c]c_int, sign: [*c]c_
     if (eflag == 0) p1 += @intCast(usize, r2);
     decpt.?.* = r2;
     if (p1 < (&buf[0])) {
-        buf[0] = u8('\x00');
+        buf[0] = @as(u8, '\x00');
         return buf;
     }
     while ((p <= p1) and (p < (&buf[80]))) {
@@ -86,21 +86,21 @@ export fn cvt(_arg_arg: f64, _arg_ndigits: c_int, decpt: [*c]c_int, sign: [*c]c_
         p += 1;
     }
     if (p1 >= (&buf[80])) {
-        buf[80 - 1] = u8('\x00');
+        buf[80 - 1] = @as(u8, '\x00');
         return buf;
     }
     p = p1;
     p1.?.* +%= 5;
-    while (c_int(p1.?.*) > '9') {
-        p1.?.* = u8('0');
+    while (@as(c_int, p1.?.*) > '9') {
+        p1.?.* = @as(u8, '0');
         if (p1 > buf) {
             p1 -= 1;
             p1.?.* += 1;
         } else {
-            p1.?.* = u8('1');
+            p1.?.* = @as(u8, '1');
             decpt.?.* += 1;
             if (eflag == 0) {
-                if (p > buf) p.?.* = u8('0');
+                if (p > buf) p.?.* = @as(u8, '0');
                 p += 1;
             }
         }
