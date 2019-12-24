@@ -170,8 +170,6 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\ pop {r0, r1}
             \\ bne .L_mismatch_trampoline            // if (g_shadow_stack_top[-1] != lr) { ... }
             \\
-            \\ mov r12, #0
-            \\
             \\ bxns lr
             \\
             \\ .align 2
@@ -194,12 +192,77 @@ export nakedcc fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") no
             \\ str r0, [r12]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
             \\ pop {r0}
             \\
-            \\ mov r12, #0
-            \\
             \\ bxns lr
             \\
             \\ .align 2
             \\ .L_g_shadow_stack_top_const2: .word g_shadow_stack_top
+        );
+    } // ABORTING_SHADOWSTACK
+    unreachable;
+}
+
+export nakedcc fn __TCPrivateShadowAssertReturnFast() linksection(".gnu.sgstubs") noreturn {
+    @setRuntimeSafety(false);
+
+    asm volatile (
+        \\ sg
+    );
+
+    if (ENABLE_PROFILER) {
+        asm volatile (
+            \\ push {r0, r1, r2, r3, lr}
+            \\ bl TCShadowStackLogAssertReturn
+            \\ pop {r0, r1, r2, r3, lr}
+        );
+    }
+
+    // Exactly the same as `__TCPrivateShadowAssertReturn` except that additional registers
+    // are killed.
+
+    // lr = non-trustworthy return target of the caller with bit[0] cleared
+    // kill: r12
+    if (comptime ABORTING_SHADOWSTACK) {
+        //
+        //  [kill: r2, r3]
+        //  if (g_shadow_stack_top[-1] != lr) { panic(); }
+        //  g_shadow_stack_top -= 1;
+        //  bxns(lr)
+        //
+        asm volatile (
+            \\ .syntax unified
+            \\
+            \\ ldr r12, .L_g_shadow_stack_top_const5 // Get &g_shadow_stack_top
+            \\ ldr r2, [r12]                         // Get g_shadow_stack_top
+            \\ ldr r3, [r2, #-4]!                    // g_shadow_stack_top - 1, Load g_shadow_stack_top[-1]
+            \\ str r2, [r12]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
+            \\ cmp r3, lr                            // g_shadow_stack_top[-1] != lr
+            \\ bne .L_mismatch_trampoline2           // if (g_shadow_stack_top[-1] != lr) { ... }
+            \\
+            \\ bxns lr
+            \\
+            \\ .align 2
+            \\ .L_mismatch_trampoline2: b TCShadowStackMismatch
+            \\ .L_g_shadow_stack_top_const5: .word g_shadow_stack_top
+        );
+    } else { // ABORTING_SHADOWSTACK
+        //
+        //  [kill: r3]
+        //  lr = g_shadow_stack_top[-1];
+        //  g_shadow_stack_top -= 1;
+        //  bxns(lr)
+        //
+        asm volatile (
+            \\ .syntax unified
+            \\
+            \\ ldr r12, .L_g_shadow_stack_top_const4 // Get &g_shadow_stack_top
+            \\ ldr r3, [r12]                         // Get g_shadow_stack_top
+            \\ ldr lr, [r3, #-4]!                    // g_shadow_stack_top - 1, load g_shadow_stack_top[-1]
+            \\ str r3, [r12]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
+            \\
+            \\ bxns lr
+            \\
+            \\ .align 2
+            \\ .L_g_shadow_stack_top_const4: .word g_shadow_stack_top
         );
     } // ABORTING_SHADOWSTACK
     unreachable;
@@ -287,5 +350,6 @@ export nakedcc fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") noreturn
 comptime {
     @export("__acle_se___TCPrivateShadowPush", __TCPrivateShadowPush, .Strong);
     @export("__acle_se___TCPrivateShadowAssertReturn", __TCPrivateShadowAssertReturn, .Strong);
+    @export("__acle_se___TCPrivateShadowAssertReturnFast", __TCPrivateShadowAssertReturnFast, .Strong);
     @export("__acle_se___TCPrivateShadowAssert", __TCPrivateShadowAssert, .Strong);
 }

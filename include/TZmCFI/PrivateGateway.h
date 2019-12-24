@@ -47,6 +47,15 @@ void __TCPrivateShadowAssert(void);
  */
 void __TCPrivateShadowAssertReturn(void);
 
+/**
+ * Pops the top entry from the shadow stack and compares it against `lr`.
+ * Returns to `lr`.
+ *
+ * This function uses a special calling convention:
+ *  - It kills `r2` and `r3`.
+ */
+void __TCPrivateShadowAssertReturnFast(void);
+
 #ifdef __cplusplus
 };
 #endif
