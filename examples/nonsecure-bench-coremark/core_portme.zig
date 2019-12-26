@@ -4,7 +4,7 @@ const c = @cImport({
 });
 const warn = @import("../nonsecure-common/debug.zig").warn;
 
-const an505 = @import("../drivers/an505.zig");
+const timer = @import("../ports/" ++ @import("build_options").BOARD ++ "/timer.zig").timer0;
 
 const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 
@@ -17,8 +17,8 @@ const SYSTEM_CORE_CLOCK: comptime_int = 20000000;
 /// or zeroing some system parameters - e.g. setting the cpu clocks cycles to 0.
 export fn start_time() void {
     tzmcfi.TCDebugStartProfiler();
-    an505.timer0.setValue(TIMER_RESET_VALUE);
-    an505.timer0.regCtrl().* = 0b0001; // enable
+    timer.setValue(TIMER_RESET_VALUE);
+    timer.start();
 }
 
 /// This function will be called right after ending the timed portion of the benchmark.
@@ -26,7 +26,7 @@ export fn start_time() void {
 /// Implementation may be capturing a system timer (as implemented in the example code)
 /// or other system parameters - e.g. reading the current value of cpu cycles counter.
 export fn stop_time() void {
-    an505.timer0.regCtrl().* = 0b0000;
+    timer.stop();
     tzmcfi.TCDebugStopProfiler();
     tzmcfi.TCDebugDumpProfile();
 }
@@ -39,7 +39,7 @@ export fn stop_time() void {
 /// The sample implementation returns millisecs by default,
 /// and the resolution is controlled by <TIMER_RES_DIVIDER>
 export fn get_time() c.CORE_TICKS {
-    return TIMER_RESET_VALUE - an505.timer0.getValue();
+    return TIMER_RESET_VALUE - timer.getValue();
 }
 
 /// Convert the value returned by get_time to seconds.

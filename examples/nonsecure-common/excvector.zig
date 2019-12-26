@@ -1,9 +1,8 @@
-const an505 = @import("../drivers/an505.zig");
 const arm_m = @import("arm_m");
 
 // zig fmt: off
 
-const VecTable = @import("../common/vectable.zig").VecTable(an505.num_irqs, an505.irqs.getName);
+const VecTable = @import("../ports/" ++ @import("build_options").BOARD ++ "/excvector.zig").BoardVecTable;
 
 // Compiler bug: If you use write `pub const default_baremetal = ...` instead and
 //               try to export it in a different name by writing like

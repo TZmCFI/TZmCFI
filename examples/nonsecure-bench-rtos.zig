@@ -1,7 +1,7 @@
 // The root source file for the “bench-rtos” example application.
 const std = @import("std");
 const arm_m = @import("arm_m");
-const an505 = @import("drivers/an505.zig");
+const timer = @import("ports/" ++ @import("build_options").BOARD ++ "/timer.zig").timer0;
 const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 const warn = @import("nonsecure-common/debug.zig").warn;
 
@@ -212,17 +212,17 @@ var unpriv_state align(32) = struct {
 
 /// Measurement routines
 const measure = struct {
-    const TIMER_RESET_VALUE: u32 = 0x80000000;
+    const TIMER_RESET_VALUE: u32 = 0x800000;
     const overhead = &unpriv_state.overhead;
 
     fn __measureStart() void {
         tzmcfi.TCDebugStartProfiler();
-        an505.timer0.setValue(TIMER_RESET_VALUE);
-        an505.timer0.regCtrl().* = 0b0001; // enable
+        timer.setValue(TIMER_RESET_VALUE);
+        timer.start(); // enable
     }
 
     fn __measureEnd() void {
-        an505.timer0.regCtrl().* = 0b0000;
+        timer.stop();
         tzmcfi.TCDebugStopProfiler();
         tzmcfi.TCDebugDumpProfile();
     }
@@ -242,7 +242,7 @@ const measure = struct {
     }
 
     fn getNumCycles() i32 {
-        return @intCast(i32, TIMER_RESET_VALUE - an505.timer0.getValue()) - overhead.*;
+        return @intCast(i32, TIMER_RESET_VALUE - timer.getValue()) - overhead.*;
     }
 };
 

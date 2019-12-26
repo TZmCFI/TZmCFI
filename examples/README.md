@@ -8,6 +8,7 @@ This directory is organized as follows:
     - `drivers` contains device drivers for supported target platforms.
 - Shared code
     - `common` contains things which are shared by both of the Secure and Non-Secure parts of the example applications.
+    - `ports` contains board-specific code for each supported target board, which is shared by both of the Secure and Non-Secure parts of the example applications.
 - Secure (bootloader + TZmCFI Monitor + serial output abstraction)
     - `secure` contains the Secure bootloader/entry point. It imports TZmCFI (`../src`) under the package name `tzmcfi-monitor`, which exports several gateway functions through a C interface. `secure.zig` is the root source file of the Secure module and provides a configuration for TZmCFI Monitor, which is picked up using `@import("root")`.
 - Non-Secure

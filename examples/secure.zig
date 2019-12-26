@@ -1,7 +1,6 @@
 // The root source file for the Secure part of this project.
 export const main_module = @import("secure/main.zig");
 
-const an505 = @import("drivers/an505.zig");
 const builtin = @import("builtin");
 
 // Pass build options to `tzmcfi`, which picks them up via `@import("root")`
@@ -19,7 +18,7 @@ pub const tcResetShadowStackGuard = main_module.tcResetShadowStackGuard;
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
 
-    an505.uart0_s.print("panic: {}\r\n", msg);
+    main_module.port.print("panic: {}\r\n", msg);
     @breakpoint();
     unreachable;
 }

@@ -46,6 +46,20 @@ pub fn build(b: *Builder) !void {
         b.markInvalidUserInput();
     }
 
+    const target_board = b.option([]const u8, "target-board", "Specify the target board (default = an505)") orelse "an505";
+    const supported_boards = [_][]const u8 {
+        "an505"
+    };
+
+    for (supported_boards) |supported_board| {
+        if (eql(u8, supported_board, target_board)) {
+            break;
+        }
+    } else {
+        warn("error: unknown board name '{}'\r\n", target_board);
+        b.markInvalidUserInput();
+    }
+
     const arch = builtin.Arch{ .thumb = .v8m_mainline };
 
     // The utility program for creating a CMSE import library
@@ -57,7 +71,7 @@ pub fn build(b: *Builder) !void {
     // This part is shared by all Non-Secure applications.
     const exe_s_name = if (want_gdb) "secure-dbg" else "secure";
     const exe_s = b.addExecutable(exe_s_name, "secure.zig");
-    exe_s.setLinkerScriptPath("secure/linker.ld");
+    exe_s.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/secure.ld", target_board));
     exe_s.setTarget(arch, .freestanding, .eabi);
     exe_s.setBuildMode(mode);
     exe_s.addAssemblyFile("common/startup.S");
@@ -69,6 +83,7 @@ pub fn build(b: *Builder) !void {
     exe_s.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", log_level));
     exe_s.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
     exe_s.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
+    exe_s.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", target_board));
 
     // CMSE import library (generated from the Secure binary)
     // -------------------------------------------------------
@@ -142,6 +157,7 @@ pub fn build(b: *Builder) !void {
         .mode = mode,
         .want_gdb = want_gdb,
         .cfi_opts = &cfi_opts,
+        .target_board = target_board,
         .implib_path = implib_path,
         .implib_step = &implib.step,
         .exe_s = exe_s,
@@ -253,6 +269,7 @@ const NsAppDeps = struct {
     mode: builtin.Mode,
     want_gdb: bool,
     cfi_opts: *const CfiOpts,
+    target_board: []const u8,
 
     // Secure dependency
     implib_path: []const u8,
@@ -294,6 +311,7 @@ fn defineNonSecureApp(
     const exe_s = ns_app_deps.exe_s;
     const kernel_include_dirs = ns_app_deps.kernel_include_dirs;
     const kernel = ns_app_deps.kernel;
+    const target_board = ns_app_deps.target_board;
 
     const name = app_info.name;
 
@@ -306,7 +324,7 @@ fn defineNonSecureApp(
     // -------------------------------------------------------
     const exe_ns_name = if (want_gdb) name ++ "-dbg" else name;
     const exe_ns = b.addExecutable(exe_ns_name, app_info.root);
-    exe_ns.setLinkerScriptPath("nonsecure-common/linker.ld");
+    exe_ns.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/nonsecure.ld", target_board));
     exe_ns.setTarget(arch, .freestanding, .eabi);
     exe_ns.setBuildMode(mode);
     exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
@@ -314,6 +332,7 @@ fn defineNonSecureApp(
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_ns.enable_lto = true;
+    exe_ns.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", target_board));
 
     ns_app_deps.cfi_opts.configureBuildStep(exe_ns);
 

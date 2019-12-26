@@ -1,16 +1,16 @@
 // The root source file for the "bench-latency" example application.
 const std = @import("std");
 const arm_m = @import("arm_m");
-const an505 = @import("drivers/an505.zig");
 const warn = @import("nonsecure-common/debug.zig").warn;
+const port_timer = @import("ports/" ++ @import("build_options").BOARD ++ "/timer.zig");
 
 // zig fmt: off
 // The (unprocessed) Non-Secure exception vector table.
 export const raw_exception_vectors linksection(".text.raw_isr_vector") =
     @import("nonsecure-common/excvector.zig")
         .getDefaultBaremetal()
-        .setTcExcHandler(an505.irqs.Timer0_IRQn, handleTimer0)
-        .setTcExcHandler(an505.irqs.Timer1_IRQn, handleTimer1);
+        .setTcExcHandler(port_timer.irqs.Timer0_IRQn, handleTimer0)
+        .setTcExcHandler(port_timer.irqs.Timer1_IRQn, handleTimer1);
 // zig fmt: on
 /// Used for communication between `main` and the interrupt handlers
 const CommBlock = struct {
@@ -33,13 +33,13 @@ export fn main() void {
 
     // Timer1 has a higher priority than Timer0, meaning Timer1 can preempt
     // Timer0's handler.
-    arm_m.nvic.setIrqPriority(an505.irqs.Timer0_IRQn - 16, 0x80);
-    arm_m.nvic.setIrqPriority(an505.irqs.Timer1_IRQn - 16, 0x10);
-    arm_m.nvic.enableIrq(an505.irqs.Timer0_IRQn - 16);
-    arm_m.nvic.enableIrq(an505.irqs.Timer1_IRQn - 16);
+    arm_m.nvic.setIrqPriority(port_timer.irqs.Timer0_IRQn - 16, 0x80);
+    arm_m.nvic.setIrqPriority(port_timer.irqs.Timer1_IRQn - 16, 0x10);
+    arm_m.nvic.enableIrq(port_timer.irqs.Timer0_IRQn - 16);
+    arm_m.nvic.enableIrq(port_timer.irqs.Timer1_IRQn - 16);
 
-    an505.timer0.setReloadValue(0x1000000);
-    an505.timer1.setReloadValue(0x1000000);
+    port_timer.timer0.setReloadValue(0x1000000);
+    port_timer.timer1.setReloadValue(0x1000000);
 
     var i: u32 = 2500;
 
@@ -48,14 +48,14 @@ export fn main() void {
         comm().measure_done = 0;
 
         // Timer1 fires late iff i > 3000.
-        an505.timer0.setValue(3000 - 1);
-        an505.timer1.clearInterruptFlag();
+        port_timer.timer0.setValue(3000 - 1);
+        port_timer.timer0.clearInterruptFlag();
 
-        an505.timer1.setValue(i - 1);
-        an505.timer1.clearInterruptFlag();
+        port_timer.timer1.setValue(i - 1);
+        port_timer.timer1.clearInterruptFlag();
 
-        an505.timer0.regCtrl().* = 0b1001; // enable, IRQ enable
-        an505.timer1.regCtrl().* = 0b1001; // enable, IRQ enable
+        port_timer.timer0.startWithInterruptEnabled();
+        port_timer.timer1.startWithInterruptEnabled();
 
         while (comm().measure_done < 2) {}
     }
@@ -69,13 +69,13 @@ export fn main() void {
 }
 
 extern fn handleTimer0() void {
-    const timer = an505.timer0;
+    const timer = port_timer.timer0;
 
     // Clear the interrupt flag
     timer.clearInterruptFlag();
 
     // Stop the timer
-    timer.regCtrl().* = 0;
+    timer.stop();
 
     // Flag the cases where Timer1 preempts Timer0's handler too late
     asm volatile ("cpsid f");
@@ -91,13 +91,13 @@ extern fn handleTimer0() void {
 var last_observed_pattern_hash: u32 = 0;
 
 extern fn handleTimer1() void {
-    const timer = an505.timer1;
+    const timer = port_timer.timer1;
 
     // Clear the interrupt flag
     timer.clearInterruptFlag();
 
     // Stop the timer
-    timer.regCtrl().* = 0;
+    timer.stop();
 
     // Collect information
     const sp = @frameAddress();
