@@ -4,7 +4,7 @@ const flexcomm_driver = @import("flexcomm.zig");
 
 /// Security access rules for flash memory. Each flash sector is 32 kbytes.
 /// There are 20 FLASH sectors in total.
-pub const mpc_flash = lpc_protchecker.Mpc {
+pub const mpc_flash = lpc_protchecker.Mpc{
     .base = 0x500ac010,
     .block_size_shift = 15,
     .num_blocks = 20,
@@ -12,49 +12,49 @@ pub const mpc_flash = lpc_protchecker.Mpc {
 
 /// Security access rules for ROM memory. Each ROM sector is 4 kbytes. There
 /// are 32 ROM sectors in total.
-pub const mpc_rom = lpc_protchecker.Mpc {
+pub const mpc_rom = lpc_protchecker.Mpc{
     .base = 0x500ac024,
     .block_size_shift = 12,
     .num_blocks = 32,
 };
 
 /// Security access rules for RAMX. Each RAMX sub region is 4 kbytes.
-pub const mpc_ramx = lpc_protchecker.Mpc {
+pub const mpc_ramx = lpc_protchecker.Mpc{
     .base = 0x500ac040,
     .block_size_shift = 12,
     .num_blocks = 8,
 };
 
 /// Security access rules for RAM0. Each RAMX sub region is 4 kbytes.
-pub const mpc_ram0 = lpc_protchecker.Mpc {
+pub const mpc_ram0 = lpc_protchecker.Mpc{
     .base = 0x500ac060,
     .block_size_shift = 12,
     .num_blocks = 16,
 };
 
 /// Security access rules for RAM1. Each RAM1 sub region is 4 kbytes.
-pub const mpc_ram1 = lpc_protchecker.Mpc {
+pub const mpc_ram1 = lpc_protchecker.Mpc{
     .base = 0x500ac080,
     .block_size_shift = 12,
     .num_blocks = 16,
 };
 
 /// Security access rules for RAM2. Each RAM2 sub region is 4 kbytes.
-pub const mpc_ram2 = lpc_protchecker.Mpc {
+pub const mpc_ram2 = lpc_protchecker.Mpc{
     .base = 0x500ac0a0,
     .block_size_shift = 12,
     .num_blocks = 16,
 };
 
 /// Security access rules for RAM3. Each RAM3 sub region is 4 kbytes.
-pub const mpc_ram3 = lpc_protchecker.Mpc {
+pub const mpc_ram3 = lpc_protchecker.Mpc{
     .base = 0x500ac0c0,
     .block_size_shift = 12,
     .num_blocks = 16,
 };
 
 /// Security access rules for RAM4. Each RAM4 sub region is 4 kbytes.
-pub const mpc_ram4 = lpc_protchecker.Mpc {
+pub const mpc_ram4 = lpc_protchecker.Mpc{
     .base = 0x500ac0e0,
     .block_size_shift = 12,
     .num_blocks = 4,
@@ -78,20 +78,20 @@ pub const PpcApbBridge0 = struct {
     }
 };
 
-pub const ppc_apb_bridge0 = PpcApbBridge0 { .base = 0x500AC100 };
+pub const ppc_apb_bridge0 = PpcApbBridge0{ .base = 0x500AC100 };
 
 pub const Flexcomm = flexcomm_driver.Flexcomm;
 
 /// Flexcomm instances (Secure alias)
-pub const flexcomm = [8]Flexcomm {
-    Flexcomm { .base = 0x50086000 },
-    Flexcomm { .base = 0x50087000 },
-    Flexcomm { .base = 0x50088000 },
-    Flexcomm { .base = 0x50089000 },
-    Flexcomm { .base = 0x5008a000 },
-    Flexcomm { .base = 0x50096000 },
-    Flexcomm { .base = 0x50097000 },
-    Flexcomm { .base = 0x50098000 },
+pub const flexcomm = [8]Flexcomm{
+    Flexcomm{ .base = 0x50086000 },
+    Flexcomm{ .base = 0x50087000 },
+    Flexcomm{ .base = 0x50088000 },
+    Flexcomm{ .base = 0x50089000 },
+    Flexcomm{ .base = 0x5008a000 },
+    Flexcomm{ .base = 0x50096000 },
+    Flexcomm{ .base = 0x50097000 },
+    Flexcomm{ .base = 0x50098000 },
 };
 
 pub const Syscon = struct {
@@ -111,7 +111,7 @@ pub const Syscon = struct {
     pub fn regAhbclkctrlset1(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x224);
     }
-    
+
     pub fn ahbclkctrl1Fc(comptime i: u3) u32 {
         return bit(11 + @as(u5, i));
     }
@@ -132,7 +132,7 @@ pub const Syscon = struct {
     pub fn regFcclksel(self: Self, i: u3) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x2b0 + @as(u32, i) * 4);
     }
-    
+
     pub const FCCLKSEL_PLL0DIV: u32 = 1;
 
     pub fn regFlexfrgctrl(self: Self, i: u3) *volatile u32 {
@@ -175,7 +175,7 @@ pub const Syscon = struct {
     pub fn regPll0ctrl(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x580);
     }
-    
+
     pub const Pll0ctrl = packed struct {
         selr: u4 = 0,
         seli: u6 = 0,
@@ -206,7 +206,7 @@ pub const Syscon = struct {
     pub fn regPll0ndec(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x588);
     }
-    
+
     pub const PLL0NDEC_NREQ = bit(8);
 
     pub fn setPll0NDividerRatio(self: Self, ratio: u8) void {
@@ -254,7 +254,7 @@ pub const Syscon = struct {
     pub const CLOCK_CTRL_CLKIN_ENA = bit(5);
 };
 
-pub const syscon = Syscon { .base = 0x50000000 };
+pub const syscon = Syscon{ .base = 0x50000000 };
 
 pub const Pmc = struct {
     base: usize,
@@ -272,7 +272,7 @@ pub const Pmc = struct {
     pub const PDRUNCFG0_PDEN_LDOXO32M = bit(20);
 };
 
-pub const pmc = Pmc { .base = 0x50020000 };
+pub const pmc = Pmc{ .base = 0x50020000 };
 
 /// Analog control
 pub const AnaCtrl = struct {
@@ -293,7 +293,7 @@ pub const AnaCtrl = struct {
     pub const XO32M_STATUS_XO_READY = bit(0);
 };
 
-pub const ana_ctrl = AnaCtrl { .base = 0x50013000 };
+pub const ana_ctrl = AnaCtrl{ .base = 0x50013000 };
 
 /// I/O Pin Configuration
 pub const Iocon = struct {
@@ -308,11 +308,13 @@ pub const Iocon = struct {
         return @intToPtr(*volatile u32, self.base + 0x080 + i * 4);
     }
 
-    pub fn pFunc(f: u32) u32 { return f; }
+    pub fn pFunc(f: u32) u32 {
+        return f;
+    }
     pub const P_DIGIMODE = bit(8);
 };
 
-pub const iocon = Iocon { .base = 0x50001000 };
+pub const iocon = Iocon{ .base = 0x50001000 };
 
 /// The number of hardware interrupt lines.
 pub const num_irqs = 60;

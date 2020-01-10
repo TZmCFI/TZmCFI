@@ -9,10 +9,10 @@ pub const Flexcomm = struct {
     pub fn regPselid(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0xff8);
     }
-    
+
     pub const PSELID_PERSEL_USART = 0x1;
 
-    /// USART Configuration register. Basic USART configuration settings that 
+    /// USART Configuration register. Basic USART configuration settings that
     /// typically are not changed during operation.
     pub fn regUsartCfg(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x000);

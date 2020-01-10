@@ -1,13 +1,15 @@
 /// The device driver for MPC (Memory Protection Checker) and PPC (Peripheral
 /// PRotection Checker) found in LPC microcontrollers including LPC55S69.
-
 pub const ProtCheckerRule = enum {
     /// Non-secure and non-privileged user access allowed.
     NsNonpriv = 0,
+
     /// Non-secure and privileged access allowed.
     NsPriv = 1,
+
     /// Secure and non-privileged user access allowed.
     SNonpriv = 2,
+
     /// Secure and privileged user access allowed.
     SPriv = 3,
 };
@@ -82,7 +84,6 @@ pub const Mpc = struct {
         }
     }
 };
-
 
 /// AND and XOR masks.
 const Masks = [2]u32;

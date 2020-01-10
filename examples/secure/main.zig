@@ -4,8 +4,7 @@ const std = @import("std");
 const arm_cmse = @import("arm_cmse");
 const arm_m = @import("arm_m");
 pub const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/secure.zig");
-const BoardVecTable = @import("../ports/" ++ @import("build_options").BOARD ++ "/excvector.zig")
-    .BoardVecTable;
+const BoardVecTable = @import("../ports/" ++ @import("build_options").BOARD ++ "/excvector.zig").BoardVecTable;
 // ----------------------------------------------------------------------------
 const tzmcfi_monitor = @import("tzmcfi-monitor");
 // ----------------------------------------------------------------------------
