@@ -4,7 +4,7 @@ const std = @import("std");
 const arm_cmse = @import("arm_cmse");
 const arm_m = @import("arm_m");
 pub const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/secure.zig");
-const BoardVecTable = @import("../ports/" ++ @import("build_options").BOARD ++ "/excvector.zig").BoardVecTable;
+const secure_board_vec_table = @import("../ports/" ++ @import("build_options").BOARD ++ "/excvector.zig").secure_board_vec_table;
 // ----------------------------------------------------------------------------
 const tzmcfi_monitor = @import("tzmcfi-monitor");
 // ----------------------------------------------------------------------------
@@ -153,11 +153,9 @@ pub fn tcResetShadowStackGuard() void {
 // Build the exception vector table
 // zig fmt: off
 const VecTable = @import("../common/vectable.zig").VecTable;
-export const exception_vectors linksection(".isr_vector") =
-    BoardVecTable
-        .new()
-        .setInitStackPtr(_main_stack_top)
-        .setExcHandler(arm_m.irqs.Reset_IRQn, handleReset);
+export const exception_vectors linksection(".isr_vector") = secure_board_vec_table
+    .setInitStackPtr(_main_stack_top)
+    .setExcHandler(arm_m.irqs.Reset_IRQn, handleReset);
 // zig fmt: on
 extern fn _main_stack_top() void;
 extern fn _handler_stack_top() void;

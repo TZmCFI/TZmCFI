@@ -3,7 +3,7 @@
 pub fn VecTable(comptime num_irqs: usize, comptime nameProvider: var) type {
     return extern struct {
         stack: ?extern fn () void,
-        handlers: [num_irqs + 16]extern fn () void,
+        handlers: [num_irqs + 16]?extern fn () void,
 
         const Self = @This();
 
@@ -26,13 +26,13 @@ pub fn VecTable(comptime num_irqs: usize, comptime nameProvider: var) type {
         // FIXME: `sp` is actually a pointer to non-code data, but Zig won't let us
         //        create a pointer to such entities (e.g., `extern var stack: u8`) in a constant
         //        context. (Hence the use of a function pointer)
-        pub fn setInitStackPtr(self: Self, sp: extern fn () void) Self {
+        pub fn setInitStackPtr(self: Self, sp: ?extern fn () void) Self {
             var this = self;
             this.stack = sp;
             return this;
         }
 
-        pub fn setExcHandler(self: Self, exc_number: usize, handler: extern fn () void) Self {
+        pub fn setExcHandler(self: Self, exc_number: usize, handler: ?extern fn () void) Self {
             var this = self;
             this.handlers[exc_number - 1] = handler;
             return this;
