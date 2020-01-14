@@ -1,6 +1,7 @@
 // The root source file for the "rtosbasic" example application.
 const std = @import("std");
 const warn = @import("nonsecure-common/debug.zig").warn;
+const port = @import("ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
 
 // FreeRTOS-related thingy
 const os = @cImport({
@@ -16,7 +17,7 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import
 // The entry point. The reset handler transfers the control to this function
 // after initializing data sections.
 export fn main() void {
-    warn("Entering the scheduler.\r\n");
+    port.init();
 
     warn("Creating an idle task.\r\n");
     _ = os.xTaskCreateRestricted(&idle_task_params, 0);

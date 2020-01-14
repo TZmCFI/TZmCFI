@@ -2,6 +2,7 @@
 const std = @import("std");
 const arm_m = @import("arm_m");
 const warn = @import("nonsecure-common/debug.zig").warn;
+const port = @import("ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
 
 // The (unprocessed) Non-Secure exception vector table.
 // zig fmt: off
@@ -11,6 +12,8 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") =
         .setTcExcHandler(arm_m.irqs.SysTick_IRQn, handleSysTick);
 // zig fmt: on
 export fn main() void {
+    port.init();
+    
     warn("yay\r\n");
 
     // Configure SysTick

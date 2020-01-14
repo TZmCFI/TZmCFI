@@ -5,6 +5,7 @@ const c = @cImport({
 const warn = @import("../nonsecure-common/debug.zig").warn;
 
 const timer = @import("../ports/" ++ @import("build_options").BOARD ++ "/timer.zig").timer0;
+const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
 
 const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 
@@ -63,6 +64,8 @@ comptime {
 
 /// Target specific initialization code
 export fn portable_init(p: *c.core_portable, _argc: *c_int, _argv: ?[*]([*]u8)) void {
+    port.init();
+
     p.portable_id = 1;
     warn("* portable_init\r\n");
 }

@@ -2,6 +2,7 @@
 const std = @import("std");
 const arm_m = @import("arm_m");
 const warn = @import("nonsecure-common/debug.zig").warn;
+const port = @import("ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
 const port_timer = @import("ports/" ++ @import("build_options").BOARD ++ "/timer.zig");
 
 // zig fmt: off
@@ -25,6 +26,8 @@ fn comm() *volatile CommBlock {
 }
 
 export fn main() void {
+    port.init();
+    
     warn("Starting the interrupt latency benchmark...\r\n");
 
     warn("\r\n");

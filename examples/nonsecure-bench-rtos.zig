@@ -4,6 +4,7 @@ const arm_m = @import("arm_m");
 const timer = @import("ports/" ++ @import("build_options").BOARD ++ "/timer.zig").timer0;
 const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 const warn = @import("nonsecure-common/debug.zig").warn;
+const port = @import("ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
 
 // FreeRTOS-related thingy
 const os = @cImport({
@@ -20,6 +21,8 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import
 // The entry point. The reset handler transfers the control to this function
 // after initializing data sections.
 export fn main() void {
+    port.init();
+    
     seqmon.mark(0);
 
     // Get the measurement overhead
