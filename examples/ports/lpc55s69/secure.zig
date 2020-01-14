@@ -3,7 +3,7 @@ const arm_m = @import("arm_m");
 const arm_cmse = @import("arm_cmse");
 const lpc55s69 = @import("../../drivers/lpc55s69.zig");
 
-pub const VTOR_NS = 0x00200000;
+pub const VTOR_NS = 0x00010000;
 
 extern var __nsc_start: usize;
 extern var __nsc_end: usize;
