@@ -29,7 +29,7 @@ pub fn init() void {
     // -----------------------------------------------------------------------
 
     // Power up the crystal oscillator
-    pmc.regPdruncdfclr0().* = Pmc.PDRUNCFG0_PDEN_XTAL32M | Pmc.PDRUNCFG0_PDEN_PLL0;
+    pmc.regPdruncdfclr0().* = Pmc.PDRUNCFG0_PDEN_XTAL32M | Pmc.PDRUNCFG0_PDEN_LDOXO32M;
 
     // Enable CLKIN from the crystal oscillator
     syscon.regClockCtrl().* |= Syscon.CLOCK_CTRL_CLKIN_ENA;
