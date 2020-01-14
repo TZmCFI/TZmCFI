@@ -86,6 +86,11 @@ pub fn build(b: *Builder) !void {
     exe_s.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
     exe_s.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", target_board));
 
+    if (eql(u8, target_board, "lpc55s69")) {
+        // Binary blob from MCUXpresso SDK
+        exe_s.addObjectFile("ports/lpc55s69/sdk/libpower_hardabi_s.a");
+    }
+
     // CMSE import library (generated from the Secure binary)
     // -------------------------------------------------------
     // It includes the absolute addresses of Non-Secure-callable functions

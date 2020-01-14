@@ -23,10 +23,17 @@ const iocon = lpc55s69.iocon;
 const AnaCtrl = lpc55s69.AnaCtrl;
 const ana_ctrl = lpc55s69.ana_ctrl;
 
+/// Power Library API to choose normal regulation and set the voltage for the
+/// desired operating frequency.
+///
+/// Defined in `libpower_*.a`. Source code is not included in the SDK.
+extern fn POWER_SetVoltageForFreq(system_freq_hz: u32) void;
+
 /// Perform the board-specific initialization.
 pub fn init() void {
     // Configure Clock Tree
     // -----------------------------------------------------------------------
+    POWER_SetVoltageForFreq(150000000);
 
     // Power up the crystal oscillator
     pmc.regPdruncdfclr0().* = Pmc.PDRUNCFG0_PDEN_XTAL32M | Pmc.PDRUNCFG0_PDEN_LDOXO32M;
