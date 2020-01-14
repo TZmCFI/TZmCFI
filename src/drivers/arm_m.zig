@@ -487,12 +487,12 @@ pub const Mpu = struct {
 
     /// MPU Region Base Address Register
     pub fn regRbar(self: Self) *volatile u32 {
-        return self.regRbarA(0);
+        return @intToPtr(*volatile u32, self.base + 0x0c);
     }
 
     /// MPU Region Limit Address Register
     pub fn regRlar(self: Self) *volatile u32 {
-        return self.regRlarA(0);
+        return @intToPtr(*volatile u32, self.base + 0x10);
     }
 
     /// MPU Region Base Address Register Alias `n` (where 1 ≤ `n` ≤ 3)
