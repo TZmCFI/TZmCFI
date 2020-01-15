@@ -5,12 +5,12 @@ const c = @cImport({
 const warn = @import("../nonsecure-common/debug.zig").warn;
 
 const timer = @import("../ports/" ++ @import("build_options").BOARD ++ "/timer.zig").timer0;
-const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
+const port_ns = @import("../ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
+const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/common.zig");
 
 const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 
 const TIMER_RESET_VALUE: u32 = 0x80000000;
-const SYSTEM_CORE_CLOCK: comptime_int = 20000000;
 
 /// This function will be called right before starting the timed portion of the benchmark.
 ///
@@ -48,7 +48,7 @@ export fn get_time() c.CORE_TICKS {
 /// The <secs_ret> type is used to accomodate systems with no support for floating point.
 /// Default implementation implemented by the EE_TICKS_PER_SEC macro above.
 export fn time_in_secs(ticks: c.CORE_TICKS) c.secs_ret {
-    return @intToFloat(f64, ticks) / SYSTEM_CORE_CLOCK;
+    return @intToFloat(f64, ticks) / port.system_core_clock;
 }
 
 export var default_num_contexts: c.ee_u32 = 1;
@@ -64,7 +64,7 @@ comptime {
 
 /// Target specific initialization code
 export fn portable_init(p: *c.core_portable, _argc: *c_int, _argv: ?[*]([*]u8)) void {
-    port.init();
+    port_ns.init();
 
     p.portable_id = 1;
     warn("* portable_init\r\n");

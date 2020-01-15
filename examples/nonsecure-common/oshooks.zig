@@ -6,7 +6,9 @@ const os = @cImport({
 
 const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 
-export const SystemCoreClock: u32 = 20000000;
+const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/common.zig");
+
+export const SystemCoreClock: u32 = port.system_core_clock;
 
 // `SecureContext_LoadContext`
 comptime {
