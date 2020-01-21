@@ -1,5 +1,5 @@
 // The root source file for the Secure part of this project.
-export const main_module = @import("secure/main.zig");
+const main_module = @import("secure/main.zig");
 
 const builtin = @import("builtin");
 
@@ -18,7 +18,7 @@ pub const tcResetShadowStackGuard = main_module.tcResetShadowStackGuard;
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
 
-    main_module.port.print("panic: {}\r\n", msg);
+    main_module.port.print("panic: {}\r\n", .{msg});
     @breakpoint();
     unreachable;
 }

@@ -58,7 +58,7 @@ export fn SecureContext_AllocateContext(contextId: u32, taskPrivileged: u32, pc:
     _ = taskPrivileged;
 
     const create_info = tzmcfi.TCThreadCreateInfo{
-        .flags = tzmcfi.TCThreadCreateFlagsNone,
+        .flags = .None,
         .stackSize = 4, // unused for now
         .initialPC = pc,
         .initialLR = lr,
@@ -70,7 +70,7 @@ export fn SecureContext_AllocateContext(contextId: u32, taskPrivileged: u32, pc:
 
     const result = tzmcfi.TCCreateThread(&create_info, &thread);
 
-    if (result != tzmcfi.TC_RESULT_SUCCESS) {
+    if (result != .TC_RESULT_SUCCESS) {
         @panic("TCCreateThread failed");
     }
 

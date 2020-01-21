@@ -12,7 +12,7 @@ pub const StackTrace = builtin.StackTrace;
 pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
     @setCold(true);
 
-    warn("NS panic: {}\r\n", msg);
+    warn("NS panic: {}\r\n", .{msg});
     @breakpoint();
     unreachable;
 }

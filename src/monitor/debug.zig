@@ -7,7 +7,7 @@ const isLogLevelEnabled = options.isLogLevelEnabled;
 // ----------------------------------------------------------------------------
 
 /// Output a formatted text via a global debug output function.
-pub fn log(comptime level: LogLevel, comptime fmt: []const u8, args: ...) void {
+pub fn log(comptime level: LogLevel, comptime fmt: []const u8, args: var) void {
     if (comptime isLogLevelEnabled(level)) {
         if (cur_handler) |handler| {
             format({}, error{}, handler, fmt, args) catch unreachable;

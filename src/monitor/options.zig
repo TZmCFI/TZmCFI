@@ -15,7 +15,7 @@ else
 
 /// Compile-time log level.
 pub const LOG_LEVEL: LogLevel = if (@hasDecl(root, "TC_LOG_LEVEL"))
-    if (@typeOf(root.TC_LOG_LEVEL) == LogLevel)
+    if (@TypeOf(root.TC_LOG_LEVEL) == LogLevel)
         root.TC_LOG_LEVEL
     else
         @field(LogLevel, root.TC_LOG_LEVEL)

@@ -66,7 +66,7 @@ pub fn init() void {
 }
 
 /// Render the format string `fmt` with `args` and transmit the output.
-pub fn print(comptime fmt: []const u8, args: ...) void {
+pub fn print(comptime fmt: []const u8, args: var) void {
     format({}, error{}, printInner, fmt, args) catch unreachable;
 }
 

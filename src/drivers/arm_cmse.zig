@@ -6,7 +6,7 @@ const assert = @import("std").debug.assert;
 pub fn nonSecureCall(func: var, r0: usize, r1: usize, r2: usize, r3: usize) usize {
     @setAlignStack(8);
 
-    const target = if (@typeOf(func) == usize) func else @ptrToInt(func);
+    const target = if (@TypeOf(func) == usize) func else @ptrToInt(func);
 
     // Specifying Armv8-M in `build.zig` won't work for some reason, so we have
     // to specify the architecture here using the `.cpu` directive
@@ -145,7 +145,7 @@ pub const CheckSliceError = error{
 /// This roughly follows the address range check intrinsic described in:
 /// “ARM®v8-M Security Extensions: Requirements on Development Tools”
 pub inline fn checkAddressRange(ptr: var, size: usize, options: CheckOptions) CheckError!void {
-    const start = if (@typeOf(ptr) == usize) ptr else @ptrToInt(ptr);
+    const start = if (@TypeOf(ptr) == usize) ptr else @ptrToInt(ptr);
     var end: usize = start;
 
     if (size > 0 and @addWithOverflow(usize, start, size - 1, &end)) {
@@ -245,7 +245,7 @@ test "AddressInfo has the correct layout" {
 /// other guidelines regarding the use of Non-Secure-callable functions.
 pub fn exportNonSecureCallable(comptime name: []const u8, comptime func: extern fn (usize, usize, usize, usize) usize) void {
     const Veneer = struct {
-        extern nakedcc fn veneer() linksection(".gnu.sgstubs") void {
+        extern fn veneer() callconv(.Naked) void {
             // Work-around for a code generation issue in ReleaseSmall builds
             @setRuntimeSafety(false);
 
@@ -289,8 +289,8 @@ pub fn exportNonSecureCallable(comptime name: []const u8, comptime func: extern 
             unreachable;
         }
     };
-    @export(name, Veneer.veneer, .Strong);
-    @export("__acle_se_" ++ name, Veneer.veneer, .Strong);
+    @export(Veneer.veneer, .{ .name = name, .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(Veneer.veneer, .{ .name = "__acle_se_" ++ name, .linkage = .Strong, .section = ".gnu.sgstubs" });
 }
 
 /// Security Attribution Unit.

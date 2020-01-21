@@ -3,7 +3,7 @@ const format = @import("std").fmt.format;
 const gateways = @import("../common/gateways.zig");
 
 /// Output a formatted text via a Secure gateway.
-pub fn warn(comptime fmt: []const u8, args: ...) void {
+pub fn warn(comptime fmt: []const u8, args: var) void {
     format({}, error{}, warnInner, fmt, args) catch unreachable;
 }
 

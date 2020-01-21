@@ -29,7 +29,7 @@ var counter: u8 = 0;
 
 extern fn handleSysTick() void {
     counter +%= 1;
-    warn("\r{}", "|\\-/"[counter % 4 ..][0..1]);
+    warn("\r{}", .{"|\\-/"[counter % 4 ..][0..1]});
 }
 
 // Zig panic handler. See `panicking.zig` for details.

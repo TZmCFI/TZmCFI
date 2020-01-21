@@ -20,11 +20,19 @@
 const debug = @import("monitor/debug.zig");
 const ffi = @import("monitor/ffi.zig");
 const shadowexcstack = @import("monitor/shadowexcstack.zig");
-export const shadowstack = @import("monitor/shadowstack.zig");
-export const threads = @import("monitor/threads.zig");
-export const profiler = @import("monitor/profiler.zig");
-export const options = @import("monitor/options.zig");
-export const nsutils = @import("monitor/nsutils.zig");
+const shadowstack = @import("monitor/shadowstack.zig");
+const threads = @import("monitor/threads.zig");
+const profiler = @import("monitor/profiler.zig");
+const options = @import("monitor/options.zig");
+const nsutils = @import("monitor/nsutils.zig");
+
+// Make sure symbols are exported
+comptime {
+    _ = shadowstack;
+    _ = threads;
+    _ = profiler;
+    _ = nsutils;
+}
 
 pub const TCResult = ffi.TCResult;
 pub const TCThread = ffi.TCThread;

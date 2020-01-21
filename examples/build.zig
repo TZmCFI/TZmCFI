@@ -35,14 +35,14 @@ pub fn build(b: *Builder) !void {
     const accel_raise_pri = b.option(bool, "accel-raise-pri", "Accelerate vRaisePriority (default = cfi-ctx)") orelse cfi_opts.ctx;
 
     if (enable_profile and eql(u8, log_level, "None")) {
-        warn("error: -Dprofile is pointless with -Dlog-level=None\r\n");
+        warn("error: -Dprofile is pointless with -Dlog-level=None\r\n", .{});
         b.markInvalidUserInput();
     }
 
     if (accel_raise_pri and !cfi_opts.ctx) {
         // `TCRaisePrivilege` is a Secure function, so each thread needs its own
         // Secure stack 
-        warn("error: -Daccel-raise-pri requires -Dcfi-ctx\r\n");
+        warn("error: -Daccel-raise-pri requires -Dcfi-ctx\r\n", .{});
         b.markInvalidUserInput();
     }
 
@@ -57,7 +57,7 @@ pub fn build(b: *Builder) !void {
             break;
         }
     } else {
-        warn("error: unknown board name '{}'\r\n", target_board);
+        warn("error: unknown board name '{}'\r\n", .{target_board});
         b.markInvalidUserInput();
     }
 
@@ -72,7 +72,7 @@ pub fn build(b: *Builder) !void {
     // This part is shared by all Non-Secure applications.
     const exe_s_name = if (want_gdb) "secure-dbg" else "secure";
     const exe_s = b.addExecutable(exe_s_name, "secure.zig");
-    exe_s.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/secure.ld", target_board));
+    exe_s.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/secure.ld", .{target_board}));
     exe_s.setTarget(arch, .freestanding, .eabi);
     exe_s.setBuildMode(mode);
     exe_s.addAssemblyFile("common/startup.S");
@@ -81,10 +81,10 @@ pub fn build(b: *Builder) !void {
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_s.addIncludeDir("../include");
-    exe_s.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", log_level));
+    exe_s.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", .{log_level}));
     exe_s.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
     exe_s.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
-    exe_s.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", target_board));
+    exe_s.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
 
     if (eql(u8, target_board, "lpc55s69")) {
         // Binary blob from MCUXpresso SDK
@@ -99,7 +99,7 @@ pub fn build(b: *Builder) !void {
     // since it might not be available, we use a custom tool to do that.
     const implib_path = "zig-cache/secure_implib.s";
     var implib_args = std.ArrayList([]const u8).init(b.allocator);
-    try implib_args.appendSlice([_][]const u8{
+    try implib_args.appendSlice(&[_][]const u8{
         mkimplib,
         exe_s.getOutputPath(),
         "-o",
@@ -225,13 +225,13 @@ const CfiOpts = struct {
     fn validate(self: *const Self) !void {
         if (self.ss and !self.ctx) {
             // Shadow stacks are managed by context management API.
-            warn("error: cfi-ss requires cfi-ctx\n");
+            warn("error: cfi-ss requires cfi-ctx\n", .{});
             return error.IncompatibleCfiOpts;
         }
 
         if (self.ses and !self.ctx) {
             // Shadow exception stacks are managed by context management API.
-            warn("error: cfi-ses requires cfi-ctx\n");
+            warn("error: cfi-ses requires cfi-ctx\n", .{});
             return error.IncompatibleCfiOpts;
         }
 
@@ -239,13 +239,13 @@ const CfiOpts = struct {
             // TZmCFI's shadow stacks do not work without shadow exception stacks.
             // Probably because the shadow stack routines mess up the lowest bit
             // of `EXC_RETURN`.
-            warn("error: cfi-ss requires cfi-ses\n");
+            warn("error: cfi-ss requires cfi-ses\n", .{});
             return error.IncompatibleCfiOpts;
         }
 
         if (self.aborting_ss and !self.ss) {
             // `aborting_ss` makes no sense without `ss`
-            warn("error: cfi-ss requires cfi-ses\n");
+            warn("error: cfi-ss requires cfi-ses\n", .{});
             return error.IncompatibleCfiOpts;
         }
     }
@@ -330,7 +330,7 @@ fn defineNonSecureApp(
     // -------------------------------------------------------
     const exe_ns_name = if (want_gdb) name ++ "-dbg" else name;
     const exe_ns = b.addExecutable(exe_ns_name, app_info.root);
-    exe_ns.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/nonsecure.ld", target_board));
+    exe_ns.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/nonsecure.ld", .{target_board}));
     exe_ns.setTarget(arch, .freestanding, .eabi);
     exe_ns.setBuildMode(mode);
     exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
@@ -338,7 +338,7 @@ fn defineNonSecureApp(
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_ns.enable_lto = true;
-    exe_ns.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", target_board));
+    exe_ns.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
 
     ns_app_deps.cfi_opts.configureBuildStep(exe_ns);
 
@@ -385,9 +385,9 @@ fn defineNonSecureApp(
     const qemu_device_arg = try std.fmt.allocPrint(
         b.allocator,
         "loader,file={}",
-        exe_ns.getOutputPath(),
+        .{exe_ns.getOutputPath()},
     );
-    try qemu_args.appendSlice([_][]const u8{
+    try qemu_args.appendSlice(&[_][]const u8{
         "qemu-system-arm",
         "-kernel",
         exe_s.getOutputPath(),
@@ -404,7 +404,7 @@ fn defineNonSecureApp(
         "-s",
     });
     if (want_gdb) {
-        try qemu_args.appendSlice([_][]const u8{"-S"});
+        try qemu_args.appendSlice(&[_][]const u8{"-S"});
     }
     const run_qemu = b.addSystemCommand(qemu_args.toSliceConst());
     qemu.dependOn(&run_qemu.step);
@@ -417,18 +417,18 @@ fn logLevelOptions(b: *Builder) ![]const u8 {
     var selected: ?[]const u8 = null;
 
     for (log_levels) |level| {
-        const opt_name = try allocPrint(b.allocator, "log-{}", level);
+        const opt_name = try allocPrint(b.allocator, "log-{}", .{level});
         for (opt_name) |*c| {
             c.* = toLower(c.*);
         }
 
-        const opt_desc = try allocPrint(b.allocator, "Set log level to {}", level);
+        const opt_desc = try allocPrint(b.allocator, "Set log level to {}", .{level});
 
         const set = b.option(bool, opt_name, opt_desc) orelse false;
 
         if (set) {
             if (selected != null) {
-                warn("Multiple log levels are specified\n");
+                warn("Multiple log levels are specified\n", .{});
                 b.markInvalidUserInput();
             }
             selected = level;

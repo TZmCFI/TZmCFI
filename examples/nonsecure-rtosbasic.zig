@@ -9,7 +9,7 @@ const os = @cImport({
     @cInclude("task.h");
     @cInclude("timers.h");
 });
-export const _oshooks = @import("nonsecure-common/oshooks.zig");
+comptime { _ = @import("nonsecure-common/oshooks.zig"); }
 
 // The (unprocessed) Non-Secure exception vector table.
 export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import("nonsecure-common/excvector.zig").getDefaultFreertos();
@@ -19,14 +19,14 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import
 export fn main() void {
     port.init();
 
-    warn("Creating an idle task.\r\n");
+    warn("Creating an idle task.\r\n", .{});
     _ = os.xTaskCreateRestricted(&idle_task_params, 0);
 
-    warn("Creating a timer.\r\n");
-    const timer = os.xTimerCreate(c"saluton", 100, os.pdTRUE, null, getTrampoline_timerHandler());
+    warn("Creating a timer.\r\n", .{});
+    const timer = os.xTimerCreate("saluton", 100, os.pdTRUE, null, getTrampoline_timerHandler());
     _ = xTimerStart(timer, 0);
 
-    warn("Entering the scheduler.\r\n");
+    warn("Entering the scheduler.\r\n", .{});
     os.vTaskStartScheduler();
     unreachable;
 }
@@ -40,14 +40,14 @@ extern fn getTrampoline_timerHandler() extern fn (_arg: ?*os.tmrTimerControl) vo
 var i: u32 = 0;
 export fn timerHandler(_arg: ?*os.tmrTimerControl) void {
     i +%= 1;
-    warn("The timer has fired for {} time(s)!\r\n", i);
+    warn("The timer has fired for {} time(s)!\r\n", .{i});
 }
 
 var idle_task_stack = [1]u32{0} ** 128;
 
 const idle_task_params = os.TaskParameters_t{
     .pvTaskCode = idleTaskMain,
-    .pcName = c"saluton",
+    .pcName = "saluton",
     .usStackDepth = idle_task_stack.len,
     .pvParameters = null,
     .uxPriority = 0,
@@ -61,7 +61,7 @@ const idle_task_params = os.TaskParameters_t{
 };
 
 extern fn idleTaskMain(_arg: ?*c_void) void {
-    warn("The idle task is running.\r\n");
+    warn("The idle task is running.\r\n", .{});
     while (true) {}
 }
 

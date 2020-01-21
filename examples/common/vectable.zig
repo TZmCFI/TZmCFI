@@ -53,9 +53,9 @@ pub fn VecTable(comptime num_irqs: usize, comptime nameProvider: var) type {
             return self.setExcHandler(
                 exc_number,
                 struct {
-                    extern fn _() void {
+                    fn _() callconv(.C) void {
                         @setTcExcHandler(@import("build_options").HAS_TZMCFI_SES);
-                        @inlineCall(handler);
+                        @call(.{ .modifier = .always_inline }, handler, .{});
                     }
                 }._,
             );
@@ -74,7 +74,7 @@ fn getDefaultName(comptime exc_number: usize) []const u8 {
 /// Create an "unhandled exception" handler.
 fn unhandled(comptime name: []const u8) extern fn () void {
     const ns = struct {
-        extern fn handler() void {
+        fn handler() callconv(.C) void {
             @panic("unhandled exception: " ++ name);
         }
     };

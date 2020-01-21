@@ -53,8 +53,8 @@ export fn main() void {
     // -----------------------------------------------------------------------
     port.init();
 
-    port.print("(Hit ^A X to quit QEMU)\r\n");
-    port.print("The Secure code is running!\r\n");
+    port.print("(Hit ^A X to quit QEMU)\r\n", .{});
+    port.print("The Secure code is running!\r\n", .{});
 
     // Enable SAU
     // -----------------------------------------------------------------------
@@ -90,7 +90,7 @@ export fn main() void {
     // Configure the Non-Secure exception vector table
     arm_m.scb_ns.regVtor().* = port.VTOR_NS;
 
-    port.print("Booting the Non-Secure code...\r\n");
+    port.print("Booting the Non-Secure code...\r\n", .{});
 
     // Call Non-Secure code's entry point
     const ns_entry = @intToPtr(*volatile fn () void, port.VTOR_NS + 4).*;
@@ -100,17 +100,17 @@ export fn main() void {
 }
 
 fn tcWarnHandler(ctx: void, data: []const u8) error{}!void {
-    port.print("{}", data);
+    port.print("{}", .{data});
 }
 
 // ----------------------------------------------------------------------------
 
 /// The Non-Secure-callable function that outputs zero or more bytes to the
 /// debug output.
-extern fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) usize {
+fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) callconv(.C) usize {
     const bytes = arm_cmse.checkSlice(u8, ptr, count, arm_cmse.CheckOptions{}) catch |err| {
-        port.print("warning: pointer security check failed: {}\r\n", err);
-        port.print("         count = {}, ptr = 0x{x}\r\n", count, ptr);
+        port.print("warning: pointer security check failed: {}\r\n", .{err});
+        port.print("         count = {}, ptr = 0x{x}\r\n", .{count, ptr});
         return 0;
     };
 

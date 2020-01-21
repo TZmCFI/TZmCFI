@@ -55,20 +55,20 @@ pub fn init() void {
 
     // Configure PLL0
     syscon.setPll0NDividerRatio(4); // 16MHz / 4 → 4MHz
-    syscon.regPll0sscg1().* = 
+    syscon.regPll0sscg1().* =
         Syscon.pll0sscg1MdivExt(75) | // 4MHz * 75 → 300MHz
         Syscon.PLL0SSCG1_MREQ |
         Syscon.PLL0SSCG1_SEL_EXT;
     syscon.setPll0PDividerRatio(3); // 300MHz / 3 → 100MHz
     syscon.regPll0ctrl().* = @bitCast(
         u32,
-        Syscon.Pll0ctrl {
-            .selr = 0,  // selr = 0
-            .seli = 39, // seli = 2 * floor(M / 4) + 3 = 39
-            .selp = 19, // selp = floor(M / 4) + 1 = 19
-            .bypasspostdiv2 = true, // bypass post divide-by-2
-            .clken = true,
-        },
+        Syscon.Pll0ctrl{
+        .selr = 0, // selr = 0
+        .seli = 39, // seli = 2 * floor(M / 4) + 3 = 39
+        .selp = 19, // selp = floor(M / 4) + 1 = 19
+        .bypasspostdiv2 = true, // bypass post divide-by-2
+        .clken = true,
+    },
     );
 
     // Wait for PLL0 to lock
@@ -76,9 +76,8 @@ pub fn init() void {
 
     // The required flash memory access time for system clock rates up to
     // 100MHz is 9 system closk
-    syscon.regFmccr().* = syscon.regFmccr().*
-        & (~Syscon.FMCCR_FLASHTIM_MASK) | Syscon.fmccrFlashtim(8);
-    
+    syscon.regFmccr().* = syscon.regFmccr().* & (~Syscon.FMCCR_FLASHTIM_MASK) | Syscon.fmccrFlashtim(8);
+
     // Select PLL0 output as main clock
     syscon.regMainclkselb().* = Syscon.MAINCLKSELB_SEL_PLL0;
 
@@ -91,13 +90,13 @@ pub fn init() void {
     // Configure Flexcomm 0 clock to 33.33...MHz / (1 + 75 / 256) → 25.78...MHz (25600/993MHz)
     syscon.regFlexfrgctrl(0).* = Syscon.flexfrgctrlDiv(0xff) | Syscon.flexfrgctrlMult(75);
     syscon.regFcclksel(0).* = Syscon.FCCLKSEL_PLL0DIV;
-    
+
     // Enable Flexcomm 0 clock
     syscon.regAhbclkctrlset1().* = Syscon.ahbclkctrl1Fc(0);
 
     // Configure USART (Flexcomm 0)
     // -----------------------------------------------------------------------
-    
+
     // Configure the I/O pins
     syscon.regAhbclkctrlset0().* = Syscon.AHBCLKCTRL0_IOCON;
     iocon.regP0(29).* = Iocon.pFunc(1) | Iocon.P_DIGIMODE; // RX: P0_29(1)
@@ -134,11 +133,9 @@ pub fn init() void {
     // for the range `[0x10000, 0xfffff]`.
     // lpc55s69.mpc_flash.setRuleInRange(0x10000, 0x100000, .NsNonpriv);
 
-
     // Enable Non-Secure access to RAM1–3 (`0x[01]0200000`)
     // each for the range `[0x0000, 0xffff]`.
     // lpc55s69.mpc_ram1.setRuleInRange(0x0, 0x10000, .NsNonpriv);
-
 
     // Allow non-Secure unprivileged access to the timers
     // -----------------------------------------------------------------------
@@ -150,7 +147,7 @@ pub fn init() void {
 }
 
 /// Render the format string `fmt` with `args` and transmit the output.
-pub fn print(comptime fmt: []const u8, args: ...) void {
+pub fn print(comptime fmt: []const u8, args: var) void {
     format({}, error{}, printInner, fmt, args) catch unreachable;
 }
 

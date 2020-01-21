@@ -87,7 +87,7 @@ fn createThread(create_info: *const ffi.TCThreadCreateInfo) CreateThreadError!ff
     next_free_thread += 1;
     threads[thread_id] = thread_info;
 
-    log(.Trace, "createThread({}) → id = {}, info = {}\r\n", create_info, thread_id, thread_info);
+    log(.Trace, "createThread({}) → id = {}, info = {}\r\n", .{create_info, thread_id, thread_info});
 
     return thread_id;
 }
@@ -115,7 +115,7 @@ fn activateThread(thread: ffi.TCThread) ActivateThreadError!void {
     const old_thread_id = @as(usize, cur_thread);
     const old_thread = threads[old_thread_id].?;
 
-    log(.Trace, "activateThread({} → {})\r\n", old_thread_id, new_thread_id);
+    log(.Trace, "activateThread({} → {})\r\n", .{old_thread_id, new_thread_id});
 
     shadowexcstack.saveState(&old_thread.exc_stack_state);
     shadowexcstack.loadState(&new_thread.exc_stack_state);
@@ -141,21 +141,21 @@ extern fn TCReset(_1: usize, _2: usize, _3: usize, _4: usize) usize {
 extern fn TCCreateThread(raw_p_create_info: usize, raw_p_thread: usize, _3: usize, _4: usize) usize {
     // Check Non-Secure pointers
     const p_create_info = arm_cmse.checkObject(ffi.TCThreadCreateInfo, raw_p_create_info, arm_cmse.CheckOptions{}) catch |err| {
-        return @enumToInt(ffi.TC_RESULT.ERROR_UNPRIVILEGED);
+        return ffi.TC_RESULT.ERROR_UNPRIVILEGED;
     };
 
     const p_thread = arm_cmse.checkObject(ffi.TCThread, raw_p_thread, arm_cmse.CheckOptions{ .readwrite = true }) catch |err| {
-        return @enumToInt(ffi.TC_RESULT.ERROR_UNPRIVILEGED);
+        return ffi.TC_RESULT.ERROR_UNPRIVILEGED;
     };
 
     const create_info = p_create_info.*;
     const thread = createThread(&create_info) catch |err| switch (err) {
-        error.OutOfMemory => return @enumToInt(ffi.TC_RESULT.ERROR_OUT_OF_MEMORY),
+        error.OutOfMemory => return ffi.TC_RESULT.ERROR_OUT_OF_MEMORY,
     };
 
     p_thread.* = thread;
 
-    return @enumToInt(ffi.TC_RESULT.SUCCESS);
+    return ffi.TC_RESULT.SUCCESS;
 }
 
 extern fn TCLockdown(_1: usize, _2: usize, _3: usize, _4: usize) usize {
@@ -164,11 +164,11 @@ extern fn TCLockdown(_1: usize, _2: usize, _3: usize, _4: usize) usize {
 
 extern fn TCActivateThread(thread: usize, _2: usize, _3: usize, _4: usize) usize {
     activateThread(thread) catch |err| switch (err) {
-        error.BadThread => return @enumToInt(ffi.TC_RESULT.ERROR_INVALID_ARGUMENT),
-        error.ThreadMode => return @enumToInt(ffi.TC_RESULT.ERROR_INVALID_OPERATION),
+        error.BadThread => return ffi.TC_RESULT.ERROR_INVALID_ARGUMENT,
+        error.ThreadMode => return ffi.TC_RESULT.ERROR_INVALID_OPERATION,
     };
 
-    return @enumToInt(ffi.TC_RESULT.SUCCESS);
+    return ffi.TC_RESULT.SUCCESS;
 }
 
 comptime {

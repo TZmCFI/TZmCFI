@@ -25,7 +25,7 @@ pub fn modifyExeStep(builder: *Builder, step: *LibExeObjStep, opts: ModifyExeSte
     step.addIncludeDir(sources);
 
     const flags = join(builder.allocator, " ", opts.c_flags);
-    step.defineCMacro(try allocPrint(builder.allocator, "FLAGS_STR=\"{}\"", flags));
+    step.defineCMacro(try allocPrint(builder.allocator, "FLAGS_STR=\"{}\"", .{flags}));
 
     step.defineCMacro("PERFORMANCE_RUN");
 

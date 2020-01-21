@@ -348,7 +348,7 @@ fn popShadowExcStack() usize {
 
     // Validate *two* top entries.
     if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
-        log(.Warning, "popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 1)[0]);
+        log(.Warning, "popShadowExcStack: {} != {}\r\n", .{exc_stack.asFrame(), (stack.top - 1)[0]});
         @panic("Exception stack integrity check has failed.");
     }
     if (exc_stack.moveNext()) {
@@ -356,7 +356,7 @@ fn popShadowExcStack() usize {
             @panic("The number of entries in the shadow exception stack is lower than expected.");
         }
         if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
-            log(.Warning, "popShadowExcStack: {} != {}\r\n", exc_stack.asFrame(), (stack.top - 2)[0]);
+            log(.Warning, "popShadowExcStack: {} != {}\r\n", .{exc_stack.asFrame(), (stack.top - 2)[0]});
             @panic("Exception stack integrity check has failed.");
         }
     }
@@ -404,7 +404,7 @@ pub export fn TCInitialize(ns_vtor: usize) void {
 }
 
 /// Implements a private gateway function in `PrivateGateway.h`.
-pub export nakedcc fn __TCPrivateEnterInterrupt() linksection(".gnu.sgstubs") noreturn {
+pub export fn __TCPrivateEnterInterrupt() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
     // This `asm` block provably never returns
     @setRuntimeSafety(false);
 
@@ -425,7 +425,7 @@ pub export nakedcc fn __TCPrivateEnterInterrupt() linksection(".gnu.sgstubs") no
 }
 
 /// Implements a private gateway function in `PrivateGateway.h`.
-pub export nakedcc fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") noreturn {
+pub export fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
     // This `asm` block provably never returns
     @setRuntimeSafety(false);
 
@@ -443,6 +443,6 @@ pub export nakedcc fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") no
 
 // Export the gateway functions to Non-Secure
 comptime {
-    @export("__acle_se___TCPrivateEnterInterrupt", __TCPrivateEnterInterrupt, .Strong);
-    @export("__acle_se___TCPrivateLeaveInterrupt", __TCPrivateLeaveInterrupt, .Strong);
+    @export(__TCPrivateEnterInterrupt, .{ .name = "__acle_se___TCPrivateEnterInterrupt", .linkage = .Strong });
+    @export(__TCPrivateLeaveInterrupt, .{ .name = "__acle_se___TCPrivateLeaveInterrupt", .linkage = .Strong });
 }

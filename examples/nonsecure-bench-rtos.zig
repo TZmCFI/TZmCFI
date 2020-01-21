@@ -50,7 +50,7 @@ const regions_with_peripheral_access = [3]os.MemoryRegion_t{
     },
     os.MemoryRegion_t{
         .pvBaseAddress = @ptrCast(*c_void, &unpriv_state),
-        .ulLengthInBytes = @sizeOf(@typeOf(unpriv_state)) + 32,
+        .ulLengthInBytes = @sizeOf(@TypeOf(unpriv_state)) + 32,
         .ulParameters = 0,
     },
     os.MemoryRegion_t{
@@ -276,7 +276,7 @@ fn xSemaphoreCreateBinary() os.SemaphoreHandle_t {
     return os.xQueueGenericCreate(1, semSEMAPHORE_QUEUE_ITEM_LENGTH, queueQUEUE_TYPE_BINARY_SEMAPHORE);
 }
 const xSemaphoreTake = os.xQueueSemaphoreTake;
-fn xSemaphoreGive(semaphore: os.SemaphoreHandle_t) @typeOf(os.xQueueGenericSend).ReturnType {
+fn xSemaphoreGive(semaphore: os.SemaphoreHandle_t) @TypeOf(os.xQueueGenericSend).ReturnType {
     return os.xQueueGenericSend(semaphore, null, semGIVE_BLOCK_TIME, os.queueSEND_TO_BACK);
 }
 
