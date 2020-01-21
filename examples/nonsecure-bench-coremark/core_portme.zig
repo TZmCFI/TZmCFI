@@ -82,6 +82,6 @@ export fn uart_send_char(ch: u8) void {
     if (ch == '\n') {
         warn("\r\n", .{});
     } else {
-        warn("{}", .{[_]u8{ch}});
+        warn("{}", .{&[_]u8{ch}});
     }
 }
