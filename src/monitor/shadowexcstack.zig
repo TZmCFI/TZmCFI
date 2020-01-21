@@ -404,7 +404,7 @@ pub export fn TCInitialize(ns_vtor: usize) void {
 }
 
 /// Implements a private gateway function in `PrivateGateway.h`.
-pub export fn __TCPrivateEnterInterrupt() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
+pub export fn __TCPrivateEnterInterrupt() callconv(.Naked) noreturn {
     // This `asm` block provably never returns
     @setRuntimeSafety(false);
 
@@ -425,7 +425,7 @@ pub export fn __TCPrivateEnterInterrupt() linksection(".gnu.sgstubs") callconv(.
 }
 
 /// Implements a private gateway function in `PrivateGateway.h`.
-pub export fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
+pub export fn __TCPrivateLeaveInterrupt() callconv(.Naked) noreturn {
     // This `asm` block provably never returns
     @setRuntimeSafety(false);
 
@@ -443,6 +443,8 @@ pub export fn __TCPrivateLeaveInterrupt() linksection(".gnu.sgstubs") callconv(.
 
 // Export the gateway functions to Non-Secure
 comptime {
-    @export(__TCPrivateEnterInterrupt, .{ .name = "__acle_se___TCPrivateEnterInterrupt", .linkage = .Strong });
-    @export(__TCPrivateLeaveInterrupt, .{ .name = "__acle_se___TCPrivateLeaveInterrupt", .linkage = .Strong });
+    @export(__TCPrivateEnterInterrupt,
+        .{ .name = "__acle_se___TCPrivateEnterInterrupt", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateLeaveInterrupt,
+        .{ .name = "__acle_se___TCPrivateLeaveInterrupt", .linkage = .Strong, .section = ".gnu.sgstubs" });
 }

@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 
 /// Implements `TCRaisePrivilege` defined in `Gateway.h`.
-pub export fn TCRaisePrivilege() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
+pub export fn TCRaisePrivilege() callconv(.Naked) noreturn {
     // This `asm` block provably never returns
     @setRuntimeSafety(false);
 
@@ -22,5 +22,6 @@ pub export fn TCRaisePrivilege() linksection(".gnu.sgstubs") callconv(.Naked) no
 }
 
 comptime {
-    @export(TCRaisePrivilege, .{ .name = "__acle_se_TCRaisePrivilege", .linkage = .Strong });
+    @export(TCRaisePrivilege,
+        .{ .name = "__acle_se_TCRaisePrivilege", .linkage = .Strong, .section = ".gnu.sgstubs" });
 }

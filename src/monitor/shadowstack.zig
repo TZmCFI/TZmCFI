@@ -96,7 +96,7 @@ export fn TCShadowStackLogAssert() void {
 // Non-Secure application interface
 // ----------------------------------------------------------------------------
 
-export fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
+export fn __TCPrivateShadowPush() callconv(.Naked) noreturn {
     @setRuntimeSafety(false);
 
     asm volatile (
@@ -136,7 +136,7 @@ export fn __TCPrivateShadowPush() linksection(".gnu.sgstubs") callconv(.Naked) n
     unreachable;
 }
 
-export fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
+export fn __TCPrivateShadowAssertReturn() callconv(.Naked) noreturn {
     @setRuntimeSafety(false);
 
     asm volatile (
@@ -201,7 +201,7 @@ export fn __TCPrivateShadowAssertReturn() linksection(".gnu.sgstubs") callconv(.
     unreachable;
 }
 
-export fn __TCPrivateShadowAssertReturnFast() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
+export fn __TCPrivateShadowAssertReturnFast() callconv(.Naked) noreturn {
     @setRuntimeSafety(false);
 
     asm volatile (
@@ -268,7 +268,7 @@ export fn __TCPrivateShadowAssertReturnFast() linksection(".gnu.sgstubs") callco
     unreachable;
 }
 
-export fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") callconv(.Naked) noreturn {
+export fn __TCPrivateShadowAssert() callconv(.Naked) noreturn {
     @setRuntimeSafety(false);
 
     asm volatile (
@@ -348,8 +348,12 @@ export fn __TCPrivateShadowAssert() linksection(".gnu.sgstubs") callconv(.Naked)
 
 // Export the gateway functions to Non-Secure
 comptime {
-    @export(__TCPrivateShadowPush, .{ .name = "__acle_se___TCPrivateShadowPush", .linkage = .Strong });
-    @export(__TCPrivateShadowAssertReturn, .{ .name = "__acle_se___TCPrivateShadowAssertReturn", .linkage = .Strong });
-    @export(__TCPrivateShadowAssertReturnFast, .{ .name = "__acle_se___TCPrivateShadowAssertReturnFast", .linkage = .Strong });
-    @export(__TCPrivateShadowAssert, .{ .name = "__acle_se___TCPrivateShadowAssert", .linkage = .Strong });
+    @export(__TCPrivateShadowPush,
+        .{.name = "__acle_se___TCPrivateShadowPush", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateShadowAssertReturn,
+        .{.name = "__acle_se___TCPrivateShadowAssertReturn", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateShadowAssertReturnFast,
+        .{.name = "__acle_se___TCPrivateShadowAssertReturnFast", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateShadowAssert,
+        .{.name = "__acle_se___TCPrivateShadowAssert", .linkage = .Strong, .section = ".gnu.sgstubs" });
 }
