@@ -14,7 +14,7 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") =
 export fn main() void {
     port.init();
     
-    warn("yay\r\n");
+    warn("yay\r\n", .{});
 
     // Configure SysTick
     // -----------------------------------------------------------------------

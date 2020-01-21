@@ -67,21 +67,21 @@ export fn portable_init(p: *c.core_portable, _argc: *c_int, _argv: ?[*]([*]u8)) 
     port_ns.init();
 
     p.portable_id = 1;
-    warn("* portable_init\r\n");
+    warn("* portable_init\r\n", .{});
 }
 
 /// Target specific final code
 export fn portable_fini(p: *c.core_portable) void {
     p.portable_id = 0;
-    warn("* portable_fini - system halted\r\n");
+    warn("* portable_fini - system halted\r\n", .{});
 
     while (true) {}
 }
 
 export fn uart_send_char(ch: u8) void {
     if (ch == '\n') {
-        warn("\r\n");
+        warn("\r\n", .{});
     } else {
-        warn("{}", [_]u8{ch});
+        warn("{}", .{[_]u8{ch}});
     }
 }

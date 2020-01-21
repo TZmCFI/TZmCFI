@@ -13,7 +13,7 @@ const os = @cImport({
     @cInclude("timers.h");
     @cInclude("semphr.h");
 });
-export const _oshooks = @import("nonsecure-common/oshooks.zig");
+comptime { _ = @import("nonsecure-common/oshooks.zig"); }
 
 // The (unprocessed) Non-Secure exception vector table.
 export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import("nonsecure-common/excvector.zig").getDefaultFreertos();
@@ -27,7 +27,7 @@ export fn main() void {
 
     // Get the measurement overhead
     measure.calculateOverhead();
-    warn("Overhead: {} cycles (this value is subtracted from all subsequent measurements)\r\n", measure.overhead.*);
+    warn("Overhead: {} cycles (this value is subtracted from all subsequent measurements)\r\n", .{measure.overhead.*});
 
     global_mutex.* = xSemaphoreCreateBinary();
     _ = xSemaphoreGive(global_mutex.*);
@@ -62,7 +62,7 @@ const regions_with_peripheral_access = [3]os.MemoryRegion_t{
 
 const task1_params = os.TaskParameters_t{
     .pvTaskCode = task1Main,
-    .pcName = c"task1",
+    .pcName = "task1",
     .usStackDepth = task1_stack.len,
     .pvParameters = null,
     .uxPriority = 2 | os.portPRIVILEGE_BIT,
@@ -75,7 +75,7 @@ var task2_stack align(32) = [1]u32{0} ** 192;
 
 const task2a_params = os.TaskParameters_t{
     .pvTaskCode = task2aMain,
-    .pcName = c"task2a",
+    .pcName = "task2a",
     .usStackDepth = task2_stack.len,
     .pvParameters = null,
     .uxPriority = 4, // > task1
@@ -85,7 +85,7 @@ const task2a_params = os.TaskParameters_t{
 };
 const task2b_params = os.TaskParameters_t{
     .pvTaskCode = task2bMain,
-    .pcName = c"task2b",
+    .pcName = "task2b",
     .usStackDepth = task2_stack.len,
     .pvParameters = null,
     .uxPriority = 4, // > task1
@@ -98,7 +98,7 @@ var task3_stack align(32) = [1]u32{0} ** 32;
 
 const task3_params = os.TaskParameters_t{
     .pvTaskCode = badTaskMain,
-    .pcName = c"task3",
+    .pcName = "task3",
     .usStackDepth = task3_stack.len,
     .pvParameters = null,
     .uxPriority = 0, // must be the lowest
@@ -125,13 +125,13 @@ extern fn task1Main(_arg: ?*c_void) void {
     measure.start();
     _ = os.xTaskCreateRestricted(&task3_params, &task3_handle);
     measure.end();
-    warn("Unpriv xTaskCreateRestricted without dispatch: {} cycles\r\n", measure.getNumCycles());
+    warn("Unpriv xTaskCreateRestricted without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
     // `vTaskDelete`
     measure.start();
     _ = os.vTaskDelete(task3_handle);
     measure.end();
-    warn("Unpriv vTaskDelete without dispatch: {} cycles\r\n", measure.getNumCycles());
+    warn("Unpriv vTaskDelete without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(2);
 
@@ -143,19 +143,19 @@ extern fn task1Main(_arg: ?*c_void) void {
     // task2 returns to here by calling `vTaskDelete`
     measure.end();
     seqmon.mark(4);
-    warn("Unpriv vTaskDelete with dispatch: {} cycles\r\n", measure.getNumCycles());
+    warn("Unpriv vTaskDelete with dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
     // `xSemaphoreTake` without dispatch
     measure.start();
     _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
     measure.end();
-    warn("Unpriv xSemaphoreTake without dispatch: {} cycles\r\n", measure.getNumCycles());
+    warn("Unpriv xSemaphoreTake without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
     // `xSemaphoreGive` without dispatch
     measure.start();
     _ = xSemaphoreGive(global_mutex.*);
     measure.end();
-    warn("Unpriv xSemaphoreGive without dispatch: {} cycles\r\n", measure.getNumCycles());
+    warn("Unpriv xSemaphoreGive without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(5);
     _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
@@ -171,13 +171,13 @@ extern fn task1Main(_arg: ?*c_void) void {
 
     seqmon.mark(9);
 
-    warn("Done!\r\n");
+    warn("Done!\r\n", .{});
     while (true) {}
 }
 
 extern fn task2aMain(_arg: ?*c_void) void {
     measure.end();
-    warn("Unpriv xTaskCreateRestricted with dispatch: {} cycles\r\n", measure.getNumCycles());
+    warn("Unpriv xTaskCreateRestricted with dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(3);
 
@@ -194,7 +194,7 @@ extern fn task2bMain(_arg: ?*c_void) void {
     _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
 
     measure.end();
-    warn("Unpriv xSemaphoreGive with dispatch: {} cycles\r\n", measure.getNumCycles());
+    warn("Unpriv xSemaphoreGive with dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(8);
 
@@ -232,10 +232,10 @@ const measure = struct {
 
     inline fn start() void {
         // Defeat inlining for consistent timing
-        @noInlineCall(__measureStart);
+        @call(.{ .modifier = .never_inline }, __measureStart, .{});
     }
     inline fn end() void {
-        @noInlineCall(__measureEnd);
+        @call(.{ .modifier = .never_inline }, __measureEnd, .{});
     }
 
     fn calculateOverhead() void {
@@ -257,11 +257,11 @@ const seqmon = struct {
     /// `0`. Aborts the execution on a sequence violation.
     fn mark(ordinal: u32) void {
         if (ordinal != next_ordinal.*) {
-            warn("execution sequence violation: expected {}, got {}\r\n", ordinal, next_ordinal.*);
+            warn("execution sequence violation: expected {}, got {}\r\n", .{ordinal, next_ordinal.*});
             @panic("execution sequence violation");
         }
 
-        warn("[{}]\r\n", ordinal);
+        warn("[{}]\r\n", .{ordinal});
         next_ordinal.* += 1;
     }
 };

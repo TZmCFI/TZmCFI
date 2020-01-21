@@ -28,11 +28,11 @@ fn comm() *volatile CommBlock {
 export fn main() void {
     port.init();
     
-    warn("Starting the interrupt latency benchmark...\r\n");
+    warn("Starting the interrupt latency benchmark...\r\n", .{});
 
-    warn("\r\n");
-    warn("-------------------------------------------------------- \r\n");
-    warn("\r\n");
+    warn("\r\n", .{});
+    warn("-------------------------------------------------------- \r\n", .{});
+    warn("\r\n", .{});
 
     // Timer1 has a higher priority than Timer0, meaning Timer1 can preempt
     // Timer0's handler.
@@ -63,10 +63,10 @@ export fn main() void {
         while (comm().measure_done < 2) {}
     }
 
-    warn("\r\n");
-    warn("-------------------------------------------------------- \r\n");
-    warn("\r\n");
-    warn("Done!\r\n");
+    warn("\r\n", .{});
+    warn("-------------------------------------------------------- \r\n", .{});
+    warn("\r\n", .{});
+    warn("Done!\r\n", .{});
 
     while (true) {}
 }
@@ -112,7 +112,7 @@ extern fn handleTimer1() void {
         last_observed_pattern_hash = pat_hash;
 
         // Output in the Python dict literal format
-        warn("{{ 'cycles': {}, 'sp': 0x{x:08}, 'delay': {} }},\r\n", cycles, sp, comm().current_delay);
+        warn("{{ 'cycles': {}, 'sp': 0x{x:08}, 'delay': {} }},\r\n", .{cycles, sp, comm().current_delay});
     }
 
     comm().measure_done += 1;
