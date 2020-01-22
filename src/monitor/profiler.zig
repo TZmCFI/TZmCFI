@@ -73,30 +73,30 @@ extern fn TCDebugDumpProfile(_1: usize, _2: usize, _3: usize, _4: usize) usize {
         return 0x767e7180;
     }
 
-    log(.Critical, "# TCDebugDumpProfile\r\n");
+    log(.Critical, "# TCDebugDumpProfile\r\n", .{});
 
     var buf: [10]u8 = undefined;
 
     comptime var line: u32 = 1;
     inline while (line <= 3) : (line += 1) {
-        log(.Critical, " | ");
+        log(.Critical, " | ", .{});
 
         var i: usize = 0;
         while (i < event_short_names.len) : (i += 1) {
             const width = event_short_names[i].len;
             if (line == 1) {
-                log(.Critical, "{}", event_short_names[i]);
+                log(.Critical, "{}", .{event_short_names[i]});
             } else if (line == 2) {
-                log(.Critical, "{}:", ("-" ** 10)[0 .. width - 1]);
+                log(.Critical, "{}:", .{("-" ** 10)[0 .. width - 1]});
             } else if (line == 3) {
                 const len = formatIntBuf(&buf, event_count[i], 10, false, FormatOptions{});
-                log(.Critical, "{}", (" " ** 10)[0 .. width - len]);
-                log(.Critical, "{}", buf[0..len]);
+                log(.Critical, "{}", .{(" " ** 10)[0 .. width - len]});
+                log(.Critical, "{}", .{buf[0..len]});
             }
-            log(.Critical, " | ");
+            log(.Critical, " | ", .{});
         }
 
-        log(.Critical, "\r\n");
+        log(.Critical, "\r\n", .{});
     }
 
     return 0;
