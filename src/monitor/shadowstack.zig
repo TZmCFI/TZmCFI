@@ -302,7 +302,7 @@ export fn __TCPrivateShadowAssert() callconv(.Naked) noreturn {
             \\ str r0, [r2]                         // g_shadow_stack_top = (g_shadow_stack_top - 1)
             \\ cmp r1, lr                           // g_shadow_stack_top[-1] != lr
             \\ pop {r0, r1, r2}
-            \\ bne .L_mismatch_trampoline2          // if (g_shadow_stack_top[-1] != lr) { ... }
+            \\ bne .L_mismatch_trampoline3          // if (g_shadow_stack_top[-1] != lr) { ... }
             \\
             \\ // Calling a secure gateway automatically clears LR[0]. It's useful
             \\ // for doing `bxns lr` in Secure code, but when used in Non-Secure
@@ -312,7 +312,7 @@ export fn __TCPrivateShadowAssert() callconv(.Naked) noreturn {
             \\ bxns r12
             \\
             \\ .align 2
-            \\ .L_mismatch_trampoline2: b TCShadowStackMismatch
+            \\ .L_mismatch_trampoline3: b TCShadowStackMismatch
             \\ .L_g_shadow_stack_top_const3: .word g_shadow_stack_top
         );
     } else { // ABORTING_SHADOWSTACK
