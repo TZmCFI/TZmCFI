@@ -6,41 +6,47 @@ pub const irqs = struct {
     pub const Timer1_IRQn = lpc55s69.irqs.CTimer1_IRQn;
 };
 
+const CTimer = lpc55s69.CTimer;
+
 const TimerWrap = struct {
+    ctimer: CTimer,
+
     const Self = @This();
 
     pub fn getValue(self: Self) u32 {
-        @panic("not implemented");
+        return self.ctimer.regMr(0).* - self.ctimer.regTc().*;
     }
 
     pub fn setValue(self: Self, x: u32) void {
-        @panic("not implemented");
+        self.ctimer.regTc().* = self.ctimer.regMr(0).* - x;
     }
 
     pub fn getReloadValue(self: Self) u32 {
-        @panic("not implemented");
+        return self.ctimer.regMr(0).*;
     }
 
     pub fn setReloadValue(self: Self, x: u32) void {
-        @panic("not implemented");
+        self.ctimer.regMr(0).* = x;
     }
 
     pub fn clearInterruptFlag(self: Self) void {
-        @panic("not implemented");
+        self.ctimer.regIr().* = CTimer.IR_MR0INT;
     }
 
     pub fn start(self: Self) void {
-        @panic("not implemented");
+        self.ctimer.regMcr().* = CTimer.MCR_MR0R;
+        self.ctimer.regTcr().* = CTimer.TCR_CEN;
     }
 
     pub fn startWithInterruptEnabled(self: Self) void {
-        @panic("not implemented");
+        self.ctimer.regMcr().* = CTimer.MCR_MR0R | CTimer.MCR_MR0I;
+        self.ctimer.regTcr().* = CTimer.TCR_CEN;
     }
 
     pub fn stop(self: Self) void {
-        @panic("not implemented");
+        self.ctimer.regTcr().* = 0;
     }
 };
 
-pub const timer0 = TimerWrap{};
-pub const timer1 = TimerWrap{};
+pub const timer0 = TimerWrap{ .ctimer = lpc55s69.ctimers_ns[0] };
+pub const timer1 = TimerWrap{ .ctimer = lpc55s69.ctimers_ns[1] };
