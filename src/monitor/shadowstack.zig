@@ -222,7 +222,6 @@ export fn __TCPrivateShadowAssertReturnFast() callconv(.Naked) noreturn {
     // lr = non-trustworthy return target of the caller with bit[0] cleared
     // kill: r12
     if (comptime ABORTING_SHADOWSTACK) {
-        //
         //  [kill: r2, r3]
         //  if (g_shadow_stack_top[-1] != lr) { panic(); }
         //  g_shadow_stack_top -= 1;
@@ -348,12 +347,8 @@ export fn __TCPrivateShadowAssert() callconv(.Naked) noreturn {
 
 // Export the gateway functions to Non-Secure
 comptime {
-    @export(__TCPrivateShadowPush,
-        .{.name = "__acle_se___TCPrivateShadowPush", .linkage = .Strong, .section = ".gnu.sgstubs" });
-    @export(__TCPrivateShadowAssertReturn,
-        .{.name = "__acle_se___TCPrivateShadowAssertReturn", .linkage = .Strong, .section = ".gnu.sgstubs" });
-    @export(__TCPrivateShadowAssertReturnFast,
-        .{.name = "__acle_se___TCPrivateShadowAssertReturnFast", .linkage = .Strong, .section = ".gnu.sgstubs" });
-    @export(__TCPrivateShadowAssert,
-        .{.name = "__acle_se___TCPrivateShadowAssert", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateShadowPush, .{ .name = "__acle_se___TCPrivateShadowPush", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateShadowAssertReturn, .{ .name = "__acle_se___TCPrivateShadowAssertReturn", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateShadowAssertReturnFast, .{ .name = "__acle_se___TCPrivateShadowAssertReturnFast", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateShadowAssert, .{ .name = "__acle_se___TCPrivateShadowAssert", .linkage = .Strong, .section = ".gnu.sgstubs" });
 }

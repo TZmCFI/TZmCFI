@@ -22,6 +22,5 @@ pub export fn TCRaisePrivilege() callconv(.Naked) noreturn {
 }
 
 comptime {
-    @export(TCRaisePrivilege,
-        .{ .name = "__acle_se_TCRaisePrivilege", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(TCRaisePrivilege, .{ .name = "__acle_se_TCRaisePrivilege", .linkage = .Strong, .section = ".gnu.sgstubs" });
 }

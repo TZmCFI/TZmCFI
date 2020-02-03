@@ -340,18 +340,25 @@ pub const CTimer = struct {
 
     /// Interrupt flag for match channel 0.
     pub const IR_MR0INT = bit(0);
+
     /// Interrupt flag for match channel 1.
     pub const IR_MR1INT = bit(1);
+
     /// Interrupt flag for match channel 2.
     pub const IR_MR2INT = bit(2);
+
     /// Interrupt flag for match channel 3.
     pub const IR_MR3INT = bit(3);
+
     /// Interrupt flag for capture channel 0 event.
     pub const IR_CR0INT = bit(4);
+
     /// Interrupt flag for capture channel 1 event.
     pub const IR_CR1INT = bit(5);
+
     /// Interrupt flag for capture channel 2 event.
     pub const IR_CR2INT = bit(6);
+
     /// Interrupt flag for capture channel 3 event.
     pub const IR_CR3INT = bit(7);
 
@@ -363,6 +370,7 @@ pub const CTimer = struct {
 
     /// Counter enable.
     pub const TCR_CEN = bit(0);
+
     /// Counter reset.
     pub const TCR_CRST = bit(1);
 
@@ -396,8 +404,10 @@ pub const CTimer = struct {
     /// Interrupt on MR0: an interrupt is generated when MR0 matches the value
     /// in the TC.
     pub const MCR_MR0I = bit(0);
-    /// Reset on MR0: the TC will be reset if MR0 matches it. 
+
+    /// Reset on MR0: the TC will be reset if MR0 matches it.
     pub const MCR_MR0R = bit(1);
+
     /// Stop on MR0: the TC and PC will be stopped and TCR[0] will be set to 0
     /// if MR0 matches the TC.
     pub const MCR_MR0S = bit(2);
@@ -410,19 +420,19 @@ pub const CTimer = struct {
     }
 };
 
-pub const ctimers = [_]CTimer {
-    CTimer { .base = 0x50008000 },
-    CTimer { .base = 0x50009000 },
-    CTimer { .base = 0x50028000 },
-    CTimer { .base = 0x50029000 },
-    CTimer { .base = 0x5002a000 },
+pub const ctimers = [_]CTimer{
+    CTimer{ .base = 0x50008000 },
+    CTimer{ .base = 0x50009000 },
+    CTimer{ .base = 0x50028000 },
+    CTimer{ .base = 0x50029000 },
+    CTimer{ .base = 0x5002a000 },
 };
-pub const ctimers_ns = [_]CTimer {
-    CTimer { .base = 0x40008000 },
-    CTimer { .base = 0x40009000 },
-    CTimer { .base = 0x40028000 },
-    CTimer { .base = 0x40029000 },
-    CTimer { .base = 0x4002a000 },
+pub const ctimers_ns = [_]CTimer{
+    CTimer{ .base = 0x40008000 },
+    CTimer{ .base = 0x40009000 },
+    CTimer{ .base = 0x40028000 },
+    CTimer{ .base = 0x40029000 },
+    CTimer{ .base = 0x4002a000 },
 };
 
 /// The number of hardware interrupt lines.
@@ -434,8 +444,8 @@ pub const irqs = struct {
     pub const CTimer2_IRQn = arm_m.irqs.interruptIRQn(36);
     pub const CTimer3_IRQn = arm_m.irqs.interruptIRQn(13);
     pub const CTimer4_IRQn = arm_m.irqs.interruptIRQn(37);
-    pub const CTimern_IRQn = [_]usize {
-        CTimer0_IRQn, CTimer1_IRQn, CTimer2_IRQn, CTimer3_IRQn, CTimer4_IRQn
+    pub const CTimern_IRQn = [_]usize{
+        CTimer0_IRQn, CTimer1_IRQn, CTimer2_IRQn, CTimer3_IRQn, CTimer4_IRQn,
     };
 
     /// Get the descriptive name of an exception number. Returns `null` if

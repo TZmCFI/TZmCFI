@@ -27,7 +27,7 @@ fn comm() *volatile CommBlock {
 
 export fn main() void {
     port.init();
-    
+
     warn("Starting the interrupt latency benchmark...\r\n", .{});
 
     warn("\r\n", .{});
@@ -71,7 +71,7 @@ export fn main() void {
     while (true) {}
 }
 
-extern fn handleTimer0() void {
+fn handleTimer0() callconv(.C) void {
     const timer = port_timer.timer0;
 
     // Clear the interrupt flag
@@ -93,7 +93,7 @@ extern fn handleTimer0() void {
 
 var last_observed_pattern_hash: u32 = 0;
 
-extern fn handleTimer1() void {
+fn handleTimer1() callconv(.C) void {
     const timer = port_timer.timer1;
 
     // Clear the interrupt flag
@@ -112,7 +112,7 @@ extern fn handleTimer1() void {
         last_observed_pattern_hash = pat_hash;
 
         // Output in the Python dict literal format
-        warn("{{ 'cycles': {}, 'sp': 0x{x:08}, 'delay': {} }},\r\n", .{cycles, sp, comm().current_delay});
+        warn("{{ 'cycles': {}, 'sp': 0x{x:08}, 'delay': {} }},\r\n", .{ cycles, sp, comm().current_delay });
     }
 
     comm().measure_done += 1;

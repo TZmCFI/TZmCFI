@@ -245,7 +245,7 @@ test "AddressInfo has the correct layout" {
 /// other guidelines regarding the use of Non-Secure-callable functions.
 pub fn exportNonSecureCallable(comptime name: []const u8, comptime func: extern fn (usize, usize, usize, usize) usize) void {
     const Veneer = struct {
-        extern fn veneer() callconv(.Naked) void {
+        fn veneer() callconv(.Naked) void {
             // Work-around for a code generation issue in ReleaseSmall builds
             @setRuntimeSafety(false);
 

@@ -41,13 +41,13 @@ pub fn build(b: *Builder) !void {
 
     if (accel_raise_pri and !cfi_opts.ctx) {
         // `TCRaisePrivilege` is a Secure function, so each thread needs its own
-        // Secure stack 
+        // Secure stack
         warn("error: -Daccel-raise-pri requires -Dcfi-ctx\r\n", .{});
         b.markInvalidUserInput();
     }
 
     const target_board = b.option([]const u8, "target-board", "Specify the target board (default = an505)") orelse "an505";
-    const supported_boards = [_][]const u8 {
+    const supported_boards = [_][]const u8{
         "an505",
         "lpc55s69",
     };

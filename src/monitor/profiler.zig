@@ -42,7 +42,7 @@ pub inline fn markEvent(e: Event) void {
 
 // Non-Secure application interface
 // ----------------------------------------------------------------------------
-extern fn TCDebugStartProfiler(_1: usize, _2: usize, _3: usize, _4: usize) usize {
+fn TCDebugStartProfiler(_1: usize, _2: usize, _3: usize, _4: usize) callconv(.C) usize {
     if (!ACTIVE) {
         // work-around function merging (which causes `sg` to disappear)
         return 0x3df2417d;
@@ -56,7 +56,7 @@ extern fn TCDebugStartProfiler(_1: usize, _2: usize, _3: usize, _4: usize) usize
     return 0;
 }
 
-extern fn TCDebugStopProfiler(_1: usize, _2: usize, _3: usize, _4: usize) usize {
+fn TCDebugStopProfiler(_1: usize, _2: usize, _3: usize, _4: usize) callconv(.C) usize {
     if (!ACTIVE) {
         // work-around function merging (which causes `sg` to disappear)
         return 0xd87589d4;
@@ -67,7 +67,7 @@ extern fn TCDebugStopProfiler(_1: usize, _2: usize, _3: usize, _4: usize) usize 
     return 0;
 }
 
-extern fn TCDebugDumpProfile(_1: usize, _2: usize, _3: usize, _4: usize) usize {
+fn TCDebugDumpProfile(_1: usize, _2: usize, _3: usize, _4: usize) callconv(.C) usize {
     if (!ACTIVE) {
         // work-around function merging (which causes `sg` to disappear)
         return 0x767e7180;

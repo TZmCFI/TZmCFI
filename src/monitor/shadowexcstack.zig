@@ -348,7 +348,7 @@ fn popShadowExcStack() usize {
 
     // Validate *two* top entries.
     if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
-        log(.Warning, "popShadowExcStack: {} != {}\r\n", .{exc_stack.asFrame(), (stack.top - 1)[0]});
+        log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 1)[0] });
         @panic("Exception stack integrity check has failed.");
     }
     if (exc_stack.moveNext()) {
@@ -356,7 +356,7 @@ fn popShadowExcStack() usize {
             @panic("The number of entries in the shadow exception stack is lower than expected.");
         }
         if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
-            log(.Warning, "popShadowExcStack: {} != {}\r\n", .{exc_stack.asFrame(), (stack.top - 2)[0]});
+            log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 2)[0] });
             @panic("Exception stack integrity check has failed.");
         }
     }
@@ -443,8 +443,6 @@ pub export fn __TCPrivateLeaveInterrupt() callconv(.Naked) noreturn {
 
 // Export the gateway functions to Non-Secure
 comptime {
-    @export(__TCPrivateEnterInterrupt,
-        .{ .name = "__acle_se___TCPrivateEnterInterrupt", .linkage = .Strong, .section = ".gnu.sgstubs" });
-    @export(__TCPrivateLeaveInterrupt,
-        .{ .name = "__acle_se___TCPrivateLeaveInterrupt", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateEnterInterrupt, .{ .name = "__acle_se___TCPrivateEnterInterrupt", .linkage = .Strong, .section = ".gnu.sgstubs" });
+    @export(__TCPrivateLeaveInterrupt, .{ .name = "__acle_se___TCPrivateLeaveInterrupt", .linkage = .Strong, .section = ".gnu.sgstubs" });
 }

@@ -13,7 +13,7 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") =
 // zig fmt: on
 export fn main() void {
     port.init();
-    
+
     warn("yay\r\n", .{});
 
     // Configure SysTick
@@ -27,7 +27,7 @@ export fn main() void {
 
 var counter: u8 = 0;
 
-extern fn handleSysTick() void {
+fn handleSysTick() callconv(.C) void {
     counter +%= 1;
     warn("\r{}", .{"|\\-/"[counter % 4 ..][0..1]});
 }

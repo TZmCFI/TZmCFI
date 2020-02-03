@@ -13,7 +13,9 @@ const os = @cImport({
     @cInclude("timers.h");
     @cInclude("semphr.h");
 });
-comptime { _ = @import("nonsecure-common/oshooks.zig"); }
+comptime {
+    _ = @import("nonsecure-common/oshooks.zig");
+}
 
 // The (unprocessed) Non-Secure exception vector table.
 export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import("nonsecure-common/excvector.zig").getDefaultFreertos();
@@ -22,7 +24,7 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import
 // after initializing data sections.
 export fn main() void {
     port.init();
-    
+
     seqmon.mark(0);
 
     // Get the measurement overhead
@@ -109,7 +111,7 @@ const task3_params = os.TaskParameters_t{
 
 const global_mutex = &unpriv_state.global_mutex;
 
-extern fn task1Main(_arg: ?*c_void) void {
+fn task1Main(_arg: ?*c_void) callconv(.C) void {
     // Disable SysTick
     arm_m.sys_tick.regCsr().* = 0;
 
@@ -175,7 +177,7 @@ extern fn task1Main(_arg: ?*c_void) void {
     while (true) {}
 }
 
-extern fn task2aMain(_arg: ?*c_void) void {
+fn task2aMain(_arg: ?*c_void) callconv(.C) void {
     measure.end();
     warn("Unpriv xTaskCreateRestricted with dispatch: {} cycles\r\n", .{measure.getNumCycles()});
 
@@ -187,7 +189,7 @@ extern fn task2aMain(_arg: ?*c_void) void {
     unreachable;
 }
 
-extern fn task2bMain(_arg: ?*c_void) void {
+fn task2bMain(_arg: ?*c_void) callconv(.C) void {
     seqmon.mark(6);
 
     // This will block and gives the control back to task1
@@ -202,7 +204,7 @@ extern fn task2bMain(_arg: ?*c_void) void {
     unreachable;
 }
 
-extern fn badTaskMain(_arg: ?*c_void) void {
+fn badTaskMain(_arg: ?*c_void) callconv(.C) void {
     @panic("this task is not supposed to run");
 }
 
@@ -257,7 +259,7 @@ const seqmon = struct {
     /// `0`. Aborts the execution on a sequence violation.
     fn mark(ordinal: u32) void {
         if (ordinal != next_ordinal.*) {
-            warn("execution sequence violation: expected {}, got {}\r\n", .{ordinal, next_ordinal.*});
+            warn("execution sequence violation: expected {}, got {}\r\n", .{ ordinal, next_ordinal.* });
             @panic("execution sequence violation");
         }
 

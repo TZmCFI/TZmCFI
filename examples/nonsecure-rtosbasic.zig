@@ -9,7 +9,9 @@ const os = @cImport({
     @cInclude("task.h");
     @cInclude("timers.h");
 });
-comptime { _ = @import("nonsecure-common/oshooks.zig"); }
+comptime {
+    _ = @import("nonsecure-common/oshooks.zig");
+}
 
 // The (unprocessed) Non-Secure exception vector table.
 export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import("nonsecure-common/excvector.zig").getDefaultFreertos();
@@ -60,7 +62,7 @@ const idle_task_params = os.TaskParameters_t{
     .pxTaskBuffer = null,
 };
 
-extern fn idleTaskMain(_arg: ?*c_void) void {
+fn idleTaskMain(_arg: ?*c_void) callconv(.C) void {
     warn("The idle task is running.\r\n", .{});
     while (true) {}
 }
