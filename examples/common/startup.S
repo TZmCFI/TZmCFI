@@ -37,6 +37,22 @@ LoopFillZerobss:
   cmp  r2, r3
   bcc  FillZerobss
 
+/* Copy the fast-text section to RAM */
+  movs  r1, #0
+  b LoopCopyFastText
+CopyFastText:
+  ldr  r3, =_sifasttext
+  ldr  r3, [r3, r1]
+  str  r3, [r0, r1]
+  adds  r1, r1, #4
+
+LoopCopyFastText:
+  ldr  r0, =_sfasttext
+  ldr  r3, =_efasttext
+  adds  r2, r0, r1
+  cmp  r2, r3
+  bcc  CopyFastText
+
 #if SET_ORIGINAL_VTOR
   // Disable TZmCFI's exception trampolines by updating VTOR to the
   // original (unpatched) vector table.
@@ -51,3 +67,13 @@ LoopFillZerobss:
   b  main
   bx  lr
 .size  handleReset, .-handleReset
+
+// Provide a default definiton of the fast-text section
+// (used if the target-specific linker script does not provide one)
+.section  .text.defaultfasttext
+  .weak  _sifasttext
+  .weak  _sfasttext
+  .weak  _efasttext
+_sifasttext:
+_sfasttext:
+_efasttext:

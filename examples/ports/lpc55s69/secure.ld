@@ -4,6 +4,8 @@ MEMORY
     CODEMEM (rx) : ORIGIN = 0x10000000, LENGTH = 64K
     /* SRAM0 */
     SRAM (rwx) : ORIGIN = 0x30000000, LENGTH = 64K
+    /* SRAMX - connected to the code bus, executes faster than flash */
+    SRAMX (rwx) : ORIGIN = 0x14000000, LENGTH = 32K
 }
 
 ENTRY(handleReset)
@@ -18,23 +20,12 @@ SECTIONS
         . = ALIGN(4);
     } > CODEMEM
 
-
-    .gnu.sgstubs :
-    {
-        . = ALIGN(32);
-        __nsc_start = .;
-        KEEP(*(.gnu.sgstubs*))
-        . = ALIGN(32);
-        __nsc_end = .;
-    } > CODEMEM
-
-
     .text :
     {
         __text = .;
-
-        *(.text)
-        *(.text*)
+    
+        *(EXCLUDE_FILE (*libmonitor.a*) .text)
+        *(EXCLUDE_FILE (*libmonitor.a*) .text*)
         *(.eh_frame)
 
         KEEP (*(.init))
@@ -57,6 +48,30 @@ SECTIONS
     __exidx_end = .;
 
     . = ALIGN(4);
+
+    /* used by the startup to copy code to SRAMX */
+    _sifasttext = LOADADDR(.gnu.sgstubs);
+
+    .gnu.sgstubs :
+    {
+        /* Load secure gateways to SRAMX for perfomance. Also, loading at the
+         * start of the memory region makes their location more immutable. */
+        . = ALIGN(32);
+        _sfasttext = .;        /* define a global symbol at fast-text start */
+        __nsc_start = .;
+        KEEP(*(.gnu.sgstubs*))
+        . = ALIGN(32);
+        __nsc_end = .;
+    } > SRAMX AT> CODEMEM 
+
+    .fasttext :
+    {
+        /* Load TZmCFI Monitor to SRAMX because it's performance-critical */
+        *libmonitor.a*(.text)
+        *libmonitor.a*(.text*)
+        . = ALIGN(4);
+        _efasttext = .;        /* define a global symbol at fast-text end */
+    } > SRAMX AT> CODEMEM 
 
     /* used by the startup to initialize data */
     _sidata = LOADADDR(.data);
