@@ -42,5 +42,6 @@ pub const TCThreadCreateInfo = ffi.TCThreadCreateInfo;
 pub const TCInitialize = shadowexcstack.TCInitialize;
 
 pub const setWarnHandler = debug.setWarnHandler;
+pub const log = debug.log;
 
 pub const LogLevel = options.LogLevel;

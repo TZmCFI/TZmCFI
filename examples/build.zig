@@ -67,6 +67,23 @@ pub fn build(b: *Builder) !void {
     // -------------------------------------------------------
     const mkimplib = "../target/debug/tzmcfi_mkimplib";
 
+    // TZmCFI Monitor instantiation
+    // -------------------------------------------------------
+    // This part is shared by all Non-Secure applications.
+    const monitor_name = if (want_gdb) "monitor-dbg" else "monitor";
+    const monitor = b.addStaticLibrary(monitor_name, "monitor.zig");
+    monitor.setTarget(arch, .freestanding, .eabi);
+    monitor.setBuildMode(mode);
+    monitor.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
+    monitor.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
+    monitor.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
+    monitor.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", .{log_level}));
+    monitor.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
+    monitor.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
+    monitor.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
+    monitor.addIncludeDir("../include");
+    monitor.setDisableGenH(true);
+
     // The Secure part
     // -------------------------------------------------------
     // This part is shared by all Non-Secure applications.
@@ -77,14 +94,11 @@ pub fn build(b: *Builder) !void {
     exe_s.setBuildMode(mode);
     exe_s.addAssemblyFile("common/startup.S");
     exe_s.setOutputDir("zig-cache");
-    exe_s.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
-    exe_s.addIncludeDir("../include");
-    exe_s.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", .{log_level}));
-    exe_s.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
-    exe_s.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
     exe_s.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
+
+    exe_s.linkLibrary(monitor);
 
     if (eql(u8, target_board, "lpc55s69")) {
         // Binary blob from MCUXpresso SDK

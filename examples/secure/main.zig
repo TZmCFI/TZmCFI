@@ -6,7 +6,9 @@ const arm_m = @import("arm_m");
 pub const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/secure.zig");
 const secure_board_vec_table = @import("../ports/" ++ @import("build_options").BOARD ++ "/excvector.zig").secure_board_vec_table;
 // ----------------------------------------------------------------------------
-const tzmcfi_monitor = @import("tzmcfi-monitor");
+// Import definitions in `monitor.zig`, which is compiled as a separate
+// compilation unit
+const monitor = @import("../monitor/exports.zig");
 // ----------------------------------------------------------------------------
 
 export fn main() void {
@@ -82,8 +84,9 @@ export fn main() void {
 
     // Initialize TZmCFI Monitor
     // -----------------------------------------------------------------------
-    tzmcfi_monitor.setWarnHandler(tcWarnHandler);
-    tzmcfi_monitor.TCInitialize(port.VTOR_NS);
+    // Call `TCXInitializeMonitor` that resides in a different
+    // compilation unit
+    monitor.TCXInitializeMonitor(tcWarnHandler);
 
     // Boot the Non-Secure code
     // -----------------------------------------------------------------------
@@ -99,8 +102,8 @@ export fn main() void {
     @panic("Non-Secure reset handler returned unexpectedly");
 }
 
-fn tcWarnHandler(ctx: void, data: []const u8) error{}!void {
-    port.print("{}", .{data});
+fn tcWarnHandler(data: [*]const u8, len: usize) callconv(.C) void {
+    port.print("{}", .{data[0..len]});
 }
 
 // ----------------------------------------------------------------------------
@@ -110,7 +113,7 @@ fn tcWarnHandler(ctx: void, data: []const u8) error{}!void {
 fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) callconv(.C) usize {
     const bytes = arm_cmse.checkSlice(u8, ptr, count, arm_cmse.CheckOptions{}) catch |err| {
         port.print("warning: pointer security check failed: {}\r\n", .{err});
-        port.print("         count = {}, ptr = 0x{x}\r\n", .{count, ptr});
+        port.print("         count = {}, ptr = 0x{x}\r\n", .{ count, ptr });
         return 0;
     };
 
@@ -126,27 +129,6 @@ fn nsDebugOutput(count: usize, ptr: usize, r2: usize, r32: usize) callconv(.C) u
 
 comptime {
     arm_cmse.exportNonSecureCallable("debugOutput", nsDebugOutput);
-}
-
-// ----------------------------------------------------------------------------
-
-pub fn tcSetShadowStackGuard(stack_start: usize, stack_end: usize) void {
-    const mpu = arm_m.mpu;
-    const Mpu = arm_m.Mpu;
-
-    mpu.regRnr().* = 0;
-
-    // `stack_start - 32 .. stack_start`, overlapping the region 2
-    mpu.regRbar().* = (stack_start - 32) | Mpu.RBAR_AP_RW_ANY;
-    mpu.regRlar().* = (stack_start - 32) | Mpu.RLAR_EN;
-
-    // `stack_end .. stack_end + 32`, overlapping the region 2
-    mpu.regRbarA(1).* = stack_end | Mpu.RBAR_AP_RW_ANY;
-    mpu.regRlarA(1).* = stack_end | Mpu.RLAR_EN;
-}
-
-pub fn tcResetShadowStackGuard() void {
-    @panic("tcResetShadowStackGuard: not implemented");
 }
 
 // ----------------------------------------------------------------------------
