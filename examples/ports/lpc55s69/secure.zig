@@ -1,4 +1,5 @@
 const format = @import("std").fmt.format;
+const OutStream = @import("std").io.OutStream;
 const arm_m = @import("arm_m");
 const arm_cmse = @import("arm_cmse");
 const lpc55s69 = @import("../../drivers/lpc55s69.zig");
@@ -148,11 +149,13 @@ pub fn init() void {
 
 /// Render the format string `fmt` with `args` and transmit the output.
 pub fn print(comptime fmt: []const u8, args: var) void {
-    format({}, error{}, printInner, fmt, args) catch unreachable;
+    const out_stream = OutStream(void, error{}, printInner){ .context = {} };
+    format(out_stream, fmt, args) catch unreachable;
 }
 
-fn printInner(ctx: void, data: []const u8) error{}!void {
+fn printInner(ctx: void, data: []const u8) error{}!usize {
     usart.writeSlice(data);
+    return data.len;
 }
 
 pub fn printByte(b: u8) void {
