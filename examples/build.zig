@@ -64,7 +64,7 @@ pub fn build(b: *Builder) !void {
 
     const target = try CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabi",
-        .cpu_features = "cortex_m33",
+        .cpu_features = "cortex_m33-dsp-fp16-fpregs-vfp2sp-vfp3d16sp-vfp4d16sp",
     });
 
     // Zig passes a target CPU and features to Clang using `-Xclang -target-cpu ...`.
