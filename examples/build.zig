@@ -67,6 +67,15 @@ pub fn build(b: *Builder) !void {
         .cpu_features = "cortex_m33",
     });
 
+    // Zig passes a target CPU and features to Clang using `-Xclang -target-cpu ...`.
+    // This is a lower-level mechanism than `-mcpu=cortex-m33` (which the clang
+    // frontend converts to `-target-cpu cortex_m33 ...`.). Unfortunately, there
+    // exists no equivalents of `-Xclang` for assembly files. To work around this, we
+    // pass `-mcpu` to the clang frontend.
+    const as_flags = &[_][]const u8 {
+        "-mcpu=cortex-m33",
+    };
+
     // The utility program for creating a CMSE import library
     // -------------------------------------------------------
     const mkimplib = "../target/debug/tzmcfi_mkimplib";
@@ -96,7 +105,7 @@ pub fn build(b: *Builder) !void {
     exe_s.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/secure.ld", .{target_board}));
     exe_s.setTarget(target);
     exe_s.setBuildMode(mode);
-    exe_s.addAssemblyFile("common/startup.S");
+    exe_s.addCSourceFile("common/startup.S", as_flags);
     exe_s.setOutputDir("zig-cache");
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
@@ -182,6 +191,7 @@ pub fn build(b: *Builder) !void {
         .want_gdb = want_gdb,
         .cfi_opts = &cfi_opts,
         .target_board = target_board,
+        .as_flags = as_flags,
         .implib_path = implib_path,
         .implib_step = &implib.step,
         .exe_s = exe_s,
@@ -294,6 +304,7 @@ const NsAppDeps = struct {
     want_gdb: bool,
     cfi_opts: *const CfiOpts,
     target_board: []const u8,
+    as_flags: []const []const u8,
 
     // Secure dependency
     implib_path: []const u8,
@@ -336,6 +347,7 @@ fn defineNonSecureApp(
     const kernel_include_dirs = ns_app_deps.kernel_include_dirs;
     const kernel = ns_app_deps.kernel;
     const target_board = ns_app_deps.target_board;
+    const as_flags = ns_app_deps.as_flags;
 
     const name = app_info.name;
 
@@ -351,7 +363,7 @@ fn defineNonSecureApp(
     exe_ns.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/nonsecure.ld", .{target_board}));
     exe_ns.setTarget(target);
     exe_ns.setBuildMode(mode);
-    exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
+    exe_ns.addCSourceFile("../src/nonsecure_vector.S", as_flags);
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
@@ -388,7 +400,7 @@ fn defineNonSecureApp(
         exe_ns.addCSourceFile("nonsecure-common/oshooks.c", c_flags.items);
     }
 
-    exe_ns.addAssemblyFile(implib_path);
+    exe_ns.addCSourceFile(implib_path, as_flags);
     exe_ns.step.dependOn(implib_step);
 
     const exe_both = b.step("build:" ++ name, "Build Secure and Non-Secure executables");
