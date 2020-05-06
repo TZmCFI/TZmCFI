@@ -22,17 +22,19 @@ comptime {
         asm (
             \\  .syntax unified
             \\  .thumb
+            \\  .cpu cortex-m33
             \\  .type SecureContext_LoadContext function
             \\  .global SecureContext_LoadContext
             \\  SecureContext_LoadContext:
             \\      b TCActivateThread
-            \\      // result is ignored, sadly
+            \\      // result is ignored, sad
         );
     } else {
         // TZmCFI is disabled, ignore the call
         asm (
             \\  .syntax unified
             \\  .thumb
+            \\  .cpu cortex-m33
             \\  .type SecureContext_LoadContext function
             \\  .global SecureContext_LoadContext
             \\  SecureContext_LoadContext:
