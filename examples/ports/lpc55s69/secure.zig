@@ -61,7 +61,7 @@ pub fn init() void {
         Syscon.PLL0SSCG1_MREQ |
         Syscon.PLL0SSCG1_SEL_EXT;
     syscon.setPll0PDividerRatio(3); // 300MHz / 3 → 100MHz
-    syscon.regPll0ctrl().* = @bitCast(
+    syscon.regPll0ctrl().* = comptime @bitCast(
         u32,
         Syscon.Pll0ctrl{
         .selr = 0, // selr = 0
