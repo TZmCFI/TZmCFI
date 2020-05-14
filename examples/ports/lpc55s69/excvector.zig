@@ -10,5 +10,7 @@ pub const secure_board_vec_table = BoardVecTable.new()
     // 0x24 - Image Type. 0 = Normal image for unsecure boot
     .setExcHandler(9, null)
     // 0x28 - Unused for image type 0
-    .setExcHandler(10, null);
+    .setExcHandler(10, null)
+    // 0x34 - Unused for image type 0
+    .setExcHandler(13, null);
 // zig fmt: on
