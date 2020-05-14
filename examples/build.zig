@@ -3,6 +3,7 @@
 const builtin = @import("builtin");
 
 const std = @import("std");
+const CrossTarget = std.zig.CrossTarget;
 const Builder = std.build.Builder;
 const Step = std.build.Step;
 const LibExeObjStep = std.build.LibExeObjStep;
@@ -61,7 +62,19 @@ pub fn build(b: *Builder) !void {
         b.markInvalidUserInput();
     }
 
-    const arch = builtin.Arch{ .thumb = .v8m_mainline };
+    const target = try CrossTarget.parse(.{
+        .arch_os_abi = "thumb-freestanding-eabi",
+        .cpu_features = "cortex_m33-dsp-fp16-fpregs-vfp2sp-vfp3d16sp-vfp4d16sp",
+    });
+
+    // Zig passes a target CPU and features to Clang using `-Xclang -target-cpu ...`.
+    // This is a lower-level mechanism than `-mcpu=cortex-m33` (which the clang
+    // frontend converts to `-target-cpu cortex_m33 ...`.). Unfortunately, there
+    // exists no equivalents of `-Xclang` for assembly files. To work around this, we
+    // pass `-mcpu` to the clang frontend.
+    const as_flags = &[_][]const u8 {
+        "-mcpu=cortex-m33",
+    };
 
     // The utility program for creating a CMSE import library
     // -------------------------------------------------------
@@ -72,7 +85,7 @@ pub fn build(b: *Builder) !void {
     // This part is shared by all Non-Secure applications.
     const monitor_name = if (want_gdb) "monitor-dbg" else "monitor";
     const monitor = b.addStaticLibrary(monitor_name, "monitor.zig");
-    monitor.setTarget(arch, .freestanding, .eabi);
+    monitor.setTarget(target);
     monitor.setBuildMode(mode);
     monitor.addPackagePath("tzmcfi-monitor", "../src/monitor.zig");
     monitor.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
@@ -82,7 +95,7 @@ pub fn build(b: *Builder) !void {
     monitor.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
     monitor.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
     monitor.addIncludeDir("../include");
-    monitor.setDisableGenH(true);
+    monitor.emit_h = false;
 
     // The Secure part
     // -------------------------------------------------------
@@ -90,9 +103,9 @@ pub fn build(b: *Builder) !void {
     const exe_s_name = if (want_gdb) "secure-dbg" else "secure";
     const exe_s = b.addExecutable(exe_s_name, "secure.zig");
     exe_s.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/secure.ld", .{target_board}));
-    exe_s.setTarget(arch, .freestanding, .eabi);
+    exe_s.setTarget(target);
     exe_s.setBuildMode(mode);
-    exe_s.addAssemblyFile("common/startup.S");
+    exe_s.addCSourceFile("common/startup.S", as_flags);
     exe_s.setOutputDir("zig-cache");
     exe_s.addPackagePath("arm_cmse", "../src/drivers/arm_cmse.zig");
     exe_s.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
@@ -120,7 +133,7 @@ pub fn build(b: *Builder) !void {
         implib_path,
     });
 
-    const implib = b.addSystemCommand(implib_args.toSliceConst());
+    const implib = b.addSystemCommand(implib_args.items);
     implib.step.dependOn(&exe_s.step);
 
     const implib_step = b.step("implib", "Create a CMSE import library");
@@ -130,7 +143,7 @@ pub fn build(b: *Builder) !void {
     // -------------------------------------------------------
     const kernel_name = if (want_gdb) "freertos-dbg" else "freertos";
     const kernel = b.addStaticLibrary(kernel_name, "freertos.zig");
-    kernel.setTarget(arch, .freestanding, .eabi);
+    kernel.setTarget(target);
     kernel.setBuildMode(mode);
 
     const kernel_include_dirs = [_][]const u8{
@@ -164,7 +177,7 @@ pub fn build(b: *Builder) !void {
         try kernel_build_args.append("-DportACCEL_RAISE_PRIVILEGE=1");
     }
     for (kernel_source_files) |file| {
-        kernel.addCSourceFile(file, kernel_build_args.toSliceConst());
+        kernel.addCSourceFile(file, kernel_build_args.items);
     }
 
     // The Non-Secure part
@@ -173,11 +186,12 @@ pub fn build(b: *Builder) !void {
     // There are separate build steps defined for each application, allowing
     // the user to choose whichever application they want to start.
     const ns_app_deps = NsAppDeps{
-        .arch = arch,
+        .target = target,
         .mode = mode,
         .want_gdb = want_gdb,
         .cfi_opts = &cfi_opts,
         .target_board = target_board,
+        .as_flags = as_flags,
         .implib_path = implib_path,
         .implib_step = &implib.step,
         .exe_s = exe_s,
@@ -285,11 +299,12 @@ const CfiOpts = struct {
 
 const NsAppDeps = struct {
     // General
-    arch: builtin.Arch,
+    target: CrossTarget,
     mode: builtin.Mode,
     want_gdb: bool,
     cfi_opts: *const CfiOpts,
     target_board: []const u8,
+    as_flags: []const []const u8,
 
     // Secure dependency
     implib_path: []const u8,
@@ -323,7 +338,7 @@ fn defineNonSecureApp(
     ns_app_deps: NsAppDeps,
     comptime app_info: NsAppInfo,
 ) !void {
-    const arch = ns_app_deps.arch;
+    const target = ns_app_deps.target;
     const mode = ns_app_deps.mode;
     const want_gdb = ns_app_deps.want_gdb;
     const implib_path = ns_app_deps.implib_path;
@@ -332,6 +347,7 @@ fn defineNonSecureApp(
     const kernel_include_dirs = ns_app_deps.kernel_include_dirs;
     const kernel = ns_app_deps.kernel;
     const target_board = ns_app_deps.target_board;
+    const as_flags = ns_app_deps.as_flags;
 
     const name = app_info.name;
 
@@ -345,9 +361,9 @@ fn defineNonSecureApp(
     const exe_ns_name = if (want_gdb) name ++ "-dbg" else name;
     const exe_ns = b.addExecutable(exe_ns_name, app_info.root);
     exe_ns.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/nonsecure.ld", .{target_board}));
-    exe_ns.setTarget(arch, .freestanding, .eabi);
+    exe_ns.setTarget(target);
     exe_ns.setBuildMode(mode);
-    exe_ns.addAssemblyFile("../src/nonsecure_vector.S");
+    exe_ns.addCSourceFile("../src/nonsecure_vector.S", as_flags);
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
@@ -363,10 +379,10 @@ fn defineNonSecureApp(
     try c_flags.append("-msoft-float");
 
     if (@hasDecl(meta, "modifyExeStep")) {
-        try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts{ .c_flags = c_flags.toSliceConst() });
+        try meta.modifyExeStep(b, exe_ns, ModifyExeStepOpts{ .c_flags = c_flags.items });
     }
 
-    var startup_args: [][]const u8 = undefined;
+    var startup_args: []const []const u8 = undefined;
     if (ns_app_deps.cfi_opts.ses) {
         startup_args = &comptime [_][]const u8{};
     } else {
@@ -381,10 +397,10 @@ fn defineNonSecureApp(
             exe_ns.addIncludeDir(path);
         }
         exe_ns.linkLibrary(kernel);
-        exe_ns.addCSourceFile("nonsecure-common/oshooks.c", c_flags.toSliceConst());
+        exe_ns.addCSourceFile("nonsecure-common/oshooks.c", c_flags.items);
     }
 
-    exe_ns.addAssemblyFile(implib_path);
+    exe_ns.addCSourceFile(implib_path, as_flags);
     exe_ns.step.dependOn(implib_step);
 
     const exe_both = b.step("build:" ++ name, "Build Secure and Non-Secure executables");
@@ -420,7 +436,7 @@ fn defineNonSecureApp(
     if (want_gdb) {
         try qemu_args.appendSlice(&[_][]const u8{"-S"});
     }
-    const run_qemu = b.addSystemCommand(qemu_args.toSliceConst());
+    const run_qemu = b.addSystemCommand(qemu_args.items);
     qemu.dependOn(&run_qemu.step);
     run_qemu.step.dependOn(exe_both);
 }

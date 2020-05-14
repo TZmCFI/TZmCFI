@@ -1,6 +1,7 @@
 // Some parts of this source code were adopted from:
 // https://github.com/altera-opensource/linux-socfpga/blob/master/drivers/tty/serial/mps2-uart.c
 const format = @import("std").fmt.format;
+const OutStream = @import("std").io.OutStream;
 
 const regs = struct {
     fn bit(comptime n: u32) u8 {
@@ -87,11 +88,13 @@ pub const Pl011 = struct {
     }
 
     /// Render the format string `fmt` with `args` and transmit the output.
-    pub fn print(self: Self, comptime fmt: []const u8, args: ...) void {
-        format(self, error{}, Self.printInner, fmt, args) catch unreachable;
+    pub fn print(self: Self, comptime fmt: []const u8, args: var) void {
+        const out_stream = OutStream(Self, error{}, printInner){ .context = self };
+        format(out_stream, fmt, args) catch unreachable;
     }
 
-    fn printInner(self: Self, data: []const u8) error{}!void {
+    fn printInner(self: Self, data: []const u8) error{}!usize {
         self.writeSlice(data);
+        return data.len;
     }
 };
