@@ -1,5 +1,4 @@
 [workspace]
 members = [
-    "tools/patch",
     "tools/mkimplib",
 ]
