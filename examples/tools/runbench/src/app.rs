@@ -3,6 +3,7 @@ use thiserror::Error;
 
 use super::{build_target, subprocess, target, BuildOpt};
 
+pub mod bench_latency;
 pub mod bench_rtos;
 
 /// Describes the traits of a Non-Secure benchmark application.
@@ -17,6 +18,8 @@ pub trait AppTraits {
 
     /// Return a flag indicating whether the test conditions for this benchmark
     /// should include the use of the context management API.
+    ///
+    /// When this flag is `false`, `ctx` will be always enabled.
     fn should_use_context_management(&self) -> bool;
 
     /// Return a flag indicating whether the test conditions for this benchmark
@@ -45,7 +48,7 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         if !traits.should_use_shadow_stacks() && bo.ss {
             return false;
         }
-        if !traits.should_use_context_management() && bo.ctx {
+        if !traits.should_use_context_management() && !bo.ctx {
             return false;
         }
         if !traits.should_use_accel_raise_pri() && bo.accel_raise_pri {
