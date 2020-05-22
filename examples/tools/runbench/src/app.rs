@@ -1,3 +1,4 @@
+use regex::bytes::Regex;
 use std::{error::Error, path::PathBuf};
 use thiserror::Error;
 
@@ -38,7 +39,30 @@ pub trait AppTraits {
     fn name(&self) -> String;
 
     /// Get the string indicating the end of output.
-    fn output_terminator(&self) -> &[u8];
+    ///
+    /// The default value is `b"%output-end"`.
+    fn output_terminator(&self) -> &[u8] {
+        b"%output-end"
+    }
+
+    /// Post-process the output.
+    ///
+    /// By default, this method extracts the contents between `b"%output-start"`
+    /// and `b"%output-end"`.
+    fn process_output(&self, output: &[u8]) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+        if let Some(m) = OUTPUT_RE.captures(output) {
+            Ok(Some(m[1].to_owned()))
+        } else {
+            Err(
+                "Could not locate a byte sequence enclosed by `%output-start` and `%output-end`."
+                    .into(),
+            )
+        }
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref OUTPUT_RE:Regex = Regex::new(r"(?s).*%output-start\s*(.*?)\s*%output-end").unwrap();
 }
 
 pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), Box<dyn Error>> {
@@ -128,13 +152,30 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
             .await
             .map_err(|e| RunBenchmarkError::OutputAcquisitionError(e.into()))?;
 
-        // Save the output
-        let save_path = output_dir.join(format!("{}.txt", bo));
-        log::info!("Saving the result to {:?}", save_path);
+        // Save the raw output
+        let save_path = output_dir.join(format!("{}.raw", bo));
+        log::info!("Saving the raw output to {:?}", save_path);
 
-        tokio::fs::write(&save_path, output)
+        tokio::fs::write(&save_path, &output)
             .await
             .map_err(|e| RunBenchmarkError::WriteOutputError(e.into()))?;
+
+        // Post-process the output
+        log::info!("Post-processing the output");
+        if let Some(output) = traits
+            .process_output(&output)
+            .map_err(|e| RunBenchmarkError::ProcessOutputError(e))?
+        {
+            // Save the processed output
+            let save_path = output_dir.join(format!("{}.json", bo));
+            log::info!("Saving the result to {:?}", save_path);
+
+            tokio::fs::write(&save_path, output)
+                .await
+                .map_err(|e| RunBenchmarkError::WriteOutputError(e.into()))?;
+        } else {
+            log::info!("Post-processing yielded no results");
+        }
     }
 
     Ok(())
@@ -156,6 +197,9 @@ enum RunBenchmarkError {
 
     #[error("Could not save the program output.\n\n{0}")]
     WriteOutputError(Box<dyn Error>),
+
+    #[error("Could not post-process the output.\n\n{0}")]
+    ProcessOutputError(Box<dyn Error>),
 }
 
 fn ignore_not_found(r: Result<(), std::io::Error>) -> Result<(), std::io::Error> {

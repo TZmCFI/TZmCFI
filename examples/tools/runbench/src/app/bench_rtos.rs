@@ -24,8 +24,4 @@ impl super::AppTraits for BenchRtosTraits {
     fn name(&self) -> String {
         "bench-rtos".to_string()
     }
-
-    fn output_terminator(&self) -> &[u8] {
-        b"Done!"
-    }
 }

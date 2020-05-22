@@ -24,8 +24,4 @@ impl super::AppTraits for BenchLatencyTraits {
     fn name(&self) -> String {
         "bench-latency".to_string()
     }
-
-    fn output_terminator(&self) -> &[u8] {
-        b"Done!"
-    }
 }
