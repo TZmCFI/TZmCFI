@@ -18,28 +18,6 @@ pub enum SubprocessError {
     FailStatus { cmd: Cmd, status: ExitStatus },
 }
 
-#[derive(Error, Debug)]
-pub enum CaptureOutputUntilMarkerError {
-    #[error("{0}")]
-    Subprocess(
-        #[from]
-        #[source]
-        SubprocessError,
-    ),
-
-    #[error(
-        "The command {cmd:?} did not return a terminating marker \
-        before a predetermined timeout has elapsed since the last output."
-    )]
-    Timeout { cmd: Cmd },
-
-    #[error(
-        "The command {cmd:?} did not return a terminating marker \
-        before it generated a predetermined amount of bytes."
-    )]
-    TooLong { cmd: Cmd },
-}
-
 #[derive(Debug)]
 pub struct Cmd(Vec<OsString>);
 
@@ -80,10 +58,6 @@ impl CmdBuilder {
 
     fn into_cmd(self) -> Cmd {
         Cmd(self.cmd)
-    }
-
-    fn to_cmd(&self) -> Cmd {
-        Cmd(self.cmd.clone())
     }
 
     pub async fn spawn_expecting_success(self) -> Result<(), SubprocessError> {
