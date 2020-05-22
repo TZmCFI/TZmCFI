@@ -67,7 +67,7 @@ enum TargetType {
 
 #[tokio::main]
 async fn main() {
-    env_logger::from_env(env_logger::Env::default().default_filter_or("warn")).init();
+    env_logger::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     // Parse command-line arguments
     let opt = Opt::from_args();
