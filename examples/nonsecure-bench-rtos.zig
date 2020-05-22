@@ -25,11 +25,14 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import
 export fn main() void {
     port.init();
 
-    seqmon.mark(0);
+    warn("%output-start\r\n", .{});
+    warn("{{\r\n", .{});
 
+    seqmon.mark(0);
+    
     // Get the measurement overhead
     measure.calculateOverhead();
-    warn("Overhead: {} cycles (this value is subtracted from all subsequent measurements)\r\n", .{measure.overhead.*});
+    warn("  \"Overhead\": {}, /* [cycles] (this value is subtracted from all subsequent measurements) */\r\n", .{measure.overhead.*});
 
     global_mutex.* = xSemaphoreCreateBinary();
     _ = xSemaphoreGive(global_mutex.*);
@@ -127,13 +130,13 @@ fn task1Main(_arg: ?*c_void) callconv(.C) void {
     measure.start();
     _ = os.xTaskCreateRestricted(&task3_params, &task3_handle);
     measure.end();
-    warn("Unpriv xTaskCreateRestricted without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
+    warn("  \"NewTask\": {}, /* [cycles] (Unpriv xTaskCreateRestricted without dispatch) */\r\n", .{measure.getNumCycles()});
 
     // `vTaskDelete`
     measure.start();
     _ = os.vTaskDelete(task3_handle);
     measure.end();
-    warn("Unpriv vTaskDelete without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
+    warn("  \"DelTask\": {}, /* [cycles] (Unpriv vTaskDelete without dispatch) */\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(2);
 
@@ -145,19 +148,19 @@ fn task1Main(_arg: ?*c_void) callconv(.C) void {
     // task2 returns to here by calling `vTaskDelete`
     measure.end();
     seqmon.mark(4);
-    warn("Unpriv vTaskDelete with dispatch: {} cycles\r\n", .{measure.getNumCycles()});
+    warn("  \"DelTask+disp\": {}, /* [cycles] (Unpriv vTaskDelete with dispatch) */\r\n", .{measure.getNumCycles()});
 
     // `xSemaphoreTake` without dispatch
     measure.start();
     _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
     measure.end();
-    warn("Unpriv xSemaphoreTake without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
+    warn("  \"SemTake\": {}, /* [cycles] (Unpriv xSemaphoreTake without dispatch) */\r\n", .{measure.getNumCycles()});
 
     // `xSemaphoreGive` without dispatch
     measure.start();
     _ = xSemaphoreGive(global_mutex.*);
     measure.end();
-    warn("Unpriv xSemaphoreGive without dispatch: {} cycles\r\n", .{measure.getNumCycles()});
+    warn("  \"SemGive\": {}, /* [cycles] (Unpriv xSemaphoreGive without dispatch) */\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(5);
     _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
@@ -173,13 +176,15 @@ fn task1Main(_arg: ?*c_void) callconv(.C) void {
 
     seqmon.mark(9);
 
+    warn("}}\r\n", .{});
+    warn("%output-end\r\n", .{});
     warn("Done!\r\n", .{});
     while (true) {}
 }
 
 fn task2aMain(_arg: ?*c_void) callconv(.C) void {
     measure.end();
-    warn("Unpriv xTaskCreateRestricted with dispatch: {} cycles\r\n", .{measure.getNumCycles()});
+    warn("  \"NewTask+disp\": {}, /* [cycles] (Unpriv xTaskCreateRestricted with dispatch) */\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(3);
 
@@ -196,7 +201,7 @@ fn task2bMain(_arg: ?*c_void) callconv(.C) void {
     _ = xSemaphoreTake(global_mutex.*, portMAX_DELAY);
 
     measure.end();
-    warn("Unpriv xSemaphoreGive with dispatch: {} cycles\r\n", .{measure.getNumCycles()});
+    warn("  \"SemGive+disp\": {}, /* [cycles] (Unpriv xSemaphoreGive with dispatch) */\r\n", .{measure.getNumCycles()});
 
     seqmon.mark(8);
 
@@ -263,7 +268,7 @@ const seqmon = struct {
             @panic("execution sequence violation");
         }
 
-        warn("[{}]\r\n", .{ordinal});
+        warn("  /* [{}] */\r\n", .{ordinal});
         next_ordinal.* += 1;
     }
 };
