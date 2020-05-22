@@ -56,7 +56,7 @@ pub async fn target_reset_and_get_output_until<P: AsRef<[u8]>>(
     loop {
         log::trace!("... calling `read`");
         let read_fut = stream.read(&mut buffer);
-        let timeout_fut = tokio::time::delay_for(Duration::from_secs(15));
+        let timeout_fut = tokio::time::delay_for(Duration::from_secs(35));
 
         let num_bytes = tokio::select! {
             read_result = read_fut => {
@@ -65,6 +65,7 @@ pub async fn target_reset_and_get_output_until<P: AsRef<[u8]>>(
             },
             _ = timeout_fut => {
                 log::trace!("... `delay_for` resolved earlier - timeout");
+                log::trace!("... The output so far: {:?}", String::from_utf8_lossy(&output));
                 return Err(RunError::Timeout);
             },
         };

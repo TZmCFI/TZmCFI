@@ -106,7 +106,7 @@ async fn main() {
     let result = match opt.benchmark {
         BenchmarkType::Rtos => app::run(&opt, app::bench_rtos::BenchRtosTraits).await,
         BenchmarkType::Latency => app::run(&opt, app::bench_latency::BenchLatencyTraits).await,
-        _ => todo!(),
+        BenchmarkType::CoreMark => app::run(&opt, app::bench_coremark::BenchCoreMarkTraits).await,
     };
 
     if let Err(e) = result {

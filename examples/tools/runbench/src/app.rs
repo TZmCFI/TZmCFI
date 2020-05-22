@@ -3,6 +3,7 @@ use thiserror::Error;
 
 use super::{build_target, subprocess, target, BuildOpt};
 
+pub mod bench_coremark;
 pub mod bench_latency;
 pub mod bench_rtos;
 
@@ -10,6 +11,8 @@ pub mod bench_rtos;
 pub trait AppTraits {
     /// Return a flag indicating whether the test conditions for this benchmark
     /// should include the use of shadow exception stacks.
+    ///
+    /// When this flag is `false`, `ses` will be always enabled.
     fn should_use_shadow_exception_stacks(&self) -> bool;
 
     /// Return a flag indicating whether the test conditions for this benchmark
@@ -42,7 +45,7 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
     let mut target = build_target(opt).await?;
 
     let build_opts = BuildOpt::all_valid_values().filter(|bo| {
-        if !traits.should_use_shadow_exception_stacks() && bo.ses {
+        if !traits.should_use_shadow_exception_stacks() && !bo.ses {
             return false;
         }
         if !traits.should_use_shadow_stacks() && bo.ss {
