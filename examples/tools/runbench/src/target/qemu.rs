@@ -54,6 +54,44 @@ impl Target for QemuTarget<'_> {
     fn reset_and_get_output(
         &mut self,
     ) -> Pin<Box<dyn Future<Output = Result<DynAsyncRead<'_>, Box<dyn Error>>> + '_>> {
-        Box::pin(async { todo!() })
+        Box::pin(async move {
+            let mut cmd_builder = subprocess::CmdBuilder::new(self.cmd)
+                .arg("-machine")
+                .arg("mps2-an505")
+                .arg("-nographic")
+                .arg("-d")
+                .arg("guest_errors")
+                .arg("-semihosting")
+                .arg("-semihosting-config")
+                .arg("target=native")
+                .arg("-kernel")
+                .arg(&self.images[0]);
+            for image in self.images[1..].iter() {
+                let mut dev: std::ffi::OsString = "loader,file=".into();
+                dev.push(image);
+                cmd_builder = cmd_builder.arg("-device").arg(dev);
+            }
+
+            let child = cmd_builder.spawn_and_get_child()?;
+            Ok(Box::pin(OutputReader {
+                // If we drop `Child` here and take only `child.stdout`, the
+                // process will be killed
+                child,
+            }) as DynAsyncRead<'_>)
+        })
+    }
+}
+
+struct OutputReader {
+    child: tokio::process::Child,
+}
+
+impl tokio::io::AsyncRead for OutputReader {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context,
+        buf: &mut [u8],
+    ) -> std::task::Poll<std::io::Result<usize>> {
+        tokio::io::AsyncRead::poll_read(Pin::new(self.child.stdout.as_mut().unwrap()), cx, buf)
     }
 }

@@ -30,8 +30,8 @@ pub trait Target {
         paths: &[&Path],
     ) -> Pin<Box<dyn Future<Output = Result<(), Box<dyn Error>>> + '_>>;
 
-    /// Run the currently programmed application from the start and capture its
-    /// output.
+    /// Run the currently programmed application from the beginning and capture
+    /// its output.
     fn reset_and_get_output(
         &mut self,
     ) -> Pin<Box<dyn Future<Output = Result<DynAsyncRead<'_>, Box<dyn Error>>> + '_>>;
@@ -42,7 +42,7 @@ type DynAsyncRead<'a> = Pin<Box<dyn AsyncRead + 'a>>;
 /// Run the currently programmed application from the start and capture its
 /// output until a marker is found.
 pub async fn target_reset_and_get_output_until<P: AsRef<[u8]>>(
-    target: &mut impl Target,
+    target: &mut (impl Target + ?Sized),
     markers: impl IntoIterator<Item = P>,
 ) -> Result<Vec<u8>, RunError> {
     let mut stream = target.reset_and_get_output().await?;
@@ -78,8 +78,13 @@ pub async fn target_reset_and_get_output_until<P: AsRef<[u8]>>(
         // Check for markers
         let check_len = num_bytes + matcher.max_pattern_len() - 1;
         if output.len() >= check_len {
-            if let Some(m) = matcher.find(&output[output.len() - check_len..]) {
-                output.truncate(m.end());
+            let i = output.len() - check_len;
+            if let Some(m) = matcher.find(&output[i..]) {
+                log::trace!(
+                    "... Found the marker at position {:?}",
+                    i + m.start()..i + m.end()
+                );
+                output.truncate(i + m.end());
                 break;
             }
         }
