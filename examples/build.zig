@@ -273,7 +273,7 @@ const CfiOpts = struct {
 
         if (self.aborting_ss and !self.ss) {
             // `aborting_ss` makes no sense without `ss`
-            warn("error: cfi-ss requires cfi-ses\n", .{});
+            warn("error: cfi-aborting-ss requires cfi-ss\n", .{});
             return error.IncompatibleCfiOpts;
         }
     }
