@@ -39,7 +39,7 @@ struct Opt {
     #[structopt(
         short = "o",
         long = "output-dir",
-        default_value = "runbench.artifacts/%date%-%time%-%benchmark%"
+        default_value = "runbench.artifacts/%date%-%time%-%target%-%benchmark%"
     )]
     output_dir_template: String,
 
@@ -78,6 +78,7 @@ impl Opt {
         self.output_dir_template
             .replace("%date%", &now.format("%Y%m%d").to_string())
             .replace("%time%", &now.format("%H%M%S").to_string())
+            .replace("%target%", &self.target.to_string())
             .replace("%benchmark%", &self.benchmark.to_string())
             .into()
     }
