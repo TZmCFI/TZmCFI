@@ -36,8 +36,12 @@ struct Opt {
     zig_cache_dir: PathBuf,
 
     /// Path to save results in
-    #[structopt(short = "o", long = "output-dir", parse(from_os_str))]
-    output: PathBuf,
+    #[structopt(
+        short = "o",
+        long = "output-dir",
+        default_value = "runbench.artifacts/%date%-%time%-%benchmark%"
+    )]
+    output_dir_template: String,
 
     /// Command to invoke the Zig compiler
     #[structopt(long = "zig", default_value = "zig", parse(from_os_str), env = "ZIG")]
@@ -60,6 +64,23 @@ struct Opt {
         env = "QEMU"
     )]
     qemu_system_arm_cmd: OsString,
+}
+
+impl Opt {
+    /// Replace variables in `output_dir_template` and form the final output
+    /// directory path.
+    ///
+    /// Warning: The result changes every time you call this method.
+    fn output_dir(&self) -> PathBuf {
+        use chrono::prelude::*;
+        let now = Local::now();
+
+        self.output_dir_template
+            .replace("%date%", &now.format("%Y%m%d").to_string())
+            .replace("%time%", &now.format("%H%M%S").to_string())
+            .replace("%benchmark%", &self.benchmark.to_string())
+            .into()
+    }
 }
 
 #[derive(arg_enum_proc_macro::ArgEnum)]

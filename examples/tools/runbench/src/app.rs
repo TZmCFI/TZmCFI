@@ -63,8 +63,9 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
     }
     let build_opts_len = build_opts.clone().count();
 
-    log::info!("The output will be saved to: {:?}", opt.output);
-    tokio::fs::create_dir_all(&opt.output)
+    let output_dir = opt.output_dir();
+    log::info!("The output will be saved to: {:?}", output_dir);
+    tokio::fs::create_dir_all(&output_dir)
         .await
         .map_err(|e| RunBenchmarkError::CreateOutputDirError(e.into()))?;
 
@@ -122,7 +123,7 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
             .map_err(|e| RunBenchmarkError::OutputAcquisitionError(e.into()))?;
 
         // Save the output
-        let save_path = opt.output.join(format!("{}.txt", bo));
+        let save_path = output_dir.join(format!("{}.txt", bo));
         log::info!("Saving the result to {:?}", save_path);
 
         tokio::fs::write(&save_path, output)
