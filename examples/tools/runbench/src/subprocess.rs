@@ -14,7 +14,7 @@ pub enum SubprocessError {
         error: std::io::Error,
     },
 
-    #[error("The command {cmd:?} returned exit status {status}")]
+    #[error("The command {cmd:?} returned {status}")]
     FailStatus { cmd: Cmd, status: ExitStatus },
 }
 
