@@ -162,16 +162,11 @@ enum BuildMode {
 
 impl fmt::Display for BuildOpt {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?} ", self.mode)?;
-
-        let mut emitted = false;
+        write!(f, "{:?}", self.mode)?;
 
         macro_rules! e {
             ($($tt:tt)*) => {{
-                if emitted {
-                    write!(f, "+")?;
-                }
-                emitted = true;
+                write!(f, "+")?;
                 write!(f, $($tt)*)?;
             }};
         }
@@ -194,9 +189,6 @@ impl fmt::Display for BuildOpt {
         }
         if self.accel_raise_pri {
             e!("ape");
-        }
-        if !emitted {
-            write!(f, "baseline")?;
         }
         Ok(())
     }
