@@ -85,12 +85,11 @@ fn handleTimer0() callconv(.C) void {
     // Flag the cases where Timer1 preempts Timer0's handler too late
     asm volatile ("cpsid f");
     var k: u32 = 0;
-    while (k < 10000) : (k += 1) {
+    while (k < 1000) : (k += 1) {
         asm volatile ("");
     }
-    asm volatile ("cpsie f");
-
     comm().measure_done += 1;
+    asm volatile ("cpsie f");
 }
 
 var last_observed_pattern_hash: u32 = 0;
@@ -117,7 +116,9 @@ fn handleTimer1() callconv(.C) void {
         warn("  {{ \"cycles\": {}, \"sp\": 0x{x:08}, \"delay\": {} }},\r\n", .{ cycles, sp, comm().current_delay });
     }
 
+    asm volatile ("cpsid f");
     comm().measure_done += 1;
+    asm volatile ("cpsie f");
 }
 
 // Zig panic handler. See `panicking.zig` for details.
