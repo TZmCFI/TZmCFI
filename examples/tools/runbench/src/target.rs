@@ -84,7 +84,7 @@ pub async fn target_reset_and_get_output_until<P: AsRef<[u8]>>(
         output.extend_from_slice(&buffer[0..num_bytes]);
 
         // Check for markers
-        let check_len = num_bytes + matcher.max_pattern_len() - 1;
+        let check_len = (num_bytes + matcher.max_pattern_len() - 1).min(output.len());
         if output.len() >= check_len {
             let i = output.len() - check_len;
             if let Some(m) = matcher.find(&output[i..]) {
