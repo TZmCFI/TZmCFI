@@ -56,6 +56,14 @@ struct Opt {
     )]
     pyocd_cmd: OsString,
 
+    /// PyOCD probe ID (`--uid`). Use `pyocd list` to list available probes
+    #[structopt(long = "pyocd-uid", parse(from_os_str), env = "PYOCD_UID")]
+    pyocd_uid: Option<OsString>,
+
+    /// Serial port for communicating with a target board
+    #[structopt(long = "serial", env = "SERIAL")]
+    serial_port: Option<String>,
+
     /// Command to invoke QEMU
     #[structopt(
         long = "qemu",
@@ -125,12 +133,12 @@ struct BuildTargetError(
 
 async fn build_target(opt: &Opt) -> Result<Box<dyn target::Target + '_>, BuildTargetError> {
     match opt.target {
+        TargetType::Lpc55s69 => Ok(Box::new(target::lpc55s69::Lpc55s69Target::new(&opt).await?)),
         TargetType::Qemu => Ok(Box::new(
             target::qemu::QemuTarget::new(&opt)
                 .await
                 .map_err(|e| Box::new(e) as Box<dyn Error>)?,
         )),
-        TargetType::Lpc55s69 => todo!(),
     }
 }
 

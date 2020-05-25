@@ -123,6 +123,7 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
 
         subprocess::CmdBuilder::new(&opt.zig_cmd)
             .args(build_args.iter())
+            .args(target.zig_build_flags())
             .spawn_expecting_success()
             .await?;
 

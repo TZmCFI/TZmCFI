@@ -3,6 +3,7 @@ use std::{error::Error, future::Future, path::Path, pin::Pin, time::Duration};
 use thiserror::Error;
 use tokio::{io::AsyncRead, prelude::*};
 
+pub mod lpc55s69;
 pub mod qemu;
 
 #[derive(Error, Debug)]
@@ -25,6 +26,12 @@ pub trait Target {
 
     /// Program the specified ELF images. Previous images may be erased. The
     /// actual operation may be deferred until `reset_and_get_output` is called.
+    ///
+    /// Warning: Be careful with this method - Flash memory has limited write
+    /// cycles, so calling this method for many times may actually [kill] the
+    /// target chip.
+    ///
+    /// [kill]: https://en.wikipedia.org/wiki/Killer_poke
     fn program(
         &mut self,
         paths: &[&Path],
@@ -96,4 +103,43 @@ pub async fn target_reset_and_get_output_until<P: AsRef<[u8]>>(
     }
 
     Ok(output)
+}
+
+/// Choose a serial port based on command-line options.
+fn choose_serial(opt: &super::Opt) -> Result<String, ChooseSerialError> {
+    if let Some(p) = &opt.serial_port {
+        log::info!("Using the serial port {:?} (manually selected)", p);
+        Ok(p.clone())
+    } else {
+        let ports = mio_serial::available_ports()?;
+        log::trace!("Available ports: {:?}", ports);
+        if ports.len() == 0 {
+            return Err(ChooseSerialError::NoPortsAvailable);
+        } else if ports.len() > 1 {
+            return Err(ChooseSerialError::MultiplePortsAvailable(
+                ports.into_iter().map(|i| i.port_name).collect(),
+            ));
+        }
+
+        let p = ports.into_iter().next().unwrap().port_name;
+        log::info!("Using the serial port {:?} (automatically selected)", p);
+        Ok(p)
+    }
+}
+
+#[derive(Error, Debug)]
+enum ChooseSerialError {
+    #[error("No serial ports were found")]
+    NoPortsAvailable,
+    #[error(
+        "Multiple serial ports were found. \
+        Please specify one of the following using `--serial`: {0:?}"
+    )]
+    MultiplePortsAvailable(Vec<String>),
+    #[error("Could not enumerate serial ports.\n\n{0}")]
+    SystemError(
+        #[from]
+        #[source]
+        mio_serial::Error,
+    ),
 }
