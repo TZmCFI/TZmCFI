@@ -74,7 +74,7 @@ pub fn loadState(state: *const StackState) void {
     const end = start + state.frames.len * @sizeOf(usize);
     setShadowStackGuard(start, end);
 
-    log(.Trace, "shadowstack.loadState({x})\n", state);
+    log(.Trace, "shadowstack.loadState({?x})\n", .{state});
 }
 
 export fn TCShadowStackMismatch() noreturn {
