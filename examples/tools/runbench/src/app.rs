@@ -1,6 +1,7 @@
+use atomic_refcell::AtomicRefCell;
 use regex::bytes::Regex;
 use serde::Serialize;
-use std::{error::Error, path::PathBuf};
+use std::{error::Error, future::Future, path::PathBuf};
 use thiserror::Error;
 
 use super::{build_target, subprocess, target, BuildOpt};
@@ -152,42 +153,50 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         }
 
         // Program the target board
-        target
-            .program(&[&nonsecure_elf, &secure_elf])
+        log::info!("Programming the target board");
+        let t = AtomicRefCell::new(&mut target);
+        retry_on_fail(|| async { t.borrow_mut().program(&[&nonsecure_elf, &secure_elf]).await })
             .await
             .map_err(RunBenchmarkError::ProgrammingError)?;
 
         // Run the program
-        log::info!("Running the program");
-        let markers = [b"unhandled exception", traits.output_terminator()];
-        let output = target::target_reset_and_get_output_until(&mut *target, markers.iter())
-            .await
-            .map_err(|e| RunBenchmarkError::OutputAcquisitionError(e.into()))?;
+        let t = AtomicRefCell::new(&mut *target);
+        retry_on_fail(|| async {
+            log::info!("Running the program");
+            let markers = [b"unhandled exception", traits.output_terminator()];
+            let output =
+                target::target_reset_and_get_output_until(*&mut *t.borrow_mut(), markers.iter())
+                    .await
+                    .map_err(|e| RunBenchmarkError::OutputAcquisitionError(e.into()))?;
 
-        // Save the raw output
-        let save_path = output_dir.join(format!("{}.raw", bo));
-        log::info!("Saving the raw output to {:?}", save_path);
+            // Save the raw output
+            let save_path = output_dir.join(format!("{}.raw", bo));
+            log::info!("Saving the raw output to {:?}", save_path);
 
-        tokio::fs::write(&save_path, &output)
-            .await
-            .map_err(|e| RunBenchmarkError::WriteOutputError(e.into()))?;
-
-        // Post-process the output
-        log::info!("Post-processing the output");
-        if let Some(output) = traits
-            .process_output(&output)
-            .map_err(|e| RunBenchmarkError::ProcessOutputError(e))?
-        {
-            // Save the processed output
-            let save_path = output_dir.join(format!("{}.json", bo));
-            log::info!("Saving the result to {:?}", save_path);
-
-            tokio::fs::write(&save_path, output)
+            tokio::fs::write(&save_path, &output)
                 .await
                 .map_err(|e| RunBenchmarkError::WriteOutputError(e.into()))?;
-        } else {
-            log::info!("Post-processing yielded no results");
-        }
+
+            // Post-process the output
+            log::info!("Post-processing the output");
+            if let Some(output) = traits
+                .process_output(&output)
+                .map_err(|e| RunBenchmarkError::ProcessOutputError(e))?
+            {
+                // Save the processed output
+                let save_path = output_dir.join(format!("{}.json", bo));
+                log::info!("Saving the result to {:?}", save_path);
+
+                tokio::fs::write(&save_path, output)
+                    .await
+                    .map_err(|e| RunBenchmarkError::WriteOutputError(e.into()))?;
+            } else {
+                log::info!("Post-processing yielded no results");
+            }
+
+            Ok::<(), Box<dyn Error>>(())
+        })
+        .await?;
 
         meta.matrix.push(MetaRun {
             build_opt: bo,
@@ -254,4 +263,26 @@ struct MetaRun {
     build_opt: BuildOpt,
     name: String,
     zig_build_args: Vec<String>,
+}
+
+async fn retry_on_fail<R, T, E: std::fmt::Debug>(mut f: impl FnMut() -> R) -> Result<T, E>
+where
+    R: Future<Output = Result<T, E>>,
+{
+    let mut count = 3u32;
+    loop {
+        match f().await {
+            Ok(x) => return Ok(x),
+            Err(e) => {
+                log::warn!("Attempt failed: {:?}", e);
+                count -= 1;
+                if count == 0 {
+                    log::warn!("Retry limit reached");
+                    return Err(e);
+                } else {
+                    log::warn!("Retrying... (remaining count = {:?})", count);
+                }
+            }
+        }
+    }
 }
