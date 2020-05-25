@@ -1,4 +1,5 @@
 use regex::bytes::Regex;
+use serde::Serialize;
 use std::{error::Error, path::PathBuf};
 use thiserror::Error;
 
@@ -99,6 +100,16 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         .await
         .map_err(|e| RunBenchmarkError::CreateOutputDirError(e.into()))?;
 
+    let mut meta = Metadata {
+        benchmark: opt.benchmark,
+        target: opt.target,
+        exe_names: MetaExeNames {
+            secure: "secure".to_owned(),
+            non_secure: traits.name(),
+        },
+        matrix: Vec::new(),
+    };
+
     for (i, bo) in build_opts.enumerate() {
         log::info!("* Build option: {} ({} of {})", bo, i + 1, build_opts_len);
 
@@ -120,10 +131,10 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         bo.append_zig_buld_opts_to(|o| {
             build_args.push(o.to_owned());
         });
+        build_args.extend(target.zig_build_flags().iter().cloned().map(str::to_owned));
 
         subprocess::CmdBuilder::new(&opt.zig_cmd)
             .args(build_args.iter())
-            .args(target.zig_build_flags())
             .spawn_expecting_success()
             .await?;
 
@@ -177,6 +188,19 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         } else {
             log::info!("Post-processing yielded no results");
         }
+
+        meta.matrix.push(MetaRun {
+            build_opt: bo,
+            name: bo.to_string(),
+            zig_build_args: build_args,
+        });
+    }
+
+    let meta_path = output_dir.join("meta.json");
+    log::info!("Writing metadata to: {:?}", meta_path);
+    {
+        let json = serde_json::to_string_pretty(&meta).unwrap();
+        tokio::fs::write(&meta_path, json).await?;
     }
 
     Ok(())
@@ -209,4 +233,25 @@ fn ignore_not_found(r: Result<(), std::io::Error>) -> Result<(), std::io::Error>
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(e),
     }
+}
+
+#[derive(Serialize)]
+struct Metadata {
+    benchmark: super::BenchmarkType,
+    target: super::TargetType,
+    exe_names: MetaExeNames,
+    matrix: Vec<MetaRun>,
+}
+
+#[derive(Serialize)]
+struct MetaExeNames {
+    secure: String,
+    non_secure: String,
+}
+
+#[derive(Serialize)]
+struct MetaRun {
+    build_opt: BuildOpt,
+    name: String,
+    zig_build_args: Vec<String>,
 }

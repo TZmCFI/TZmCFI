@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::{error::Error, ffi::OsString, fmt, path::PathBuf};
 use structopt::StructOpt;
 use thiserror::Error;
@@ -92,14 +93,14 @@ impl Opt {
     }
 }
 
-#[derive(arg_enum_proc_macro::ArgEnum)]
+#[derive(Clone, Copy, arg_enum_proc_macro::ArgEnum, Serialize)]
 enum BenchmarkType {
     Rtos,
     Latency,
     CoreMark,
 }
 
-#[derive(arg_enum_proc_macro::ArgEnum)]
+#[derive(Clone, Copy, arg_enum_proc_macro::ArgEnum, Serialize)]
 enum TargetType {
     Qemu,
     Lpc55s69,
@@ -143,7 +144,7 @@ async fn build_target(opt: &Opt) -> Result<Box<dyn target::Target + '_>, BuildTa
 }
 
 /// The build options defined by `build.zig`
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 struct BuildOpt {
     mode: BuildMode,
     ctx: bool,
@@ -154,7 +155,7 @@ struct BuildOpt {
     accel_raise_pri: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 enum BuildMode {
     ReleaseFast,
     ReleaseSmall,
