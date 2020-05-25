@@ -95,6 +95,9 @@ impl Target for Lpc55s69Target<'_> {
     ) -> Pin<Box<dyn Future<Output = Result<DynAsyncRead<'_>, Box<dyn Error>>> + '_>> {
         #[derive(Error, Debug)]
         enum LocalError {
+            #[error("PyOCD returned an error while halting the target.\n\n{0}")]
+            HaltError(#[source] Box<dyn Error>),
+
             #[error("PyOCD returned an error while resetting the target.\n\n{0}")]
             ResetError(#[source] Box<dyn Error>),
 
@@ -103,6 +106,18 @@ impl Target for Lpc55s69Target<'_> {
         }
 
         Box::pin(async move {
+            // Halt the board
+            subprocess::CmdBuilder::new(&self.pyocd_cmd)
+                .arg("cmd")
+                .arg("-t")
+                .arg("lpc55s69")
+                .args(self.pyocd_uid_args())
+                .arg("-c")
+                .arg("halt")
+                .spawn_expecting_success()
+                .await
+                .map_err(|e| LocalError::HaltError(e.into()))?;
+
             // Open the serial port first
             let serial = Serial::from_path(
                 &self.serial_port,
