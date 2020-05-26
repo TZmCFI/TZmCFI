@@ -20,3 +20,30 @@ pub fn init() void {
     syscon.regCtimerclkseln(0).* = Syscon.CTIMERCLKSEL_SEL_MAIN_CLOCK;
     syscon.regCtimerclkseln(1).* = Syscon.CTIMERCLKSEL_SEL_MAIN_CLOCK;
 }
+
+// Insert padding bytes before functions. LPC55S69's flash memory is read
+// in units of blocks, so the placement of functions affects runtime performance.
+comptime {
+    asm (".section .text.rom_padding     \n" ++
+        ".global rom_padding            \n" ++
+        "rom_padding:                   \n" ++
+        "    .zero " ++ comptimeIntToStr(@import("build_options").ROM_OFFSET) ++ "\n");
+}
+
+fn comptimeIntToStr(comptime i: var) []const u8 {
+    comptime {
+        if (i < 0) {
+            return "-" ++ comptimeIntToStr(-i);
+        } else if (i == 0) {
+            return "0";
+        } else {
+            var str: []const u8 = "";
+            var ii = i;
+            while (ii > 0) {
+                str = [1]u8{'0' + ii % 10} ++ str;
+                ii /= 10;
+            }
+            return str;
+        }
+    }
+}

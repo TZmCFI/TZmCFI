@@ -62,6 +62,12 @@ pub fn build(b: *Builder) !void {
         b.markInvalidUserInput();
     }
 
+    // Flash memory is read in units of blocks, so the placement of functions
+    // affects runtime performance. This options allows experimentation with
+    // this phenomenon.
+    const rom_offset = b.option([]const u8, "rom-offset", "Insert N padding bytes before code. " ++
+        "Not supported by all targets (default = 0)") orelse "0";
+
     const target = try CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabi",
         .cpu_features = "cortex_m33-dsp-fp16-fpregs-vfp2sp-vfp3d16sp-vfp4d16sp",
@@ -192,6 +198,7 @@ pub fn build(b: *Builder) !void {
         .cfi_opts = &cfi_opts,
         .target_board = target_board,
         .as_flags = as_flags,
+        .rom_offset = rom_offset,
         .implib_path = implib_path,
         .implib_step = &implib.step,
         .exe_s = exe_s,
@@ -305,6 +312,7 @@ const NsAppDeps = struct {
     cfi_opts: *const CfiOpts,
     target_board: []const u8,
     as_flags: []const []const u8,
+    rom_offset: []const u8,
 
     // Secure dependency
     implib_path: []const u8,
@@ -347,6 +355,7 @@ fn defineNonSecureApp(
     const kernel_include_dirs = ns_app_deps.kernel_include_dirs;
     const kernel = ns_app_deps.kernel;
     const target_board = ns_app_deps.target_board;
+    const rom_offset = ns_app_deps.rom_offset;
     const as_flags = ns_app_deps.as_flags;
 
     const name = app_info.name;
@@ -369,6 +378,7 @@ fn defineNonSecureApp(
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");
     exe_ns.enable_lto = true;
     exe_ns.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
+    exe_ns.addBuildOption([]const u8, "ROM_OFFSET", try allocPrint(b.allocator, "{}", .{rom_offset}));
 
     ns_app_deps.cfi_opts.configureBuildStep(exe_ns);
 

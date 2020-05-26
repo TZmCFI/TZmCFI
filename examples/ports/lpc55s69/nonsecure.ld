@@ -42,7 +42,10 @@ SECTIONS
     .text :
     {
         __text = .;
-
+        *(.text.isr_vector)
+        *(.text.ExceptionTrampolines)
+        *(.text.rom_padding)
+        KEEP (*(.text.rom_padding))
         *(.text)
         *(.text*)
         *(.eh_frame)
