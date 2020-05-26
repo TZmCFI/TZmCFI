@@ -276,6 +276,8 @@ impl BuildOpt {
         }
         if self.accel_raise_pri {
             o("-Daccel-raise-pri");
+        } else {
+            o("-Daccel-raise-pri=false");
         }
     }
 }
