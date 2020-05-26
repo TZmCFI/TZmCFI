@@ -26,6 +26,10 @@ struct Opt {
     )]
     target: TargetType,
 
+    /// Include `-Drom-offset=N` in the test condition set
+    #[structopt(long = "vary-rom-offset")]
+    vary_rom_offset: bool,
+
     /// Path to the `zig-cache` directory, in which `zig build` stores built
     /// artifacts
     #[structopt(
@@ -153,6 +157,7 @@ struct BuildOpt {
     aborting_ss: bool,
     icall: bool,
     accel_raise_pri: bool,
+    rom_offset: u8,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -191,12 +196,15 @@ impl fmt::Display for BuildOpt {
         if self.accel_raise_pri {
             e!("ape");
         }
+        if self.rom_offset != 0 {
+            e!("off({})", self.rom_offset);
+        }
         Ok(())
     }
 }
 
 impl BuildOpt {
-    fn all_valid_values() -> impl Iterator<Item = Self> + Clone {
+    fn all_valid_values(opt: &Opt) -> impl Iterator<Item = Self> + Clone {
         use itertools::iproduct;
         iproduct!(
             [BuildMode::ReleaseFast, BuildMode::ReleaseSmall]
@@ -207,7 +215,14 @@ impl BuildOpt {
             [false, true].iter().cloned(),
             [false, true].iter().cloned(),
             [false, true].iter().cloned(),
-            [false, true].iter().cloned()
+            [false, true].iter().cloned(),
+            if opt.vary_rom_offset {
+                &[0, 4, 8, 12][..]
+            } else {
+                &[0][..]
+            }
+            .iter()
+            .cloned()
         )
         .map(|c| Self {
             mode: c.0,
@@ -217,6 +232,7 @@ impl BuildOpt {
             aborting_ss: c.4,
             icall: c.5,
             accel_raise_pri: c.6,
+            rom_offset: c.7,
         })
         .filter(|o| o.validate().is_ok())
     }
@@ -253,31 +269,34 @@ impl BuildOpt {
         Ok(())
     }
 
-    fn append_zig_buld_opts_to(&self, mut o: impl FnMut(&'static str)) {
+    fn append_zig_buld_opts_to(&self, mut o: impl FnMut(String)) {
         match self.mode {
-            BuildMode::ReleaseFast => o("-Drelease-fast"),
-            BuildMode::ReleaseSmall => o("-Drelease-small"),
+            BuildMode::ReleaseFast => o("-Drelease-fast".to_owned()),
+            BuildMode::ReleaseSmall => o("-Drelease-small".to_owned()),
         }
-        o("-Dcfi=false");
+        o("-Dcfi=false".to_owned());
         if self.ctx {
-            o("-Dcfi-ctx");
+            o("-Dcfi-ctx".to_owned());
         }
         if self.ses {
-            o("-Dcfi-ses");
+            o("-Dcfi-ses".to_owned());
         }
         if self.ss {
-            o("-Dcfi-ss");
+            o("-Dcfi-ss".to_owned());
         }
         if self.aborting_ss {
-            o("-Dcfi-aborting-ss");
+            o("-Dcfi-aborting-ss".to_owned());
         }
         if self.icall {
-            o("-Dcfi-icall");
+            o("-Dcfi-icall".to_owned());
         }
         if self.accel_raise_pri {
-            o("-Daccel-raise-pri");
+            o("-Daccel-raise-pri".to_owned());
         } else {
-            o("-Daccel-raise-pri=false");
+            o("-Daccel-raise-pri=false".to_owned());
+        }
+        if self.rom_offset != 0 {
+            o(format!("-Drom-offset={}", self.rom_offset));
         }
     }
 }

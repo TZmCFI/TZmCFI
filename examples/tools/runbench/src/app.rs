@@ -70,7 +70,7 @@ lazy_static::lazy_static! {
 pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), Box<dyn Error>> {
     let mut target = build_target(opt).await?;
 
-    let build_opts = BuildOpt::all_valid_values().filter(|bo| {
+    let build_opts = BuildOpt::all_valid_values(opt).filter(|bo| {
         if !traits.should_use_shadow_exception_stacks() && !bo.ses {
             return false;
         }
