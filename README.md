@@ -9,7 +9,7 @@
     - Arm [MPS2+] FPGA prototyping board configured with AN505. The encrypted FPGA image of AN505 is available from [Arm's website].
 - To enable the compiler-level CFI scheme:
     - [Our custom fork of Zig](https://github.com/TZmCFI/zig/tree/eca1091026e53172929b63f3a56bff3892b3cebd)
-    - [Our custom fork of LLVM](https://github.com/TZmCFI/llvm-project/tree/4874077c879670a1d49ba2799771fd875f5b9a6b)
+    - [Our custom fork of LLVM](https://github.com/TZmCFI/llvm-project/tree/3e75d0cd964199a3420a780e7ae2bd526bff8171)
 - If you don't want the compiler-level CFI scheme, you still need:
     - Zig 0.6.0 (TODO: Confirm this)
 - [Rust](https://www.rust-lang.org/en-US/) 1.38.0 or later.
