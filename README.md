@@ -4,9 +4,10 @@
 
 ## Prerequisite
 
-- Either of the following:
+- Any of the following:
     - [QEMU] 4.0.0 or later. Older versions are not tested but might work.
     - Arm [MPS2+] FPGA prototyping board configured with AN505. The encrypted FPGA image of AN505 is available from [Arm's website].
+    - An [LPCXpresso55S69](https://www.nxp.com/products/processors-and-microcontrollers/arm-microcontrollers/general-purpose-mcus/lpc5500-cortex-m33/lpcxpresso55s69-development-board:LPC55S69-EVK) development board.
 - To enable the compiler-level CFI scheme:
     - [Our custom fork of Zig](https://github.com/TZmCFI/zig/tree/eca1091026e53172929b63f3a56bff3892b3cebd)
     - [Our custom fork of LLVM](https://github.com/TZmCFI/llvm-project/tree/3e75d0cd964199a3420a780e7ae2bd526bff8171)
