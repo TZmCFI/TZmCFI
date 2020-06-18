@@ -74,6 +74,9 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         if !traits.should_use_shadow_exception_stacks() && !bo.ses {
             return false;
         }
+        if !traits.should_use_shadow_exception_stacks() && bo.unnest {
+            return false;
+        }
         if !traits.should_use_shadow_stacks() && bo.ss {
             return false;
         }

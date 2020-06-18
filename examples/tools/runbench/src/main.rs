@@ -157,6 +157,7 @@ struct BuildOpt {
     aborting_ss: bool,
     icall: bool,
     accel_raise_pri: bool,
+    unnest: bool,
     rom_offset: u8,
 }
 
@@ -181,7 +182,11 @@ impl fmt::Display for BuildOpt {
             e!("ctx");
         }
         if self.ses {
-            e!("ses");
+            if self.unnest {
+                e!("ses(unnest)");
+            } else {
+                e!("ses");
+            }
         }
         if self.ss {
             if self.aborting_ss {
@@ -206,13 +211,18 @@ impl fmt::Display for BuildOpt {
 impl BuildOpt {
     fn all_valid_values(opt: &Opt) -> impl Iterator<Item = Self> + Clone {
         use itertools::iproduct;
+        // `iproduct!` can'be used with more than 8 iterators
+        // <https://github.com/rust-itertools/itertools/issues/384>
         iproduct!(
-            [BuildMode::ReleaseFast, BuildMode::ReleaseSmall]
-                .iter()
-                .cloned(),
-            [false, true].iter().cloned(),
-            [false, true].iter().cloned(),
-            [false, true].iter().cloned(),
+            iproduct!(
+                [BuildMode::ReleaseFast, BuildMode::ReleaseSmall]
+                    .iter()
+                    .cloned(),
+                [false, true].iter().cloned(),
+                [false, true].iter().cloned(),
+                [false, true].iter().cloned(),
+                [false, true].iter().cloned()
+            ),
             [false, true].iter().cloned(),
             [false, true].iter().cloned(),
             [false, true].iter().cloned(),
@@ -224,16 +234,21 @@ impl BuildOpt {
             .iter()
             .cloned()
         )
-        .map(|c| Self {
-            mode: c.0,
-            ctx: c.1,
-            ses: c.2,
-            ss: c.3,
-            aborting_ss: c.4,
-            icall: c.5,
-            accel_raise_pri: c.6,
-            rom_offset: c.7,
-        })
+        .map(
+            |((mode, ctx, ses, unnest, ss), aborting_ss, icall, accel_raise_pri, rom_offset)| {
+                Self {
+                    mode,
+                    ctx,
+                    ses,
+                    unnest,
+                    ss,
+                    aborting_ss,
+                    icall,
+                    accel_raise_pri,
+                    rom_offset,
+                }
+            },
+        )
         .filter(|o| o.validate().is_ok())
     }
 
@@ -266,6 +281,11 @@ impl BuildOpt {
             return Err("-Daccel-raise-pri requires -Dcfi-ctx");
         }
 
+        if self.unnest && !self.ses {
+            // `unnest` makes no sense without `ses`
+            return Err("-Dcfi-unnest requires -Dcfi-ses");
+        }
+
         Ok(())
     }
 
@@ -280,6 +300,9 @@ impl BuildOpt {
         }
         if self.ses {
             o("-Dcfi-ses".to_owned());
+        }
+        if self.unnest {
+            o("-Dcfi-unnest".to_owned());
         }
         if self.ss {
             o("-Dcfi-ss".to_owned());
