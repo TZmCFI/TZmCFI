@@ -25,6 +25,9 @@ const TCThreadCreateInfo = @import("ffi.zig").TCThreadCreateInfo;
 const log = @import("debug.zig").log;
 
 const markEvent = @import("profiler.zig").markEvent;
+
+const options = @import("options.zig");
+const NO_NESTED_EXCEPTIONS = options.NO_NESTED_EXCEPTIONS;
 // ----------------------------------------------------------------------------
 
 /// A copy of a portion of an exception frame.
@@ -237,141 +240,238 @@ const ChainedExceptionStackIterator = struct {
 
 const dummy_exc_frame = [1]usize{0} ** 7;
 
-/// The default shadow stack
-var g_default_stack_storage: [32]Frame = undefined;
+// The default SES implementation supporting nested exceptions.
+const nested_impl = struct {
+    /// The default shadow stack
+    var g_default_stack_storage: [32]Frame = undefined;
 
-/// Bundles the state of a single instance of shadow exception stack.
-pub const StackState = struct {
-    current: [*]Frame,
-    top: [*]Frame,
-    limit: [*]Frame,
+    /// Bundles the state of a single instance of shadow exception stack.
+    const StackStateImpl = struct {
+        current: [*]Frame,
+        top: [*]Frame,
+        limit: [*]Frame,
 
-    const Self = @This();
+        const Self = @This();
 
-    /// Construct a `StackState` by allocating memory from `allocator`.
-    pub fn new(allocator: *Allocator, create_info: *const TCThreadCreateInfo) !Self {
-        const frames = try allocator.alloc(Frame, 4);
-        var self = fromSlice(frames);
+        /// Construct a `StackStateImpl` by allocating memory from `allocator`.
+        pub fn new(allocator: *Allocator, create_info: *const TCThreadCreateInfo) !Self {
+            const frames = try allocator.alloc(Frame, 4);
+            var self = fromSlice(frames);
 
-        self.top[0] = Frame{
-            .pc = create_info.initialPC,
-            .lr = create_info.initialLR,
-            .exc_return = create_info.excReturn,
-            .frame = create_info.exceptionFrame,
-            .r12 = 0x12121212,
-        };
-        self.top += 1;
+            self.top[0] = Frame{
+                .pc = create_info.initialPC,
+                .lr = create_info.initialLR,
+                .exc_return = create_info.excReturn,
+                .frame = create_info.exceptionFrame,
+                .r12 = 0x12121212,
+            };
+            self.top += 1;
 
-        return self;
+            return self;
+        }
+
+        /// Release the memory allocated for `self`. `self` must have been created
+        /// by `new(allocator, _)`.
+        pub fn destroy(self: *const Self, allocator: *Allocator) void {
+            allocator.free(self.asSlice());
+        }
+
+        fn fromSlice(frames: []Frame) Self {
+            var start = @ptrCast([*]Frame, &frames[0]);
+            return Self{
+                .current = start,
+                .top = start,
+                .limit = start + frames.len,
+            };
+        }
+
+        fn asSlice(self: *const Self) []Frame {
+            const len = @divExact(@ptrToInt(self.limit) - @ptrToInt(self.current), @sizeOf(Frame));
+            return self.current[0..len];
+        }
+    };
+
+    fn createStackStateWithDefaultStorage() StackStateImpl {
+        return StackStateImpl.fromSlice(&g_default_stack_storage);
     }
 
-    /// Release the memory allocated for `self`. `self` must have been created
-    /// by `new(allocator, _)`.
-    pub fn destroy(self: *const Self, allocator: *Allocator) void {
-        allocator.free(self.asSlice());
+    /// Perform the shadow push operation.
+    fn pushShadowExcStack(exc_return: usize) void {
+        var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
+
+        const stack = &g_stack;
+        var new_top: [*]Frame = stack.top;
+
+        // TODO: Add bounds check using `StackStateImpl::limit`
+
+        if (new_top == stack.current) {
+            // The shadow exception stack is empty -- push every frame we find
+            while (true) {
+                new_top.* = exc_stack.asFrame();
+                new_top += 1;
+
+                if (!exc_stack.moveNext()) {
+                    break;
+                }
+            }
+        } else {
+            // Push until a known entry is encountered
+            const top_frame = (new_top - 1).*.frame;
+
+            while (true) {
+                if (exc_stack.getFrameAddress() == top_frame) {
+                    break;
+                }
+
+                new_top.* = exc_stack.asFrame();
+                new_top += 1;
+
+                if (!exc_stack.moveNext()) {
+                    break;
+                }
+            }
+        }
+
+        // The entries were inserted in a reverse order. Reverse them to be in the
+        // correct order.
+        reverse(Frame, stack.top, new_top);
+
+        stack.top = new_top;
     }
 
-    fn fromSlice(frames: []Frame) Self {
-        var start = @ptrCast([*]Frame, &frames[0]);
-        return Self{
-            .current = start,
-            .top = start,
-            .limit = start + frames.len,
-        };
-    }
+    /// Perform the shadow pop (assert) opertion and get the `EXC_RETURN` that
+    /// corresponds to the current exception activation.
+    fn popShadowExcStack() usize {
+        const stack = &g_stack;
 
-    fn asSlice(self: *const Self) []Frame {
-        const len = @divExact(@ptrToInt(self.limit) - @ptrToInt(self.current), @sizeOf(Frame));
-        return self.current[0..len];
+        if (stack.top == stack.current) {
+            @panic("Exception return trampoline was called but the shadow exception stack is empty.");
+        }
+
+        const exc_return = (stack.top - 1)[0].exc_return;
+
+        var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
+
+        // Validate *two* top entries.
+        if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
+            log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 1)[0] });
+            @panic("Exception stack integrity check has failed.");
+        }
+        if (exc_stack.moveNext()) {
+            if (stack.top == stack.current + 1) {
+                @panic("The number of entries in the shadow exception stack is lower than expected.");
+            }
+            if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
+                log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 2)[0] });
+                @panic("Exception stack integrity check has failed.");
+            }
+        }
+
+        stack.top -= 1;
+
+        return exc_return;
     }
 };
 
-// TODO: Static initialize
-var g_stack: StackState = undefined;
+// The simplified SES implementation not supporting nested exceptions.
+const unnested_impl = struct {
+    /// The default shadow stack
+    var g_default_stack_storage: Frame = undefined;
 
-/// Perform the shadow push operation.
-fn pushShadowExcStack(exc_return: usize) void {
-    var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
+    /// Bundles the state of a single instance of shadow exception stack.
+    const StackStateImpl = struct {
+        current: ?*Frame,
+        storage: *Frame,
 
-    const stack = &g_stack;
-    var new_top: [*]Frame = stack.top;
+        const Self = @This();
 
-    // TODO: Add bounds check using `StackState::limit`
+        /// Construct a `StackStateImpl` by allocating memory from `allocator`.
+        pub fn new(allocator: *Allocator, create_info: *const TCThreadCreateInfo) !Self {
+            const storage = try allocator.create(Frame);
+            var self = fromStorage(storage);
 
-    if (new_top == stack.current) {
-        // The shadow exception stack is empty -- push every frame we find
-        while (true) {
-            new_top.* = exc_stack.asFrame();
-            new_top += 1;
+            storage.* = Frame{
+                .pc = create_info.initialPC,
+                .lr = create_info.initialLR,
+                .exc_return = create_info.excReturn,
+                .frame = create_info.exceptionFrame,
+                .r12 = 0x12121212,
+            };
+            self.current = self.storage;
 
-            if (!exc_stack.moveNext()) {
-                break;
-            }
+            return self;
         }
-    } else {
-        // Push until a known entry is encountered
-        const top_frame = (new_top - 1).*.frame;
 
-        while (true) {
-            if (exc_stack.getFrameAddress() == top_frame) {
-                break;
-            }
-
-            new_top.* = exc_stack.asFrame();
-            new_top += 1;
-
-            if (!exc_stack.moveNext()) {
-                break;
-            }
+        /// Release the memory allocated for `self`. `self` must have been created
+        /// by `new(allocator, _)`.
+        pub fn destroy(self: *const Self, allocator: *Allocator) void {
+            allocator.destroy(self.storage);
         }
+
+        fn fromStorage(storage: *Frame) Self {
+            return Self{
+                .current = null,
+                .storage = storage,
+            };
+        }
+    };
+
+    fn createStackStateWithDefaultStorage() StackStateImpl {
+        return StackStateImpl.fromStorage(&g_default_stack_storage);
     }
 
-    // The entries were inserted in a reverse order. Reverse them to be in the
-    // correct order.
-    reverse(Frame, stack.top, new_top);
+    /// Perform the shadow push operation.
+    fn pushShadowExcStack(exc_return: usize) void {
+        const stack = &g_stack;
 
-    stack.top = new_top;
-}
+        var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
 
-/// Perform the shadow pop (assert) opertion and get the `EXC_RETURN` that
-/// corresponds to the current exception activation.
-fn popShadowExcStack() usize {
-    const stack = &g_stack;
-
-    if (stack.top == stack.current) {
-        @panic("Exception return trampoline was called but the shadow exception stack is empty.");
-    }
-
-    const exc_return = (stack.top - 1)[0].exc_return;
-
-    var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
-
-    // Validate *two* top entries.
-    if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
-        log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 1)[0] });
-        @panic("Exception stack integrity check has failed.");
-    }
-    if (exc_stack.moveNext()) {
-        if (stack.top == stack.current + 1) {
-            @panic("The number of entries in the shadow exception stack is lower than expected.");
+        if (stack.current != null) {
+            @panic("Shadow exception stack is already occupied.");
         }
-        if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
-            log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 2)[0] });
+
+        stack.current = stack.storage;
+        stack.storage.* = exc_stack.asFrame();
+    }
+
+    /// Perform the shadow pop (assert) opertion and get the `EXC_RETURN` that
+    /// corresponds to the current exception activation.
+    fn popShadowExcStack() usize {
+        const stack = &g_stack;
+
+        const frame = stack.current orelse {
+            @panic("Exception return trampoline was called but the shadow exception stack is empty.");
+        };
+
+        const exc_return = frame.exc_return;
+
+        var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
+
+        // Validate the entry.
+        if (!exc_stack.asFrame().eq(frame.*)) {
+            log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), frame });
             @panic("Exception stack integrity check has failed.");
         }
+
+        stack.current = null;
+
+        return exc_return;
     }
+};
 
-    stack.top -= 1;
+// Choose an implementation based on `NO_NESTED_EXCEPTIONS`
+const impl = if (NO_NESTED_EXCEPTIONS) unnested_impl else nested_impl;
+pub const StackState = impl.StackStateImpl;
 
-    return exc_return;
-}
+// TODO: Static initialize
+var g_stack: StackState = undefined;
 
 const Usizex2 = @Vector(2, usize);
 
 export fn __tcEnterInterrupt(isr_body: usize, exc_return: usize) Usizex2 {
     markEvent(.EnterInterrupt);
 
-    pushShadowExcStack(exc_return);
+    impl.pushShadowExcStack(exc_return);
 
     // TODO: Conceal `r3` and `r4`?
     var ret = [2]usize{ exc_return, isr_body };
@@ -381,7 +481,7 @@ export fn __tcEnterInterrupt(isr_body: usize, exc_return: usize) Usizex2 {
 export fn __tcLeaveInterrupt() usize {
     markEvent(.LeaveInterrupt);
 
-    return popShadowExcStack();
+    return impl.popShadowExcStack();
 }
 
 pub fn saveState(state: *StackState) void {
@@ -392,6 +492,10 @@ pub fn loadState(state: *const StackState) void {
     g_stack = state.*;
 }
 
+export fn __tcReportBadNesting() noreturn {
+    @panic("Nested exception is disallowed.");
+}
+
 // Non-Secure application interface
 // ----------------------------------------------------------------------------
 
@@ -399,8 +503,10 @@ pub fn loadState(state: *const StackState) void {
 pub export fn TCInitialize(ns_vtor: usize) void {
     threads.init();
 
-    g_stack = StackState.fromSlice(&g_default_stack_storage);
-    g_exception_entry_pc_set.setFromVtor(ns_vtor);
+    g_stack = impl.createStackStateWithDefaultStorage();
+    if (!NO_NESTED_EXCEPTIONS) {
+        g_exception_entry_pc_set.setFromVtor(ns_vtor);
+    }
 }
 
 /// Implements a private gateway function in `PrivateGateway.h`.
@@ -408,19 +514,41 @@ pub export fn __TCPrivateEnterInterrupt() callconv(.Naked) noreturn {
     // This `asm` block provably never returns
     @setRuntimeSafety(false);
 
-    asm volatile (
-        \\ sg
-        \\
-        \\ # r0 = handler function pointer
-        \\ mov r1, lr
-        \\
-        \\ bl __tcEnterInterrupt
-        \\
-        \\ # r0 = lr (EXC_RETURN)
-        \\ # r1 = handler function pointer
-        \\
-        \\ bxns r1
-    );
+    if (NO_NESTED_EXCEPTIONS) {
+        asm volatile (
+            \\ sg
+            \\
+            \\ # r0 = handler function pointer
+            \\ mov r1, lr
+            \\
+            \\ # Deny nested exception by checking the Mode bit. A cleared Mode
+            \\ # bit means the exception was taken in Handler mode.
+            \\ tst lr, #8
+            \\ beq __tcReportBadNesting
+            \\
+            \\ bl __tcEnterInterrupt
+            \\
+            \\ # r0 = lr (EXC_RETURN)
+            \\ # r1 = handler function pointer
+            \\
+            \\ bxns r1
+        );
+    } else {
+        asm volatile (
+            \\ sg
+            \\
+            \\ # r0 = handler function pointer
+            \\ mov r1, lr
+            \\
+            \\ bl __tcEnterInterrupt
+            \\
+            \\ # r0 = lr (EXC_RETURN)
+            \\ # r1 = handler function pointer
+            \\
+            \\ bxns r1
+        );
+    }
+
     unreachable;
 }
 

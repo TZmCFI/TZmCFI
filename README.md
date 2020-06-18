@@ -50,6 +50,7 @@ As the name implies, it enables or disables the control flow integrity mechanism
 There is the following configurable option:
 
 - `-Dcfi-aborting-ss` toggles the uses of the aborting implementation of TZmCFI shadow stacks. The aborting implementation validates the integrity of a non-trustworthy return address, hence an increased overhead, whereas the default implementation just reloads and uses a trustworthy return address.
+- `-Dcfi-unnest` disables the support for nested exceptions, substantially reducing the overhead of shadow exception stacks.
 
 ### `-Dlog-{none|critical|warning|trace}` — Set log level
 

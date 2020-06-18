@@ -13,6 +13,17 @@ pub const ABORTING_SHADOWSTACK: bool = if (@hasDecl(root, "TC_ABORTING_SHADOWSTA
 else
     false;
 
+/// Disables nested exceptions. This greatly simplifies the shadow exception
+/// stack algorithm, improving performance. The exception trampoline can also
+/// be made smaller (`nonsecure_vector_unnest.S`).
+///
+/// When this option is enabled, all exceptions must be configured with the
+/// same group priority so none of them can preempt another.
+pub const NO_NESTED_EXCEPTIONS: bool = if (@hasDecl(root, "TC_NO_NESTED_EXCEPTIONS"))
+    root.TC_NO_NESTED_EXCEPTIONS
+else
+    TC_NO_NESTED_EXCEPTIONS;
+
 /// Compile-time log level.
 pub const LOG_LEVEL: LogLevel = if (@hasDecl(root, "TC_LOG_LEVEL"))
     if (@TypeOf(root.TC_LOG_LEVEL) == LogLevel)

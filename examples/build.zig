@@ -26,6 +26,7 @@ pub fn build(b: *Builder) !void {
         .ss = b.option(bool, "cfi-ss", "Enable TZmCFI shadow stacks (default = cfi)") orelse enable_cfi,
         .aborting_ss = b.option(bool, "cfi-aborting-ss", "Use the aborting implementation of SS (default = false)") orelse false,
         .icall = b.option(bool, "cfi-icall", "Enable indirect call CFI (default = cfi)") orelse enable_cfi,
+        .unnest = b.option(bool, "cfi-unnest", "Disallow nested exceptions (default = false)") orelse false,
     };
     cfi_opts.validate() catch |e| switch (e) {
         error.IncompatibleCfiOpts => {
@@ -99,6 +100,7 @@ pub fn build(b: *Builder) !void {
     monitor.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", .{log_level}));
     monitor.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
     monitor.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
+    monitor.addBuildOption(bool, "NO_NESTED_EXCEPTIONS", cfi_opts.unnest);
     monitor.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
     monitor.addIncludeDir("../include");
     monitor.emit_h = false;
@@ -255,6 +257,9 @@ const CfiOpts = struct {
     /// Abort on shadow stack integrity check failure
     aborting_ss: bool,
 
+    /// Disallow nested exceptions
+    unnest: bool,
+
     const Self = @This();
 
     fn validate(self: *const Self) !void {
@@ -281,6 +286,12 @@ const CfiOpts = struct {
         if (self.aborting_ss and !self.ss) {
             // `aborting_ss` makes no sense without `ss`
             warn("error: cfi-aborting-ss requires cfi-ss\n", .{});
+            return error.IncompatibleCfiOpts;
+        }
+
+        if (self.unnest and !self.ses) {
+            // `unnest` makes no sense without `ses`
+            warn("error: cfi-unnest requires cfi-ses\n", .{});
             return error.IncompatibleCfiOpts;
         }
     }
@@ -372,7 +383,11 @@ fn defineNonSecureApp(
     exe_ns.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/nonsecure.ld", .{target_board}));
     exe_ns.setTarget(target);
     exe_ns.setBuildMode(mode);
-    exe_ns.addCSourceFile("../src/nonsecure_vector.S", as_flags);
+    if (ns_app_deps.cfi_opts.unnest) {
+        exe_ns.addCSourceFile("../src/nonsecure_vector_unnest.S", as_flags);
+    } else {
+        exe_ns.addCSourceFile("../src/nonsecure_vector_ses.S", as_flags);
+    }
     exe_ns.setOutputDir("zig-cache");
     exe_ns.addIncludeDir("../include");
     exe_ns.addPackagePath("arm_m", "../src/drivers/arm_m.zig");

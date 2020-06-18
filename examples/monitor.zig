@@ -13,6 +13,7 @@ const exports = @import("monitor/exports.zig");
 // See `src/monitor/options.zig`.
 pub const TC_ENABLE_PROFILER = @import("build_options").ENABLE_PROFILE;
 pub const TC_ABORTING_SHADOWSTACK = @import("build_options").ABORTING_SHADOWSTACK;
+pub const TC_NO_NESTED_EXCEPTIONS = @import("build_options").NO_NESTED_EXCEPTIONS;
 pub const TC_LOG_LEVEL = @import("build_options").LOG_LEVEL;
 
 var cur_warn_handler: ?exports.WarnHandler = null;

@@ -60,7 +60,8 @@ ExceptionTrampolinesStage0:
     .endr
 
 .LExceptionTrampolineStage1:
-    // r0 = EXC_RETURN
+    // r0 = stage2
+    // lr = EXC_RETURN
 
     // Jump to the secure part of the exception trampoline.
     ldr r1, =__TCPrivateEnterInterrupt
