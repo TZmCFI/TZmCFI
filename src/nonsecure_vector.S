@@ -10,14 +10,14 @@
 
 // This assembler source defines the "real" Non-Secure exception vector table.
 .section .text.isr_vector
-ExceptionVectorWithTrampoline:
+TCProtectedExceptionVectorTable:
     // Initial stack pointer - we don't use it so store the number of entries instead
     .word TableSize | TC_VEC_TABLE_HDR_SIGNATURE
     .word Reset
 
     .set i, 0
     .rept TableSize - 2
-        .word NormalExceptionTrampolines + TC_VEC_TABLE_TRAMPOLINE_STRIDE * i
+        .word ExceptionTrampolinesStage0 + TC_VEC_TABLE_TRAMPOLINE_STRIDE * i
         .set i, i + 1
     .endr
 
@@ -42,9 +42,9 @@ Reset:
     // exception-entry checking. Note that each trampoline also must be
     // no larger than 8 bytes.
     .thumb_func
-    .type NormalExceptionTrampolines function
+    .type ExceptionTrampolinesStage0 function
     .align 3 // == log2(TC_VEC_TABLE_TRAMPOLINE_STRIDE)
-NormalExceptionTrampolines:
+ExceptionTrampolinesStage0:
     .set i, 0
     .rept TableSize - 2
         // Disable interrupts before doing anything else
@@ -52,14 +52,14 @@ NormalExceptionTrampolines:
 
         // Provide the location of the inner trampoline,
         // which is defined below
-        adr.n r0, InnerExceptionTrampolines + i * 16
-        b .LInvokeSecureTrampoline
+        adr.n r0, ExceptionTrampolinesStage2 + i * 16
+        b .LExceptionTrampolineStage1
 
         .align 3
         .set i, i + 1
     .endr
 
-.LInvokeSecureTrampoline:
+.LExceptionTrampolineStage1:
     // r0 = EXC_RETURN
 
     // Jump to the secure part of the exception trampoline.
@@ -69,12 +69,12 @@ NormalExceptionTrampolines:
     .ltorg
 
 // The inner exception trampoline is responsible for two things:
-//  1. `FAULTMASK_NS` is disabled (= interrupts are enabled) before calling the
+//  1. Disable `FAULTMASK_NS` (enable interrupts) before calling the
 //     original exception handler.
 //  2. Branch to the exception return trampoline after the original exception
 //     handler completes execution.
     .align 4
-InnerExceptionTrampolines:
+ExceptionTrampolinesStage2:
     .set i, 0
     .rept TableSize - 2
         // Each iteration generates a single inner trampoline, which must be
@@ -93,12 +93,12 @@ InnerExceptionTrampolines:
         ldr lr, [lr]
         blx lr
 
-        b .LInvokeSecureReturnTrampoline
+        b .LExceptionReturnTrampoline
 
         .set i, i + 1
     .endr
 
-.LInvokeSecureReturnTrampoline:
+.LExceptionReturnTrampoline:
     // Disable interrupts.
     cpsid f
 
