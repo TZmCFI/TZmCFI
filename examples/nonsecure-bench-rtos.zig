@@ -5,6 +5,7 @@ const timer = @import("ports/" ++ @import("build_options").BOARD ++ "/timer.zig"
 const tzmcfi = @cImport(@cInclude("TZmCFI/Gateway.h"));
 const warn = @import("nonsecure-common/debug.zig").warn;
 const port = @import("ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
+const nonsecure_init = @import("nonsecure-common/init.zig");
 
 // FreeRTOS-related thingy
 const os = @cImport({
@@ -24,6 +25,7 @@ export const raw_exception_vectors linksection(".text.raw_isr_vector") = @import
 // after initializing data sections.
 export fn main() void {
     port.init();
+    nonsecure_init.disableNestedExceptionIfDisallowed();
 
     warn("%output-start\r\n", .{});
     warn("{{\r\n", .{});

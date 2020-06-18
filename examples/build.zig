@@ -312,6 +312,7 @@ const CfiOpts = struct {
 
         step.addBuildOption(bool, "HAS_TZMCFI_CTX", self.ctx);
         step.addBuildOption(bool, "HAS_TZMCFI_SES", self.ses);
+        step.addBuildOption(bool, "NO_NESTED_EXCEPTIONS", self.unnest);
     }
 };
 

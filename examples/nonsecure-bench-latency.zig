@@ -4,6 +4,7 @@ const arm_m = @import("arm_m");
 const warn = @import("nonsecure-common/debug.zig").warn;
 const port = @import("ports/" ++ @import("build_options").BOARD ++ "/nonsecure.zig");
 const port_timer = @import("ports/" ++ @import("build_options").BOARD ++ "/timer.zig");
+const nonsecure_init = @import("nonsecure-common/init.zig");
 
 // zig fmt: off
 // The (unprocessed) Non-Secure exception vector table.
@@ -27,6 +28,7 @@ fn comm() *volatile CommBlock {
 
 export fn main() void {
     port.init();
+    nonsecure_init.disableNestedExceptionIfDisallowed();
 
     warn("Starting the interrupt latency benchmark...\r\n", .{});
 
