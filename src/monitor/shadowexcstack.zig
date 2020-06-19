@@ -459,6 +459,44 @@ const unnested_impl = struct {
     }
 };
 
+// The minimal SES implementation.
+// TODO: expose this choice
+const min_impl = struct {
+    /// Bundles the state of a single instance of shadow exception stack.
+    const StackStateImpl = struct {
+        exc_return: usize = undefined,
+
+        const Self = @This();
+
+        /// Construct a `StackStateImpl` by allocating memory from `allocator`.
+        pub fn new(allocator: *Allocator, create_info: *const TCThreadCreateInfo) !Self {
+            return Self{ .exc_return = create_info.excReturn };
+        }
+
+        /// Release the memory allocated for `self`. `self` must have been created
+        /// by `new(allocator, _)`.
+        pub fn destroy(self: *const Self, allocator: *Allocator) void {
+        }
+    };
+
+    fn createStackStateWithDefaultStorage() StackStateImpl {
+        return StackStateImpl{};
+    }
+
+    /// Perform the shadow push operation.
+    fn pushShadowExcStack(exc_return: usize) void {
+        const stack = &g_stack;
+        stack.exc_return = exc_return;
+    }
+
+    /// Perform the shadow pop (assert) opertion and get the `EXC_RETURN` that
+    /// corresponds to the current exception activation.
+    fn popShadowExcStack() usize {
+        const stack = &g_stack;
+        return stack.exc_return;
+    }
+};
+
 // Choose an implementation based on `NO_NESTED_EXCEPTIONS`
 const impl = if (NO_NESTED_EXCEPTIONS) unnested_impl else nested_impl;
 pub const StackState = impl.StackStateImpl;
