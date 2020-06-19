@@ -43,7 +43,7 @@ Reset:
     // no larger than 8 bytes.
     .thumb_func
     .type ExceptionTrampolinesStage0 function
-    .align 3 // == log2(TC_VEC_TABLE_TRAMPOLINE_STRIDE)
+    .align 4 // == log2(TC_VEC_TABLE_TRAMPOLINE_STRIDE)
 ExceptionTrampolinesStage0:
     .set i, 0
     .rept TableSize - 2
@@ -53,19 +53,17 @@ ExceptionTrampolinesStage0:
         // Provide the location of the inner trampoline,
         // which is defined below
         adr.n r0, ExceptionTrampolinesStage2 + i * 16
-        b .LExceptionTrampolineStage1
+            
+        // Jump to the secure part of the exception trampoline.
+        ldr r1, =__TCPrivateEnterInterrupt
 
-        .align 3
+        // r0 = stage2
+        // lr = EXC_RETURN
+        bx r1
+
+        .align 4
         .set i, i + 1
     .endr
-
-.LExceptionTrampolineStage1:
-    // r0 = stage2
-    // lr = EXC_RETURN
-
-    // Jump to the secure part of the exception trampoline.
-    ldr r1, =__TCPrivateEnterInterrupt
-    bx r1
 
     .ltorg
 
