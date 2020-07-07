@@ -237,6 +237,10 @@ pub fn build(b: *Builder) !void {
             const use_freertos = true;
         },
     });
+    try defineNonSecureApp(b, ns_app_deps, NsAppInfo{
+        .name = "profile-ses",
+        .root = "nonsecure-profile-ses.zig",
+    });
 
     // We don't define the default rule.
 }

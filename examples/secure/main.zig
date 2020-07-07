@@ -2,7 +2,15 @@
 const std = @import("std");
 // ----------------------------------------------------------------------------
 const arm_cmse = @import("arm_cmse");
+
 const arm_m = @import("arm_m");
+const EXC_RETURN = arm_m.EXC_RETURN;
+const getMspNs = arm_m.getMspNs;
+const getPspNs = arm_m.getPspNs;
+const getPsp = arm_m.getPsp;
+const getControlNs = arm_m.getControlNs;
+const control = arm_m.control;
+// ----------------------------------------------------------------------------
 pub const port = @import("../ports/" ++ @import("build_options").BOARD ++ "/secure.zig");
 const secure_board_vec_table = @import("../ports/" ++ @import("build_options").BOARD ++ "/excvector.zig").secure_board_vec_table;
 // ----------------------------------------------------------------------------
@@ -132,12 +140,66 @@ comptime {
 }
 
 // ----------------------------------------------------------------------------
+
+var g_sampled_pc: usize = 0;
+
+/// Start a timer to sample the program counter after the specified duration.
+fn nsScheduleSamplePc(cycles: usize, _r1: usize, _r2: usize, _r3: usize) callconv(.C) usize {
+    @ptrCast(*volatile usize, &g_sampled_pc).* = 0;
+
+    arm_m.sys_tick.regCsr().* = 0;
+
+    arm_m.sys_tick.regRvr().* = cycles;
+    arm_m.sys_tick.regCvr().* = cycles; // write-to-clear (value doesn't matter)
+
+    arm_m.sys_tick.regCsr().* = arm_m.SysTick.CSR_ENABLE |
+        arm_m.SysTick.CSR_TICKINT | arm_m.SysTick.CSR_CLKSOURCE;
+    return 0;
+}
+
+/// Retrieve the sampled value of the program counter.
+fn nsGetSampledPc(_r0: usize, _r1: usize, _r2: usize, _r3: usize) callconv(.C) usize {
+    return @ptrCast(*volatile usize, &g_sampled_pc).*;
+}
+
+fn handleSysTick() callconv(.C) void {
+    // Disable SysTick
+    arm_m.sys_tick.regCsr().* = 0;
+
+    // Find the exception frame
+    const exc_return = @returnAddress();
+    var frame: [*]const usize = if ((exc_return & EXC_RETURN.S) != 0)
+        if ((exc_return & EXC_RETURN.SPSEL) != 0)
+            @intToPtr([*]const usize, getPsp())
+        else
+            @intToPtr([*]const usize, @frameAddress())
+    else if ((getControlNs() & control.SPSEL) != 0)
+        @intToPtr([*]const usize, getPspNs())
+    else
+        @intToPtr([*]const usize, getMspNs());
+
+    // Get and store the original PC. Don't write `0` - it would be
+    // misinterpreted as "not sampled yet"
+    var pc = frame[6];
+    if (pc == 0) {
+        pc = 1;
+    }
+    @ptrCast(*volatile usize, &g_sampled_pc).* = pc;
+}
+
+comptime {
+    arm_cmse.exportNonSecureCallable("scheduleSamplePc", nsScheduleSamplePc);
+    arm_cmse.exportNonSecureCallable("getSampledPc", nsGetSampledPc);
+}
+
+// ----------------------------------------------------------------------------
 // Build the exception vector table
 // zig fmt: off
 const VecTable = @import("../common/vectable.zig").VecTable;
 export const exception_vectors linksection(".isr_vector") = secure_board_vec_table
     .setInitStackPtr(_main_stack_top)
-    .setExcHandler(arm_m.irqs.Reset_IRQn, handleReset);
+    .setExcHandler(arm_m.irqs.Reset_IRQn, handleReset)
+    .setExcHandler(arm_m.irqs.SysTick_IRQn, handleSysTick);
 // zig fmt: on
 extern fn _main_stack_top() void;
 extern fn _handler_stack_top() void;
