@@ -217,6 +217,21 @@ pub const Scb = struct {
     pub fn regVtor(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x108);
     }
+
+    /// System Handler Priority Register 1
+    pub fn regShpr1(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x118);
+    }
+    
+    /// System Handler Priority Register 2
+    pub fn regShpr2(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x11c);
+    }
+    
+    /// System Handler Priority Register 3
+    pub fn regShpr3(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x120);
+    }
 };
 
 /// Represents the System Control Block instance corresponding to the current
