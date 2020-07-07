@@ -208,9 +208,7 @@ pub const Scb = struct {
     pub const AIRCR_VECTKEY_MAGIC: u32 = 0x05fa;
 
     pub fn setPriorityGrouping(self: Self, subpriority_msb: u3) void {
-        self.regAircr().* = self.regAircr().* & ~(AIRCR_PRIGROUP_MASK | AIRCR_VECTKEY_MASK)
-            | (@as(u32, subpriority_msb) << AIRCR_PRIGROUP_SHIFT)
-            | (AIRCR_VECTKEY_MAGIC << AIRCR_VECTKEY_SHIFT);
+        self.regAircr().* = self.regAircr().* & ~(AIRCR_PRIGROUP_MASK | AIRCR_VECTKEY_MASK) | (@as(u32, subpriority_msb) << AIRCR_PRIGROUP_SHIFT) | (AIRCR_VECTKEY_MAGIC << AIRCR_VECTKEY_SHIFT);
     }
 
     /// Vector Table Offset Register
@@ -222,12 +220,12 @@ pub const Scb = struct {
     pub fn regShpr1(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x118);
     }
-    
+
     /// System Handler Priority Register 2
     pub fn regShpr2(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x11c);
     }
-    
+
     /// System Handler Priority Register 3
     pub fn regShpr3(self: Self) *volatile u32 {
         return @intToPtr(*volatile u32, self.base + 0x120);

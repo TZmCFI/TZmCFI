@@ -475,8 +475,7 @@ const min_impl = struct {
 
         /// Release the memory allocated for `self`. `self` must have been created
         /// by `new(allocator, _)`.
-        pub fn destroy(self: *const Self, allocator: *Allocator) void {
-        }
+        pub fn destroy(self: *const Self, allocator: *Allocator) void {}
     };
 
     fn createStackStateWithDefaultStorage() StackStateImpl {
