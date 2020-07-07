@@ -535,3 +535,174 @@ pub const Mpu = struct {
 /// Represents theMemory Protection Unit instance corresponding to the current
 /// security mode.
 pub const mpu = Mpu.withBase(0xe000ed90);
+
+/// Data Watchpoint and Trace unit.
+pub const Dwt = struct {
+    base: usize,
+
+    const Self = @This();
+
+    /// Construct an `Dwt` object using the specified MMIO base address.
+    pub fn withBase(base: usize) Self {
+        return Self{ .base = base };
+    }
+
+    /// Control Register
+    pub fn regCtrl(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x000);
+    }
+
+    pub const CTRL_NUMCOMP_SHIFT: u5 = 28;
+    /// Number of comparators. Number of DWT comparators implemented.
+    pub const CTRL_NUMCOMP_MASK: u32 = 0xf << CTRL_NUMCOMP_SHIFT;
+    /// No trace packets. Indicates whether the implementation does not support
+    /// trace.
+    pub const CTRL_NOTRCPKT: u32 = 1 << 27;
+    /// No External Triggers. Shows whether the implementation does not support
+    /// external triggers.
+    pub const CTRL_NOEXTTRIG: u32 = 1 << 26;
+    /// No cycle count. Indicates whether the implementation does not include
+    /// a cycle counter.
+    pub const CTRL_NOCYCCNT: u32 = 1 << 25;
+    /// No profile counters. Indicates whether the implementation does not
+    /// include the profiling counters.
+    pub const CTRL_NOPRFCNT: u32 = 1 << 24;
+    /// Cycle counter disabled secure. Controls whether the cycle counter is
+    /// disabled in Secure state.
+    pub const CTRL_CYCDISS: u32 = 1 << 23;
+    /// Cycle event enable. Enables Event Counter packet generation on POSTCNT
+    /// underflow.
+    pub const CTRL_CYCEVTENA: u32 = 1 << 22;
+    /// Fold event enable. Enables DWT_FOLDCNT counter.
+    pub const CTRL_FOLDEVTENA: u32 = 1 << 21;
+    /// LSU event enable. Enables DWT_LSUCNT counter.
+    pub const CTRL_LSUEVTENA: u32 = 1 << 20;
+    /// Sleep event enable. Enable DWT_SLEEPCNT counter.
+    pub const CTRL_SLEEPEVTENA: u32 = 1 << 19;
+    /// Exception event enable. Enables DWT_EXCCNT counter.
+    pub const CTRL_EXCEVTENA: u32 = 1 << 18;
+    /// CPI event enable. Enables DWT_CPICNT counter.
+    pub const CTRL_CPIEVTENA: u32 = 1 << 17;
+    /// Exception trace enable. Enables generation of Exception Trace packets.
+    pub const CTRL_EXCEVTENA: u32 = 1 << 16;
+    /// PC sample enable. Enables use of POSTCNT counter as a timer for Periodic
+    /// PC Sample packet generation.
+    pub const CTRL_PCSAMPLENA: u32 = 1 << 12;
+    pub const CTRL_SYNCTAP_SHIFT: u5 = 10;
+    /// Synchronization tap. Selects the position of the synchronization packet
+    /// request counter tap on the CYCCNT counter. This determines the rate of
+    /// Synchronization packet requests made by the DWT.
+    pub const CTRL_SYNCTAP_MASK: u5 = 0x3 << CTRL_SYNCTAP_SHIFT;
+    /// Cycle count tap. Selects the position of the POSTCNT tap on the CYCCNT counter.
+    pub const CTRL_CYCTAP: u32 = 1 << 9;
+    pub const CTRL_POSTINIT_SHIFT: u5 = 5;
+    /// POSTCNT initial. Initial value for the POSTCNT counter.
+    pub const CTRL_POSTINIT_MASK: u5 = 0xf << CTRL_POSTINIT_SHIFT;
+    pub const CTRL_POSTPRESET_SHIFT: u5 = 1;
+    /// POSTCNT preset. Reload value for the POSTCNT counter.
+    pub const CTRL_POSTPRESET_MASK: u5 = 0xf << CTRL_POSTPRESET_SHIFT;
+    /// CYCCNT enable. Enables CYCCNT.
+    pub const CTRL_CYCCNTENA: u32 = 1 << 0;
+
+    // TODO: DWT_(CYC|CPI|EXC|SLEEP|LSU|FOLD)CNT, DWT_PCSR
+
+    /// Comparator Register n
+    pub fn regComp(self: Self, n: usize) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x020 + n * 0x10);
+    }
+
+    /// Comparator Function Register n
+    pub fn regFunction(self: Self, n: usize) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x028 + n * 0x10);
+    }
+
+    /// Comparator Value Mask Register n
+    pub fn regVmask(self: Self, n: usize) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x02c + n * 0x10);
+    }
+};
+
+/// Represents the Data Watchpoint and Trace unit.
+pub const dwt = Dwt.withBase(0xe0001000);
+
+/// Debug Control Block.
+pub const Dcb = struct {
+    base: usize,
+
+    const Self = @This();
+
+    /// Construct an `Dcb` object using the specified MMIO base address.
+    pub fn withBase(base: usize) Self {
+        return Self{ .base = base };
+    }
+
+    /// Halting Control and Status Register
+    pub fn regDhcsr(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x000);
+    }
+
+    /// Core Register Select Register
+    pub fn regDhrsr(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x004);
+    }
+
+    /// Core Register Data Register
+    pub fn regDcrdr(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x008);
+    }
+
+    /// Exception and Monitor Control Register
+    pub fn regDemcr(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x00c);
+    }
+
+    pub const DEMCR_TRCENA: u32 = 1 << 24;
+
+    /// Set Clear Exception and Monitor Control Register
+    pub fn regDscemcr(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x010);
+    }
+
+    /// Authentication Control Register
+    pub fn regDauthCtrl(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x014);
+    }
+
+    /// Security Control and Status Register
+    pub fn regDscsr(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x018);
+    }
+};
+
+/// Represents the Debug Control Block.
+pub const dcb = Dcb.withBase(0xe000edf0);
+
+/// Represents the Non-Secure Debug Control Block instance. This register
+/// is only accessible by Secure mode (Armv8-M or later).
+pub const dcb_ns = Dcb.withBase(0xe002edf0);
+
+/// Debug Identification Block
+pub const Dib = struct {
+    base: usize,
+
+    const Self = @This();
+
+    /// Construct an `Dib` object using the specified MMIO base address.
+    pub fn withBase(base: usize) Self {
+        return Self{ .base = base };
+    }
+
+    /// Software Lock Access Register
+    pub fn regDlar(self: Self) *volatile u32 {
+        return @intToPtr(*volatile u32, self.base + 0x000);
+    }
+
+    pub const DLAR_KEY_MAGIC: u32 = 0xC5ACCE55;
+};
+
+/// Represents the Debug Identification Block.
+pub const dic = Dib.withBase(0xe000efb0);
+
+/// Represents the Non-Secure Debug Identification Block instance. This register
+/// is only accessible by Secure mode (Armv8-M or later).
+pub const dic_ns = Dib.withBase(0xe002efb0);
