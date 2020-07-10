@@ -28,12 +28,18 @@ export fn main() void {
         arm_m.Scb.SHCSR_USGFAULTENA |
         arm_m.Scb.SHCSR_SECUREFAULTENA;
 
-    // Enable Non-Secure BusFault, HardFault, and NMI.
     // Prioritize Secure exceptions.
+    // Don't enable Non-Secure BusFault, HardFault, and NMI because
+    // `FAULTMASK_NS` would boost the current execution priority to higher
+    // than Secure SysTick and `profile-ses` wouldn't be able to get full
+    // samples.
     arm_m.scb.regAircr().* =
-        (arm_m.scb.regAircr().* & ~arm_m.Scb.AIRCR_VECTKEY_MASK) |
-        arm_m.Scb.AIRCR_BFHFNMINS | arm_m.Scb.AIRCR_PRIS |
-        arm_m.Scb.AIRCR_VECTKEY_MAGIC;
+        (arm_m.scb.regAircr().* & ~arm_m.Scb.AIRCR_VECTKEY_MASK) &
+        ~arm_m.Scb.AIRCR_BFHFNMINS | arm_m.Scb.AIRCR_PRIS |
+        (arm_m.Scb.AIRCR_VECTKEY_MAGIC << arm_m.Scb.AIRCR_VECTKEY_SHIFT);
+
+    // Set the priority of Secure SysTick to 0
+    arm_m.scb.regShpr3().* = 0;
 
     // Intialize secure stacks
     // -----------------------------------------------------------------------
