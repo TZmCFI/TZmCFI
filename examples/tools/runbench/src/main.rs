@@ -102,6 +102,7 @@ enum BenchmarkType {
     Rtos,
     Latency,
     CoreMark,
+    ProfileSes,
 }
 
 #[derive(Clone, Copy, arg_enum_proc_macro::ArgEnum, Serialize)]
@@ -121,6 +122,7 @@ async fn main() {
         BenchmarkType::Rtos => app::run(&opt, app::bench_rtos::BenchRtosTraits).await,
         BenchmarkType::Latency => app::run(&opt, app::bench_latency::BenchLatencyTraits).await,
         BenchmarkType::CoreMark => app::run(&opt, app::bench_coremark::BenchCoreMarkTraits).await,
+        BenchmarkType::ProfileSes => app::run(&opt, app::profile_ses::ProfileSesTraits).await,
     };
 
     if let Err(e) = result {

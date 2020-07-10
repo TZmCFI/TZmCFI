@@ -9,6 +9,7 @@ use super::{build_target, subprocess, target, BuildOpt};
 pub mod bench_coremark;
 pub mod bench_latency;
 pub mod bench_rtos;
+pub mod profile_ses;
 
 /// Describes the traits of a Non-Secure benchmark application.
 pub trait AppTraits {
