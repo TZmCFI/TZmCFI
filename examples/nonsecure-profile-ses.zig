@@ -57,7 +57,7 @@ export fn main() void {
     for (delay_values) |delay| {
         // PC sampling time
         var i: u32 = 2800;
-        while (true) : (i += 1) {
+        while (i < 4000) : (i += 1) {
             comm().measure_done = 0;
 
             // Timer1 fires late iff delay > 3000.
@@ -115,7 +115,7 @@ fn handleTimer0() callconv(.C) void {
     // Flag the cases where Timer1 preempts Timer0's handler too late
     asm volatile ("cpsid f");
     var k: u32 = 0;
-    while (k < 1000) : (k += 1) {
+    while (k < 300) : (k += 1) {
         asm volatile ("");
     }
     comm().measure_done += 1;
