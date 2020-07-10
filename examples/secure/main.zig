@@ -169,17 +169,25 @@ fn nsGetSampledPc(_r0: usize, _r1: usize, _r2: usize, _r3: usize) callconv(.C) u
 }
 
 fn handleSysTick() callconv(.C) void {
+    asm volatile (
+        \\ mov r0, sp
+        \\ b handleSysTickInner
+    );
+}
+
+export fn handleSysTickInner(msp_s: [*]const usize) callconv(.C) void {
     // Disable SysTick
     arm_m.sys_tick.regCsr().* = 0;
 
     // Find the exception frame
     const exc_return = @returnAddress();
+    const use_psp = (exc_return & EXC_RETURN.SPSEL) != 0 and (exc_return & EXC_RETURN.MODE) != 0;
     var frame: [*]const usize = if ((exc_return & EXC_RETURN.S) != 0)
-        if ((exc_return & EXC_RETURN.SPSEL) != 0)
+        if (use_psp)
             @intToPtr([*]const usize, getPsp())
         else
-            @intToPtr([*]const usize, @frameAddress())
-    else if ((getControlNs() & control.SPSEL) != 0)
+            msp_s
+    else if (use_psp)
         @intToPtr([*]const usize, getPspNs())
     else
         @intToPtr([*]const usize, getMspNs());
