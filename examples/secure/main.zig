@@ -187,7 +187,7 @@ export fn handleSysTickInner(msp_s: [*]const usize) callconv(.C) void {
             @intToPtr([*]const usize, getPsp())
         else
             msp_s
-    else if (use_psp)
+    else if ((getControlNs() & control.SPSEL) != 0)
         @intToPtr([*]const usize, getPspNs())
     else
         @intToPtr([*]const usize, getMspNs());
