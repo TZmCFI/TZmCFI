@@ -109,8 +109,8 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         benchmark: opt.benchmark,
         target: opt.target,
         exe_names: MetaExeNames {
-            secure: "secure".to_owned(),
-            non_secure: traits.name(),
+            secure: "secure".to_owned() + ".elf",
+            non_secure: traits.name() + ".elf",
         },
         matrix: Vec::new(),
     };
@@ -155,6 +155,22 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
         if !nonsecure_elf.exists() {
             return Err(RunBenchmarkError::BuiltExeNotFound(nonsecure_elf).into());
         }
+
+        // Copy the built ELF images
+        let secure_elf_copied = output_dir.join(format!("{}.{}", bo, meta.exe_names.secure));
+        let nonsecure_elf_copied = output_dir.join(format!("{}.{}", bo, meta.exe_names.non_secure));
+        log::trace!(
+            "Copying {:?} and {:?} to {:?} and {:?} (respectively)",
+            secure_elf,
+            nonsecure_elf,
+            secure_elf_copied,
+            nonsecure_elf_copied,
+        );
+        let (r1, r2) = tokio::join!(
+            tokio::fs::copy(&secure_elf, &secure_elf_copied),
+            tokio::fs::copy(&nonsecure_elf, &nonsecure_elf_copied),
+        );
+        (r1?, r2?);
 
         // Program the target board
         log::info!("Programming the target board");
