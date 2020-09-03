@@ -27,7 +27,8 @@ const log = @import("debug.zig").log;
 const markEvent = @import("profiler.zig").markEvent;
 
 const options = @import("options.zig");
-const NO_NESTED_EXCEPTIONS = options.NO_NESTED_EXCEPTIONS;
+const SHADOW_EXC_STACK_TYPE = options.SHADOW_EXC_STACK_TYPE;
+const ShadowExcStackType = options.ShadowExcStackType;
 // ----------------------------------------------------------------------------
 
 /// A copy of a portion of an exception frame.
@@ -460,7 +461,6 @@ const unnested_impl = struct {
 };
 
 // The minimal SES implementation.
-// TODO: expose this choice
 const min_impl = struct {
     /// Bundles the state of a single instance of shadow exception stack.
     const StackStateImpl = struct {
@@ -497,7 +497,14 @@ const min_impl = struct {
 };
 
 // Choose an implementation based on `NO_NESTED_EXCEPTIONS`
-const impl = if (NO_NESTED_EXCEPTIONS) unnested_impl else nested_impl;
+const impl = if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Safe)
+    nested_impl
+else if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Unnested)
+    unnested_impl
+else if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Naive)
+    @compileError("TODO!")
+else
+    min_impl;
 pub const StackState = impl.StackStateImpl;
 
 // TODO: Static initialize
@@ -541,7 +548,7 @@ pub export fn TCInitialize(ns_vtor: usize) void {
     threads.init();
 
     g_stack = impl.createStackStateWithDefaultStorage();
-    if (!NO_NESTED_EXCEPTIONS) {
+    if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Safe) {
         g_exception_entry_pc_set.setFromVtor(ns_vtor);
     }
 }
@@ -551,7 +558,7 @@ pub export fn __TCPrivateEnterInterrupt() callconv(.Naked) noreturn {
     // This `asm` block provably never returns
     @setRuntimeSafety(false);
 
-    if (NO_NESTED_EXCEPTIONS) {
+    if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Unnested) {
         asm volatile (
             \\ sg
             \\

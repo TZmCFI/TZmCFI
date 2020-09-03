@@ -13,16 +13,30 @@ pub const ABORTING_SHADOWSTACK: bool = if (@hasDecl(root, "TC_ABORTING_SHADOWSTA
 else
     false;
 
-/// Disables nested exceptions. This greatly simplifies the shadow exception
-/// stack algorithm, improving performance. The exception trampoline can also
-/// be made smaller (`nonsecure_vector_unnest.S`).
-///
-/// When this option is enabled, all exceptions must be configured with the
-/// same group priority so none of them can preempt another.
-pub const NO_NESTED_EXCEPTIONS: bool = if (@hasDecl(root, "TC_NO_NESTED_EXCEPTIONS"))
-    root.TC_NO_NESTED_EXCEPTIONS
+pub const ShadowExcStackType = enum {
+    /// The minimum implementation that does not perform any actual checks.
+    Null,
+    /// Chooses the naïve, nondescript implementation that pushes exactly one
+    /// item on exception entry. In this implementation, exception entry chain
+    /// can cause some exception frames to be left unprotected.
+    Naive,
+    /// Disables nested exceptions. This greatly simplifies the shadow exception
+    /// stack algorithm, improving performance. The exception trampoline can also
+    /// be made smaller (`nonsecure_vector_unnest.S`).
+    ///
+    /// When this option is selected, all exceptions must be configured with the
+    /// same group priority so none of them can preempt another.
+    Unnested,
+    /// The exception trampoline scans the stacks to make sure all active
+    /// exception frames are protected by the shadow stack.
+    Safe,
+};
+
+/// Selects the implementation of shadow exception stack to use.
+pub const SHADOW_EXC_STACK_TYPE: ShadowExcStackType = if (@hasDecl(root, "TC_SHADOW_EXC_STACK_TYPE"))
+    root.TC_SHADOW_EXC_STACK_TYPE
 else
-    TC_NO_NESTED_EXCEPTIONS;
+    ShadowExcStackType.Safe;
 
 /// Compile-time log level.
 pub const LOG_LEVEL: LogLevel = if (@hasDecl(root, "TC_LOG_LEVEL"))

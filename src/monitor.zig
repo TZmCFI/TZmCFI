@@ -45,3 +45,4 @@ pub const setWarnHandler = debug.setWarnHandler;
 pub const log = debug.log;
 
 pub const LogLevel = options.LogLevel;
+pub const ShadowExcStackType = options.ShadowExcStackType;

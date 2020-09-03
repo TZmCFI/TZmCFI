@@ -10,6 +10,7 @@ const LibExeObjStep = std.build.LibExeObjStep;
 const warn = std.debug.warn;
 const allocPrint = std.fmt.allocPrint;
 const eql = std.mem.eql;
+const eqlIgnoreCase = std.ascii.eqlIgnoreCase;
 const toLower = std.ascii.toLower;
 // ----------------------------------------------------------------------------
 
@@ -20,16 +21,20 @@ pub fn build(b: *Builder) !void {
     const enable_profile = b.option(bool, "profile", "Enable TZmCFI profiler (e.g., TCDebugDumpProfile)") orelse false;
     const enable_cfi = b.option(bool, "cfi", "Enable TZmCFI (default = true)") orelse true;
 
-    const cfi_opts = CfiOpts{
+    var cfi_opts = CfiOpts{
         .ctx = b.option(bool, "cfi-ctx", "Enable TZmCFI context management (default = cfi)") orelse enable_cfi,
         .ses = b.option(bool, "cfi-ses", "Enable TZmCFI shadow exception stacks (default = cfi)") orelse enable_cfi,
         .ss = b.option(bool, "cfi-ss", "Enable TZmCFI shadow stacks (default = cfi)") orelse enable_cfi,
         .aborting_ss = b.option(bool, "cfi-aborting-ss", "Use the aborting implementation of SS (default = false)") orelse false,
         .icall = b.option(bool, "cfi-icall", "Enable indirect call CFI (default = cfi)") orelse enable_cfi,
-        .unnest = b.option(bool, "cfi-unnest", "Disallow nested exceptions (default = false)") orelse false,
+        .ses_type = b.option([]const u8, "cfi-ses-type", "TZmCFI shadow exception stack type " ++
+            "(valid values: [null, naive, unnested, safe], default = safe)") orelse "safe",
     };
     cfi_opts.validate() catch |e| switch (e) {
         error.IncompatibleCfiOpts => {
+            b.markInvalidUserInput();
+        },
+        error.UnrecognizedCfiOpts => {
             b.markInvalidUserInput();
         },
     };
@@ -100,7 +105,7 @@ pub fn build(b: *Builder) !void {
     monitor.addBuildOption([]const u8, "LOG_LEVEL", try allocPrint(b.allocator, "\"{}\"", .{log_level}));
     monitor.addBuildOption(bool, "ENABLE_PROFILE", enable_profile);
     monitor.addBuildOption(bool, "ABORTING_SHADOWSTACK", cfi_opts.aborting_ss);
-    monitor.addBuildOption(bool, "NO_NESTED_EXCEPTIONS", cfi_opts.unnest);
+    monitor.addBuildOption([]const u8, "SHADOW_EXC_STACK_TYPE", try allocPrint(b.allocator, "\"{}\"", .{cfi_opts.ses_type}));
     monitor.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
     monitor.addIncludeDir("../include");
     monitor.emit_h = false;
@@ -268,12 +273,12 @@ const CfiOpts = struct {
     /// Abort on shadow stack integrity check failure
     aborting_ss: bool,
 
-    /// Disallow nested exceptions
-    unnest: bool,
+    /// Shadow exception stack implementation
+    ses_type: []const u8,
 
     const Self = @This();
 
-    fn validate(self: *const Self) !void {
+    fn validate(self: *Self) !void {
         if (self.ss and !self.ctx) {
             // Shadow stacks are managed by context management API.
             warn("error: cfi-ss requires cfi-ctx\n", .{});
@@ -300,10 +305,17 @@ const CfiOpts = struct {
             return error.IncompatibleCfiOpts;
         }
 
-        if (self.unnest and !self.ses) {
-            // `unnest` makes no sense without `ses`
-            warn("error: cfi-unnest requires cfi-ses\n", .{});
-            return error.IncompatibleCfiOpts;
+        const valid_ses_types = [_][]const u8{
+            "Safe", "Naive", "Unnested", "Null",
+        };
+        for (valid_ses_types) |valid_ses_type| {
+            if (eqlIgnoreCase(self.ses_type, valid_ses_type)) {
+                self.ses_type = valid_ses_type;
+                break;
+            }
+        } else {
+            warn("error: invalid cfi-ses-type value: '{}'\n", .{self.ses_type});
+            return error.UnrecognizedCfiOpts;
         }
     }
 
@@ -317,13 +329,13 @@ const CfiOpts = struct {
         }
     }
 
-    fn configureBuildStep(self: *const Self, step: *LibExeObjStep) void {
+    fn configureBuildStep(self: *const Self, b: *Builder, step: *LibExeObjStep) !void {
         step.enable_shadow_call_stack = self.ss;
         // TODO: Enable `cfi-icall` on Zig code
 
         step.addBuildOption(bool, "HAS_TZMCFI_CTX", self.ctx);
         step.addBuildOption(bool, "HAS_TZMCFI_SES", self.ses);
-        step.addBuildOption(bool, "NO_NESTED_EXCEPTIONS", self.unnest);
+        step.addBuildOption([]const u8, "SHADOW_EXC_STACK_TYPE", try allocPrint(b.allocator, "\"{}\"", .{self.ses_type}));
     }
 };
 
@@ -395,7 +407,7 @@ fn defineNonSecureApp(
     exe_ns.setLinkerScriptPath(try allocPrint(b.allocator, "ports/{}/nonsecure.ld", .{target_board}));
     exe_ns.setTarget(target);
     exe_ns.setBuildMode(mode);
-    if (ns_app_deps.cfi_opts.unnest) {
+    if (eql(u8, ns_app_deps.cfi_opts.ses_type, "Unnested")) {
         exe_ns.addCSourceFile("../src/nonsecure_vector_unnest.S", as_flags);
     } else {
         exe_ns.addCSourceFile("../src/nonsecure_vector_ses.S", as_flags);
@@ -407,7 +419,7 @@ fn defineNonSecureApp(
     exe_ns.addBuildOption([]const u8, "BOARD", try allocPrint(b.allocator, "\"{}\"", .{target_board}));
     exe_ns.addBuildOption([]const u8, "ROM_OFFSET", try allocPrint(b.allocator, "{}", .{rom_offset}));
 
-    ns_app_deps.cfi_opts.configureBuildStep(exe_ns);
+    try ns_app_deps.cfi_opts.configureBuildStep(b, exe_ns);
 
     // The C/C++ compiler options
     var c_flags = std.ArrayList([]const u8).init(b.allocator);

@@ -8,12 +8,17 @@ const port = @import("ports/" ++ @import("build_options").BOARD ++ "/secure.zig"
 // ----------------------------------------------------------------------------
 const exports = @import("monitor/exports.zig");
 // ----------------------------------------------------------------------------
+const stringToEnum = @import("std").meta.stringToEnum;
+// ----------------------------------------------------------------------------
 
 // Pass build options to `tzmcfi`, which picks them up via `@import("root")`
 // See `src/monitor/options.zig`.
 pub const TC_ENABLE_PROFILER = @import("build_options").ENABLE_PROFILE;
 pub const TC_ABORTING_SHADOWSTACK = @import("build_options").ABORTING_SHADOWSTACK;
-pub const TC_NO_NESTED_EXCEPTIONS = @import("build_options").NO_NESTED_EXCEPTIONS;
+pub const TC_SHADOW_EXC_STACK_TYPE = stringToEnum(
+    tzmcfi_monitor.ShadowExcStackType, 
+    @import("build_options").SHADOW_EXC_STACK_TYPE
+).?;
 pub const TC_LOG_LEVEL = @import("build_options").LOG_LEVEL;
 
 var cur_warn_handler: ?exports.WarnHandler = null;
