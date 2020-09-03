@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::{error::Error, future::Future, path::PathBuf};
 use thiserror::Error;
 
-use super::{build_target, subprocess, target, BuildOpt};
+use super::{build_target, subprocess, target, BuildOpt, SesType};
 
 pub mod bench_coremark;
 pub mod bench_latency;
@@ -73,10 +73,7 @@ pub(crate) async fn run(opt: &super::Opt, traits: impl AppTraits) -> Result<(), 
     let mut target = build_target(opt).await?;
 
     let build_opts = BuildOpt::all_valid_values(opt).filter(|bo| {
-        if !traits.should_use_shadow_exception_stacks() && !bo.ses {
-            return false;
-        }
-        if !traits.should_use_shadow_exception_stacks() && bo.unnest {
+        if !traits.should_use_shadow_exception_stacks() && bo.ses != Some(SesType::Safe) {
             return false;
         }
         if !traits.should_use_shadow_stacks() && bo.ss {

@@ -156,12 +156,11 @@ async fn build_target(opt: &Opt) -> Result<Box<dyn target::Target + '_>, BuildTa
 struct BuildOpt {
     mode: BuildMode,
     ctx: bool,
-    ses: bool,
+    ses: Option<SesType>,
     ss: bool,
     aborting_ss: bool,
     icall: bool,
     accel_raise_pri: bool,
-    unnest: bool,
     rom_offset: u8,
 }
 
@@ -169,6 +168,14 @@ struct BuildOpt {
 enum BuildMode {
     ReleaseFast,
     ReleaseSmall,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Eq, PartialEq)]
+enum SesType {
+    Safe,
+    Unnested,
+    Naive,
+    Null,
 }
 
 impl fmt::Display for BuildOpt {
@@ -185,12 +192,8 @@ impl fmt::Display for BuildOpt {
         if self.ctx {
             e!("ctx");
         }
-        if self.ses {
-            if self.unnest {
-                e!("ses(unnest)");
-            } else {
-                e!("ses");
-            }
+        if let Some(ses) = self.ses {
+            e!("ses({})", ses);
         }
         if self.ss {
             if self.aborting_ss {
@@ -212,6 +215,17 @@ impl fmt::Display for BuildOpt {
     }
 }
 
+impl fmt::Display for SesType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(match self {
+            Self::Safe => "safe",
+            Self::Unnested => "unnested",
+            Self::Naive => "naive",
+            Self::Null => "null",
+        })
+    }
+}
+
 impl BuildOpt {
     fn all_valid_values(opt: &Opt) -> impl Iterator<Item = Self> + Clone {
         use itertools::iproduct;
@@ -223,8 +237,15 @@ impl BuildOpt {
                     .iter()
                     .cloned(),
                 [false, true].iter().cloned(),
-                [false, true].iter().cloned(),
-                [false, true].iter().cloned(),
+                [
+                    None,
+                    Some(SesType::Null),
+                    Some(SesType::Naive),
+                    Some(SesType::Unnested),
+                    Some(SesType::Safe)
+                ]
+                .iter()
+                .cloned(),
                 [false, true].iter().cloned()
             ),
             [false, true].iter().cloned(),
@@ -239,12 +260,11 @@ impl BuildOpt {
             .cloned()
         )
         .map(
-            |((mode, ctx, ses, unnest, ss), aborting_ss, icall, accel_raise_pri, rom_offset)| {
+            |((mode, ctx, ses, ss), aborting_ss, icall, accel_raise_pri, rom_offset)| {
                 Self {
                     mode,
                     ctx,
                     ses,
-                    unnest,
                     ss,
                     aborting_ss,
                     icall,
@@ -262,12 +282,12 @@ impl BuildOpt {
             return Err("cfi-ss requires cfi-ctx");
         }
 
-        if self.ses && !self.ctx {
+        if self.ses.is_some() && !self.ctx {
             // Shadow exception stacks are managed by context management API.
             return Err("cfi-ses requires cfi-ctx");
         }
 
-        if self.ss && !self.ses {
+        if self.ss && self.ses.is_none() {
             // TZmCFI's shadow stacks do not work without shadow exception stacks.
             // Probably because the shadow stack routines mess up the lowest bit
             // of `EXC_RETURN`.
@@ -285,11 +305,6 @@ impl BuildOpt {
             return Err("-Daccel-raise-pri requires -Dcfi-ctx");
         }
 
-        if self.unnest && !self.ses {
-            // `unnest` makes no sense without `ses`
-            return Err("-Dcfi-unnest requires -Dcfi-ses");
-        }
-
         Ok(())
     }
 
@@ -302,11 +317,9 @@ impl BuildOpt {
         if self.ctx {
             o("-Dcfi-ctx".to_owned());
         }
-        if self.ses {
+        if let Some(ses) = self.ses {
             o("-Dcfi-ses".to_owned());
-        }
-        if self.unnest {
-            o("-Dcfi-unnest".to_owned());
+            o(format!("-Dcfi-ses-type={}", ses));
         }
         if self.ss {
             o("-Dcfi-ss".to_owned());
