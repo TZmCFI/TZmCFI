@@ -242,137 +242,150 @@ const ChainedExceptionStackIterator = struct {
 const dummy_exc_frame = [1]usize{0} ** 7;
 
 // The default SES implementation supporting nested exceptions.
-const nested_impl = struct {
-    /// The default shadow stack
-    var g_default_stack_storage: [32]Frame = undefined;
+fn fullImpl(comptime safe: bool) type {
+    return struct {
+        /// The default shadow stack
+        var g_default_stack_storage: [32]Frame = undefined;
 
-    /// Bundles the state of a single instance of shadow exception stack.
-    const StackStateImpl = struct {
-        current: [*]Frame,
-        top: [*]Frame,
-        limit: [*]Frame,
+        /// Bundles the state of a single instance of shadow exception stack.
+        const StackStateImpl = struct {
+            current: [*]Frame,
+            top: [*]Frame,
+            limit: [*]Frame,
 
-        const Self = @This();
+            const Self = @This();
 
-        /// Construct a `StackStateImpl` by allocating memory from `allocator`.
-        pub fn new(allocator: *Allocator, create_info: *const TCThreadCreateInfo) !Self {
-            const frames = try allocator.alloc(Frame, 4);
-            var self = fromSlice(frames);
+            /// Construct a `StackStateImpl` by allocating memory from `allocator`.
+            pub fn new(allocator: *Allocator, create_info: *const TCThreadCreateInfo) !Self {
+                const frames = try allocator.alloc(Frame, 4);
+                var self = fromSlice(frames);
 
-            self.top[0] = Frame{
-                .pc = create_info.initialPC,
-                .lr = create_info.initialLR,
-                .exc_return = create_info.excReturn,
-                .frame = create_info.exceptionFrame,
-                .r12 = 0x12121212,
-            };
-            self.top += 1;
+                self.top[0] = Frame{
+                    .pc = create_info.initialPC,
+                    .lr = create_info.initialLR,
+                    .exc_return = create_info.excReturn,
+                    .frame = create_info.exceptionFrame,
+                    .r12 = 0x12121212,
+                };
+                self.top += 1;
 
-            return self;
+                return self;
+            }
+
+            /// Release the memory allocated for `self`. `self` must have been created
+            /// by `new(allocator, _)`.
+            pub fn destroy(self: *const Self, allocator: *Allocator) void {
+                allocator.free(self.asSlice());
+            }
+
+            fn fromSlice(frames: []Frame) Self {
+                var start = @ptrCast([*]Frame, &frames[0]);
+                return Self{
+                    .current = start,
+                    .top = start,
+                    .limit = start + frames.len,
+                };
+            }
+
+            fn asSlice(self: *const Self) []Frame {
+                const len = @divExact(@ptrToInt(self.limit) - @ptrToInt(self.current), @sizeOf(Frame));
+                return self.current[0..len];
+            }
+        };
+
+        fn createStackStateWithDefaultStorage() StackStateImpl {
+            return StackStateImpl.fromSlice(&g_default_stack_storage);
         }
 
-        /// Release the memory allocated for `self`. `self` must have been created
-        /// by `new(allocator, _)`.
-        pub fn destroy(self: *const Self, allocator: *Allocator) void {
-            allocator.free(self.asSlice());
-        }
+        /// Perform the shadow push operation.
+        fn pushShadowExcStack(exc_return: usize) void {
+            var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
 
-        fn fromSlice(frames: []Frame) Self {
-            var start = @ptrCast([*]Frame, &frames[0]);
-            return Self{
-                .current = start,
-                .top = start,
-                .limit = start + frames.len,
-            };
-        }
+            const stack = &g_stack;
+            var new_top: [*]Frame = stack.top;
 
-        fn asSlice(self: *const Self) []Frame {
-            const len = @divExact(@ptrToInt(self.limit) - @ptrToInt(self.current), @sizeOf(Frame));
-            return self.current[0..len];
-        }
-    };
+            // TODO: Add bounds check using `StackStateImpl::limit`
 
-    fn createStackStateWithDefaultStorage() StackStateImpl {
-        return StackStateImpl.fromSlice(&g_default_stack_storage);
-    }
+            if (safe) {
+                if (new_top == stack.current) {
+                    // The shadow exception stack is empty -- push every frame we find
+                    while (true) {
+                        new_top.* = exc_stack.asFrame();
+                        new_top += 1;
 
-    /// Perform the shadow push operation.
-    fn pushShadowExcStack(exc_return: usize) void {
-        var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
+                        if (!exc_stack.moveNext()) {
+                            break;
+                        }
+                    }
+                } else {
+                    // Push until a known entry is encountered
+                    const top_frame = (new_top - 1).*.frame;
 
-        const stack = &g_stack;
-        var new_top: [*]Frame = stack.top;
+                    while (true) {
+                        if (exc_stack.getFrameAddress() == top_frame) {
+                            break;
+                        }
 
-        // TODO: Add bounds check using `StackStateImpl::limit`
+                        new_top.* = exc_stack.asFrame();
+                        new_top += 1;
 
-        if (new_top == stack.current) {
-            // The shadow exception stack is empty -- push every frame we find
-            while (true) {
+                        if (!exc_stack.moveNext()) {
+                            break;
+                        }
+                    }
+                }
+
+                // The entries were inserted in a reverse order. Reverse them to be in the
+                // correct order.
+                reverse(Frame, stack.top, new_top);
+            } else {
+                // Push one frame
                 new_top.* = exc_stack.asFrame();
                 new_top += 1;
-
-                if (!exc_stack.moveNext()) {
-                    break;
-                }
             }
-        } else {
-            // Push until a known entry is encountered
-            const top_frame = (new_top - 1).*.frame;
 
-            while (true) {
-                if (exc_stack.getFrameAddress() == top_frame) {
-                    break;
-                }
-
-                new_top.* = exc_stack.asFrame();
-                new_top += 1;
-
-                if (!exc_stack.moveNext()) {
-                    break;
-                }
-            }
+            stack.top = new_top;
         }
 
-        // The entries were inserted in a reverse order. Reverse them to be in the
-        // correct order.
-        reverse(Frame, stack.top, new_top);
+        /// Perform the shadow pop (assert) opertion and get the `EXC_RETURN` that
+        /// corresponds to the current exception activation.
+        fn popShadowExcStack() usize {
+            const stack = &g_stack;
 
-        stack.top = new_top;
-    }
-
-    /// Perform the shadow pop (assert) opertion and get the `EXC_RETURN` that
-    /// corresponds to the current exception activation.
-    fn popShadowExcStack() usize {
-        const stack = &g_stack;
-
-        if (stack.top == stack.current) {
-            @panic("Exception return trampoline was called but the shadow exception stack is empty.");
-        }
-
-        const exc_return = (stack.top - 1)[0].exc_return;
-
-        var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
-
-        // Validate *two* top entries.
-        if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
-            log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 1)[0] });
-            @panic("Exception stack integrity check has failed.");
-        }
-        if (exc_stack.moveNext()) {
-            if (stack.top == stack.current + 1) {
-                @panic("The number of entries in the shadow exception stack is lower than expected.");
+            if (stack.top == stack.current) {
+                @panic("Exception return trampoline was called but the shadow exception stack is empty.");
             }
-            if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
-                log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 2)[0] });
+
+            const exc_return = (stack.top - 1)[0].exc_return;
+
+            var exc_stack = ChainedExceptionStackIterator.new(exc_return, getMspNs(), getPspNs());
+
+            // Validate *two* top entries. This is required for the soundness
+            // of the safe shadow exception stack algorithm. (Please see the
+            // paper for details.)
+            if (!exc_stack.asFrame().eq((stack.top - 1)[0])) {
+                log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 1)[0] });
                 @panic("Exception stack integrity check has failed.");
             }
+
+            if (safe) {
+                if (exc_stack.moveNext()) {
+                    if (stack.top == stack.current + 1) {
+                        @panic("The number of entries in the shadow exception stack is lower than expected.");
+                    }
+                    if (!exc_stack.asFrame().eq((stack.top - 2)[0])) {
+                        log(.Warning, "popShadowExcStack: {} != {}\r\n", .{ exc_stack.asFrame(), (stack.top - 2)[0] });
+                        @panic("Exception stack integrity check has failed.");
+                    }
+                }
+            }
+
+            stack.top -= 1;
+
+            return exc_return;
         }
-
-        stack.top -= 1;
-
-        return exc_return;
-    }
-};
+    };
+}
 
 // The simplified SES implementation not supporting nested exceptions.
 const unnested_impl = struct {
@@ -498,11 +511,11 @@ const min_impl = struct {
 
 // Choose an implementation based on `NO_NESTED_EXCEPTIONS`
 const impl = if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Safe)
-    nested_impl
+    fullImpl(true)
 else if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Unnested)
     unnested_impl
 else if (SHADOW_EXC_STACK_TYPE == ShadowExcStackType.Naive)
-    @compileError("TODO!")
+    fullImpl(false)
 else
     min_impl;
 pub const StackState = impl.StackStateImpl;
